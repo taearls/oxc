@@ -102,7 +102,7 @@ declare_oxc_lint!(
     /// ```
     NoExtraneousDependencies,
     import,
-    correctness,
+    restriction,
 );
 
 impl Rule for NoExtraneousDependencies {
