@@ -7,7 +7,6 @@
 
 /// <https://github.com/import-js/eslint-plugin-import>
 mod import {
-    //     pub mod no_extraneous_dependencies;
     pub mod no_deprecated;
     // pub mod no_unused_modules;
     pub mod default;
@@ -22,6 +21,7 @@ mod import {
     pub mod no_default_export;
     pub mod no_duplicates;
     pub mod no_dynamic_require;
+    pub mod no_extraneous_dependencies;
     pub mod no_named_as_default;
     pub mod no_named_as_default_member;
     pub mod no_named_default;
