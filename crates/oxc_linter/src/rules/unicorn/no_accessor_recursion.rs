@@ -62,116 +62,204 @@ declare_oxc_lint!(
 
 impl Rule for NoAccessorRecursion {
     fn run<'a>(&self, node: &AstNode<'a>, ctx: &LintContext<'a>) {
-        let AstKind::ThisExpression(this_expr) = node.kind() else {
-            return;
-        };
-        let Some(target) = ctx.nodes().ancestors(node.id()).find(|n| match n.kind() {
-            member_expr if member_expr.is_member_expression_kind() => {
-                let Some(member_expr) = member_expr.as_member_expression_kind() else {
-                    return false;
-                };
-                member_expr.object().without_parentheses().span() == this_expr.span()
-            }
-            AstKind::VariableDeclarator(decl) => decl
-                .init
-                .as_ref()
-                .is_some_and(|init| init.without_parentheses().span() == this_expr.span()),
-            _ => false,
-        }) else {
-            return;
-        };
-        // find the nearest MemberExpression or VariableDeclarator
-        let Some(nearest_func) = get_nearest_function(node, ctx) else {
-            return;
-        };
-        let func_parent = ctx.nodes().parent_node(nearest_func.id());
-        if !is_property_or_method_def(func_parent) {
-            return;
-        }
-        match target.kind() {
-            AstKind::VariableDeclarator(decl) => {
-                let Some(key_name) = get_property_or_method_def_name(func_parent) else {
-                    return;
-                };
-                if let BindingPatternKind::ObjectPattern(obj_pattern) = &decl.id.kind {
-                    let exist = obj_pattern
-                        .properties
-                        .iter()
-                        .any(|ident| ident.key.name().is_some_and(|name| name == key_name));
-                    if exist {
-                        ctx.diagnostic(no_accessor_recursion_diagnostic(decl.span(), "getters"));
+        match node.kind() {
+            AstKind::ThisExpression(_) => {
+                // Check all member expressions in the chain that start with this
+                let mut current = node;
+                let mut member_exprs = Vec::new();
+                loop {
+                    let parent = ctx.nodes().parent_node(current.id());
+                    if parent.kind().is_member_expression_kind() {
+                        if let Some(parent_member_expr) = parent.kind().as_member_expression_kind()
+                        {
+                            if parent_member_expr.object().without_parentheses().span()
+                                == current.span()
+                            {
+                                member_exprs.push(parent);
+                                current = parent;
+                                continue;
+                            }
+                        }
+                    }
+                    break;
+                }
+
+                // Check each member expression in the chain
+                for target in &member_exprs {
+                    // find the nearest function
+                    let Some(nearest_func) = get_nearest_function(target, ctx) else {
+                        continue;
+                    };
+                    let func_parent = ctx.nodes().parent_node(nearest_func.id());
+                    if !is_property_or_method_def(func_parent) {
+                        continue;
+                    }
+
+                    let Some(member_expr) = target.kind().as_member_expression_kind() else {
+                        continue;
+                    };
+                    let Some(expr_key_name) = get_member_expr_key_name(&member_expr) else {
+                        continue;
+                    };
+
+                    match func_parent.kind() {
+                        // e.g. "const foo = { get bar() { return this.bar }}"
+                        AstKind::ObjectProperty(property) => {
+                            let Some(prop_key_name) = property.key.name() else {
+                                continue;
+                            };
+                            let is_same_key = {
+                                if matches!(member_expr, MemberExpressionKind::PrivateField(_)) {
+                                    matches!(&property.key, PropertyKey::PrivateIdentifier(_))
+                                        && prop_key_name.as_ref() == expr_key_name
+                                } else {
+                                    prop_key_name.as_ref() == expr_key_name
+                                }
+                            };
+                            if !is_same_key {
+                                continue;
+                            }
+                            if property.kind == PropertyKind::Get {
+                                ctx.diagnostic(no_accessor_recursion_diagnostic(
+                                    member_expr.span(),
+                                    "getters",
+                                ));
+                                return;
+                            }
+                            if property.kind == PropertyKind::Set {
+                                if is_property_write(target, ctx) {
+                                    // Only report if this is not the object of another member expression (outermost in the write chain)
+                                    let mut is_outermost = true;
+                                    for other in &member_exprs {
+                                        if other.id() != target.id() {
+                                            if let Some(other_member_expr) =
+                                                other.kind().as_member_expression_kind()
+                                            {
+                                                if other_member_expr
+                                                    .object()
+                                                    .without_parentheses()
+                                                    .span()
+                                                    == target.span()
+                                                {
+                                                    is_outermost = false;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if !is_outermost {
+                                        continue;
+                                    }
+                                    ctx.diagnostic(no_accessor_recursion_diagnostic(
+                                        member_expr.span(),
+                                        "setters",
+                                    ));
+                                    return;
+                                }
+                            }
+                        }
+                        // e.g. "class Foo { get bar(value) { return this.bar } }"
+                        AstKind::MethodDefinition(method_def) => {
+                            let Some(prop_key_name) = method_def.key.name() else {
+                                continue;
+                            };
+                            let is_same_key = {
+                                if matches!(member_expr, MemberExpressionKind::PrivateField(_)) {
+                                    matches!(&method_def.key, PropertyKey::PrivateIdentifier(_))
+                                        && prop_key_name.as_ref() == expr_key_name
+                                } else {
+                                    prop_key_name.as_ref() == expr_key_name
+                                }
+                            };
+                            if !is_same_key {
+                                continue;
+                            }
+                            if method_def.kind == MethodDefinitionKind::Get {
+                                ctx.diagnostic(no_accessor_recursion_diagnostic(
+                                    member_expr.span(),
+                                    "getters",
+                                ));
+                                return;
+                            }
+                            if method_def.kind == MethodDefinitionKind::Set {
+                                if is_property_write(target, ctx) {
+                                    // Only report if this is not the object of another member expression (outermost in the write chain)
+                                    let mut is_outermost = true;
+                                    for other in &member_exprs {
+                                        if other.id() != target.id() {
+                                            if let Some(other_member_expr) =
+                                                other.kind().as_member_expression_kind()
+                                            {
+                                                if other_member_expr
+                                                    .object()
+                                                    .without_parentheses()
+                                                    .span()
+                                                    == target.span()
+                                                {
+                                                    is_outermost = false;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if !is_outermost {
+                                        continue;
+                                    }
+                                    ctx.diagnostic(no_accessor_recursion_diagnostic(
+                                        member_expr.span(),
+                                        "setters",
+                                    ));
+                                    return;
+                                }
+                            }
+                        }
+                        _ => {}
                     }
                 }
             }
-            member_expr if member_expr.is_member_expression_kind() => {
-                let Some(member_expr) = member_expr.as_member_expression_kind() else {
-                    return;
-                };
-                let Some(expr_key_name) = get_member_expr_key_name(&member_expr) else {
-                    return;
-                };
-                match func_parent.kind() {
-                    // e.g. "const foo = { get bar() { return this.bar }}"
-                    AstKind::ObjectProperty(property) => {
-                        let Some(prop_key_name) = property.key.name() else {
+            AstKind::VariableDeclarator(decl) => {
+                // Only check if the initializer is `this`
+                if let Some(init) = &decl.init {
+                    if matches!(init, oxc_ast::ast::Expression::ThisExpression(_)) {
+                        // Find the nearest function and its parent
+                        let Some(nearest_func) = get_nearest_function(node, ctx) else {
                             return;
                         };
-                        let is_same_key = {
-                            if matches!(member_expr, MemberExpressionKind::PrivateField(_)) {
-                                matches!(&property.key, PropertyKey::PrivateIdentifier(_))
-                                    && prop_key_name.as_ref() == expr_key_name
-                            } else {
-                                prop_key_name.as_ref() == expr_key_name
+                        let func_parent = ctx.nodes().parent_node(nearest_func.id());
+                        if !is_property_or_method_def(func_parent) {
+                            return;
+                        }
+                        // Only report in getters
+                        let (is_getter, key_name) = match func_parent.kind() {
+                            AstKind::ObjectProperty(property) => {
+                                (property.kind == PropertyKind::Get, property.key.name())
                             }
+                            AstKind::MethodDefinition(method_def) => (
+                                method_def.kind == MethodDefinitionKind::Get,
+                                method_def.key.name(),
+                            ),
+                            _ => (false, None),
                         };
-                        if !is_same_key {
+                        if !is_getter {
                             return;
                         }
-                        if property.kind == PropertyKind::Get {
-                            ctx.diagnostic(no_accessor_recursion_diagnostic(
-                                member_expr.span(),
-                                "getters",
-                            ));
-                        }
-                        if property.kind == PropertyKind::Set && is_property_write(target, ctx) {
-                            ctx.diagnostic(no_accessor_recursion_diagnostic(
-                                member_expr.span(),
-                                "setters",
-                            ));
+                        let Some(key_name) = key_name else {
+                            return;
+                        };
+                        // Check if the pattern contains the property name
+                        if let BindingPatternKind::ObjectPattern(obj_pattern) = &decl.id.kind {
+                            let exist = obj_pattern
+                                .properties
+                                .iter()
+                                .any(|ident| ident.key.name().is_some_and(|name| name == key_name));
+                            if exist {
+                                ctx.diagnostic(no_accessor_recursion_diagnostic(
+                                    decl.span(),
+                                    "getters",
+                                ));
+                            }
                         }
                     }
-                    // e.g. "class Foo { get bar(value) { return this.bar } }"
-                    AstKind::MethodDefinition(method_def) => {
-                        let Some(prop_key_name) = method_def.key.name() else {
-                            return;
-                        };
-                        let is_same_key = {
-                            if matches!(member_expr, MemberExpressionKind::PrivateField(_)) {
-                                matches!(&method_def.key, PropertyKey::PrivateIdentifier(_))
-                                    && prop_key_name.as_ref() == expr_key_name
-                            } else {
-                                prop_key_name.as_ref() == expr_key_name
-                            }
-                        };
-                        if !is_same_key {
-                            return;
-                        }
-                        if method_def.kind == MethodDefinitionKind::Get {
-                            ctx.diagnostic(no_accessor_recursion_diagnostic(
-                                member_expr.span(),
-                                "getters",
-                            ));
-                        }
-                        if method_def.kind == MethodDefinitionKind::Set
-                            && is_property_write(target, ctx)
-                        {
-                            ctx.diagnostic(no_accessor_recursion_diagnostic(
-                                member_expr.span(),
-                                "setters",
-                            ));
-                        }
-                    }
-                    _ => {}
                 }
             }
             _ => {}
@@ -190,9 +278,49 @@ fn is_property_write<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>) -> bool {
         AstKind::UpdateExpression(UpdateExpression { argument, .. }) => {
             argument.span() == node.span()
         }
-        // e.g. "this.bar = 1" or "[this.bar] = array"
-        AstKind::AssignmentExpression(assign_target) => assign_target.span() == node.span(),
-        _ => false,
+        // e.g. "this.bar = 1" - only if this.bar is the left side of the assignment
+        AstKind::AssignmentExpression(assign_target) => {
+            let left = &assign_target.left;
+            if let Some(simple_target) = left.as_simple_assignment_target() {
+                if node.span() == simple_target.span() {
+                    // Check that the node is not the object of another MemberExpression
+                    let parent = ctx.nodes().parent_node(node.id());
+                    if parent.kind().is_member_expression_kind() {
+                        // If this node is the object of a member expression, do not report
+                        if let Some(member_expr) = parent.kind().as_member_expression_kind() {
+                            if member_expr.object().span() == node.span() {
+                                return false;
+                            }
+                        }
+                    }
+                    return true;
+                }
+            }
+            false
+        }
+        // e.g. "({property: this.bar} = object)" - check if we're in a destructuring assignment
+        _ => {
+            // Check if we're part of an assignment target pattern by walking up the AST
+            let mut current_id = node.id();
+            loop {
+                let parent_node = ctx.nodes().parent_node(current_id);
+                match parent_node.kind() {
+                    AstKind::AssignmentExpression(assign_expr) => {
+                        // Only return true if the node is part of the left side
+                        let left_span = assign_expr.left.span();
+                        if node.span().start >= left_span.start && node.span().end <= left_span.end
+                        {
+                            return true;
+                        } else {
+                            break;
+                        }
+                    }
+                    AstKind::Program(_) | AstKind::Function(_) => break,
+                    _ => current_id = parent_node.id(),
+                }
+            }
+            false
+        }
     }
 }
 
