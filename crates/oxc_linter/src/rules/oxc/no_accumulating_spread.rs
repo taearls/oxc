@@ -225,9 +225,7 @@ fn check_loop_usage<'a>(
     if !matches!(assignment_expr.kind(), AstKind::AssignmentExpression(_)) {
         return;
     }
-    let AstKind::AssignmentExpression(assignment_expression) =
-        ctx.nodes().parent_kind(assignment_expr.id())
-    else {
+    let AstKind::AssignmentExpression(assignment_expression) = assignment_expr.kind() else {
         return;
     };
 
