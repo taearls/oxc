@@ -115,9 +115,7 @@ impl Rule for NoUnusedPrivateClassMembers {
 fn is_read(current_node_id: NodeId, nodes: &AstNodes) -> bool {
     // Walk up the ancestor chain, skipping over SimpleAssignmentTarget wrappers
     let mut ancestors = nodes.ancestors(current_node_id).peekable();
-    let mut curr = if let Some(node) = ancestors.next() {
-        node
-    } else {
+    let Some(mut curr) = ancestors.next() else {
         return true;
     };
 
