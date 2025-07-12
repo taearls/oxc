@@ -84,22 +84,42 @@ impl Rule for PreferDomNodeTextContent {
                     return;
                 }
 
+                let parent_node = ctx.nodes().parent_node(node.id());
+                // Do not report if parent is a computed property (BindingProperty or AssignmentTargetPropertyProperty with computed: true)
+                match parent_node.kind() {
+                    AstKind::BindingProperty(binding_property) if binding_property.computed => {
+                        return;
+                    }
+                    AstKind::AssignmentTargetPropertyProperty(prop) if prop.computed => {
+                        return;
+                    }
+                    _ => {}
+                }
+
+                // Check if this is in a destructuring assignment pattern
                 let mut ancestor_kinds = ctx.nodes().ancestor_kinds(node.id());
 
-                let Some(mut parent_node_kind) = ancestor_kinds.next() else { return };
-                if matches!(parent_node_kind, AstKind::AssignmentTargetPropertyIdentifier(_)) {
-                    let Some(next) = ancestor_kinds.next() else { return };
-                    parent_node_kind = next;
-                }
-                let Some(grand_parent_node_kind) = ancestor_kinds.next() else { return };
+                // Skip the current node
+                let Some(_) = ancestor_kinds.next() else { return };
 
-                if matches!(
-                    parent_node_kind,
-                    AstKind::ObjectAssignmentTarget(_)
-                        | AstKind::AssignmentExpression(_)
-                        | AstKind::SimpleAssignmentTarget(_)
-                ) && matches!(grand_parent_node_kind, AstKind::ObjectAssignmentTarget(_))
-                {
+                // Check if we're in an object assignment target or object pattern
+                let mut found_object_context = false;
+                let mut found_assignment_context = false;
+
+                for ancestor_kind in ancestor_kinds {
+                    match ancestor_kind {
+                        AstKind::ObjectAssignmentTarget(_) | AstKind::ObjectPattern(_) => {
+                            found_object_context = true;
+                        }
+                        AstKind::AssignmentExpression(_) => {
+                            found_assignment_context = true;
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+
+                if found_object_context && found_assignment_context {
                     ctx.diagnostic(prefer_dom_node_text_content_diagnostic(identifier_ref.span));
                 }
             }
