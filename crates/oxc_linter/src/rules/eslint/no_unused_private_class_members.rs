@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use oxc_allocator::GetAddress;
 use oxc_ast::AstKind;
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_macros::declare_oxc_lint;
@@ -117,11 +118,19 @@ fn is_read(current_node_id: NodeId, nodes: &AstNodes) -> bool {
         nodes.ancestors(current_node_id).tuple_windows::<(&AstNode<'_>, &AstNode<'_>)>()
     {
         match (curr.kind(), parent.kind()) {
+            // Skip member expressions in assignment targets
             (member_expr, AstKind::SimpleAssignmentTarget(_))
-                if member_expr.is_member_expression_kind() => {}
-            (AstKind::SimpleAssignmentTarget(_), AstKind::SimpleAssignmentTarget(_)) => {}
+                if member_expr.is_member_expression_kind() =>
+            {
+                continue;
+            }
+            (AstKind::SimpleAssignmentTarget(_), AstKind::SimpleAssignmentTarget(_)) => {
+                continue;
+            }
+
+            // Assignment targets are never reads
             (
-                AstKind::AssignmentExpression(_),
+                AstKind::AssignmentExpression(_) | AstKind::SimpleAssignmentTarget(_),
                 AstKind::ForInStatement(_)
                 | AstKind::ForOfStatement(_)
                 | AstKind::AssignmentTargetWithDefault(_)
@@ -130,18 +139,50 @@ fn is_read(current_node_id: NodeId, nodes: &AstNodes) -> bool {
                 | AstKind::AssignmentTargetRest(_)
                 | AstKind::AssignmentTargetPropertyIdentifier(_)
                 | AstKind::AssignmentTargetPropertyProperty(_),
-            )
-            | (AstKind::SimpleAssignmentTarget(_), AstKind::AssignmentExpression(_)) => {
+            ) => {
                 return false;
             }
-            (AstKind::AssignmentExpression(_), AstKind::AssignmentExpression(_))
-            | (_, AstKind::UpdateExpression(_)) => {
-                return !matches!(nodes.parent_kind(parent.id()), AstKind::ExpressionStatement(_));
+
+            // Handle compound assignments (like +=, -=, etc.)
+            (AstKind::SimpleAssignmentTarget(_), AstKind::AssignmentExpression(parent_expr)) => {
+                if parent_expr.operator != oxc_ast::ast::AssignmentOperator::Assign {
+                    let parent_kind = nodes.parent_kind(parent.id());
+                    return !matches!(parent_kind, AstKind::ExpressionStatement(_));
+                }
+                return false;
             }
+
+            // Update expressions are reads unless they're standalone statements
+            (_, AstKind::UpdateExpression(_)) => {
+                let parent_kind = nodes.parent_kind(parent.id());
+                return !matches!(parent_kind, AstKind::ExpressionStatement(_));
+            }
+
+            // Handle assignment expressions
+            (_, AstKind::AssignmentExpression(parent_expr)) => {
+                let curr_addr = curr.kind().address();
+                let right_addr = parent_expr.right.address();
+                let is_right = curr_addr == right_addr;
+                let parent_kind = nodes.parent_kind(parent.id());
+
+                // Right-hand side is always a read
+                if is_right {
+                    return true;
+                }
+
+                // Handle compound operators (like +=, -=, etc.)
+                if parent_expr.operator != oxc_ast::ast::AssignmentOperator::Assign {
+                    return !matches!(parent_kind, AstKind::ExpressionStatement(_));
+                }
+
+                // Left-hand side of simple assignment is not a read
+                return false;
+            }
+
+            // Default: treat as read
             _ => return true,
         }
     }
-
     true
 }
 
