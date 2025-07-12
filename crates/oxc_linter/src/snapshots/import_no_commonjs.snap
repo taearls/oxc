@@ -8,13 +8,6 @@ source: crates/oxc_linter/src/tester.rs
    ╰────
   help: Do not use CommonJS `require` calls and `module.exports` or `exports.*`
 
-  ⚠ eslint-plugin-import(no-commonjs): Expected export instead of exports
-   ╭─[index.js:1:1]
- 1 │ module.exports = {}
-   · ──────────────
-   ╰────
-  help: Do not use CommonJS `require` calls and `module.exports` or `exports.*`
-
   ⚠ eslint-plugin-import(no-commonjs): Expected import instead of require
    ╭─[index.js:1:9]
  1 │ var x = require("x")
@@ -73,13 +66,6 @@ source: crates/oxc_linter/src/tester.rs
 
   ⚠ eslint-plugin-import(no-commonjs): Expected export instead of exports
    ╭─[index.js:1:1]
- 1 │ module.exports.face = "palm"
-   · ──────────────
-   ╰────
-  help: Do not use CommonJS `require` calls and `module.exports` or `exports.*`
-
-  ⚠ eslint-plugin-import(no-commonjs): Expected export instead of exports
-   ╭─[index.js:1:1]
  1 │ module.exports = face
    · ──────────────
    ╰────
@@ -89,20 +75,6 @@ source: crates/oxc_linter/src/tester.rs
    ╭─[index.js:1:11]
  1 │ exports = module.exports = {}
    ·           ──────────────
-   ╰────
-  help: Do not use CommonJS `require` calls and `module.exports` or `exports.*`
-
-  ⚠ eslint-plugin-import(no-commonjs): Expected export instead of exports
-   ╭─[index.js:1:11]
- 1 │ exports = module.exports = {}
-   ·           ──────────────
-   ╰────
-  help: Do not use CommonJS `require` calls and `module.exports` or `exports.*`
-
-  ⚠ eslint-plugin-import(no-commonjs): Expected export instead of exports
-   ╭─[index.js:1:9]
- 1 │ var x = module.exports = {}
-   ·         ──────────────
    ╰────
   help: Do not use CommonJS `require` calls and `module.exports` or `exports.*`
 

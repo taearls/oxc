@@ -162,43 +162,42 @@ impl Rule for NoCommonjs {
                 let object = member_expr_kind.object();
 
                 if object.is_specific_id("module") && property_name == "exports" {
-                    let Some(parent_node) = ctx.nodes().ancestors(node.id()).nth(2) else {
-                        return;
-                    };
-
-                    if !self.allow_primitive_modules {
-                        ctx.diagnostic(no_commonjs_diagnostic(
-                            member_expr_kind.span(),
-                            "export",
-                            property_name,
-                        ));
-                    }
-
-                    if let AstKind::AssignmentExpression(assignment_expr) = parent_node.kind() {
-                        if let Expression::ObjectExpression(_object_expr) =
-                            &assignment_expr.right.without_parentheses()
-                        {
-                            ctx.diagnostic(no_commonjs_diagnostic(
-                                member_expr_kind.span(),
-                                "export",
-                                property_name,
-                            ));
-                        } else {
-                            return;
+                    if self.allow_primitive_modules {
+                        let parent = ctx.nodes().parent_node(node.id());
+                        let assignment_expr = match parent.kind() {
+                            AstKind::SimpleAssignmentTarget(_) => {
+                                let grandparent = ctx.nodes().parent_node(parent.id());
+                                if let AstKind::AssignmentExpression(assignment_expr) =
+                                    grandparent.kind()
+                                {
+                                    Some(assignment_expr)
+                                } else {
+                                    None
+                                }
+                            }
+                            AstKind::AssignmentExpression(assignment_expr) => Some(assignment_expr),
+                            _ => None,
+                        };
+                        if let Some(assignment_expr) = assignment_expr {
+                            let right_expr = &assignment_expr.right.without_parentheses();
+                            if !matches!(right_expr, Expression::ObjectExpression(_)) {
+                                return;
+                            }
                         }
-                    } else {
-                        ctx.diagnostic(no_commonjs_diagnostic(
-                            member_expr_kind.span(),
-                            "export",
-                            property_name,
-                        ));
                     }
+
+                    ctx.diagnostic(no_commonjs_diagnostic(
+                        member_expr_kind.span(),
+                        "export",
+                        property_name,
+                    ));
                     return;
                 }
 
                 // exports.
                 if object.is_specific_id("exports") {
-                    if node.scope_id() != ctx.scoping().root_scope_id() {
+                    // Check if exports is in scope (similar to ESLint implementation)
+                    if ctx.scoping().find_binding(node.scope_id(), "exports").is_some() {
                         return;
                     }
 
@@ -210,24 +209,36 @@ impl Rule for NoCommonjs {
                 }
             }
             AstKind::CallExpression(call_expr) => {
-                if self.allow_conditional_require
-                    && node.scope_id() != ctx.scoping().root_scope_id()
-                {
-                    return;
+                // Only skip non-root-scope require calls if allowConditionalRequire is true
+                if self.allow_conditional_require {
+                    if node.scope_id() != ctx.scoping().root_scope_id() {
+                        return;
+                    }
                 }
 
                 if !call_expr.is_require_call() {
                     return;
                 }
 
+                // Check if require is in scope (user-defined require)
                 if ctx.scoping().find_binding(ctx.scoping().root_scope_id(), "require").is_some() {
                     return;
                 }
 
-                if let Argument::TemplateLiteral(template_literal) = &call_expr.arguments[0] {
-                    if !template_literal.expressions.is_empty() {
-                        return;
+                // Check arguments (must have exactly 1 argument that is a literal string)
+                if call_expr.arguments.len() != 1 {
+                    return;
+                }
+
+                let first_arg = &call_expr.arguments[0];
+                match first_arg {
+                    Argument::StringLiteral(_) => {}
+                    Argument::TemplateLiteral(template_literal) => {
+                        if !template_literal.expressions.is_empty() {
+                            return;
+                        }
                     }
+                    _ => return,
                 }
 
                 if self.allow_require {
