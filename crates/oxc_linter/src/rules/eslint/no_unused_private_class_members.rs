@@ -119,14 +119,7 @@ fn is_read(current_node_id: NodeId, nodes: &AstNodes) -> bool {
     {
         match (curr.kind(), parent.kind()) {
             // Skip member expressions in assignment targets
-            (member_expr, AstKind::SimpleAssignmentTarget(_))
-                if member_expr.is_member_expression_kind() =>
-            {
-                continue;
-            }
-            (AstKind::SimpleAssignmentTarget(_), AstKind::SimpleAssignmentTarget(_)) => {
-                continue;
-            }
+            (AstKind::SimpleAssignmentTarget(_), AstKind::SimpleAssignmentTarget(_)) => {}
 
             // Assignment targets are never reads
             (

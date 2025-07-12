@@ -77,18 +77,14 @@ impl<'a, 'b: 'a> NameSymbolCollector<'a, 'b> {
     }
 
     fn has_name_set_reference_node(&self, symbol_id: SymbolId) -> bool {
-        let result =
-            self.scoping.get_resolved_reference_ids(symbol_id).into_iter().any(|reference_id| {
-                let node =
-                    self.ast_nodes.get_node(self.scoping.get_reference(*reference_id).node_id());
-                let is_ref = self.is_name_set_reference_node(node, *reference_id);
-                is_ref
-            });
-        result
+        self.scoping.get_resolved_reference_ids(symbol_id).into_iter().any(|reference_id| {
+            let node = self.ast_nodes.get_node(self.scoping.get_reference(*reference_id).node_id());
+            self.is_name_set_reference_node(node, *reference_id)
+        })
     }
 
     fn is_name_set_declare_node(&self, node: &'a AstNode, symbol_id: SymbolId) -> bool {
-        let result = match node.kind() {
+        match node.kind() {
             AstKind::Function(function) => {
                 self.options.function
                     && function.id.as_ref().is_some_and(|id| id.symbol_id() == symbol_id)
@@ -115,46 +111,40 @@ impl<'a, 'b: 'a> NameSymbolCollector<'a, 'b> {
                 false
             }
             _ => false,
-        };
-        result
+        }
     }
 
     fn is_name_set_reference_node(&self, node: &AstNode, reference_id: ReferenceId) -> bool {
         // Walk up the parent chain to find an AssignmentExpression
-        let mut current_node = node.clone();
+        let mut current_node = *node;
         loop {
             let parent = self.ast_nodes.parent_node(current_node.id());
             // Break if we reach the root or cycle
             if parent.id() == current_node.id() {
                 break;
             }
-            match parent.kind() {
-                AstKind::AssignmentExpression(assign_expr) => {
-                    let left_contains_reference =
-                        Self::is_assignment_target_id_of_specific_reference(
-                            &assign_expr.left,
-                            reference_id,
-                        ) || self.is_assignment_target_contains_reference(
-                            &assign_expr.left,
-                            reference_id,
-                        );
+            if let AstKind::AssignmentExpression(assign_expr) = parent.kind() {
+                let left_contains_reference = Self::is_assignment_target_id_of_specific_reference(
+                    &assign_expr.left,
+                    reference_id,
+                ) || self
+                    .is_assignment_target_contains_reference(&assign_expr.left, reference_id);
 
-                    if left_contains_reference {
-                        // For simple assignments: check if right side is anonymous function/class
-                        let right_is_anonymous =
-                            self.is_expression_whose_name_needs_to_be_kept(&assign_expr.right);
-                        // For destructuring assignments: check if left side contains anonymous function/class in default values
-                        let left_contains_anonymous = self
-                            .is_assignment_target_contains_anonymous_function(&assign_expr.left);
+                if left_contains_reference {
+                    // For simple assignments: check if right side is anonymous function/class
+                    let right_is_anonymous =
+                        self.is_expression_whose_name_needs_to_be_kept(&assign_expr.right);
+                    // For destructuring assignments: check if left side contains anonymous function/class in default values
+                    let left_contains_anonymous =
+                        self.is_assignment_target_contains_anonymous_function(&assign_expr.left);
 
-                        if right_is_anonymous || left_contains_anonymous {
-                            return true;
-                        }
+                    if right_is_anonymous || left_contains_anonymous {
+                        return true;
                     }
                 }
-                _ => {}
             }
-            current_node = parent.clone();
+
+            current_node = *parent;
         }
         false
     }
@@ -164,7 +154,7 @@ impl<'a, 'b: 'a> NameSymbolCollector<'a, 'b> {
         target: &AssignmentTargetMaybeDefault,
         reference_id: ReferenceId,
     ) -> bool {
-        let result = match target {
+        match target {
             AssignmentTargetMaybeDefault::AssignmentTargetWithDefault(assign_target) => {
                 self.is_assignment_target_contains_reference(&assign_target.binding, reference_id)
             }
@@ -211,8 +201,7 @@ impl<'a, 'b: 'a> NameSymbolCollector<'a, 'b> {
                 false
             }
             _ => false,
-        };
-        result
+        }
     }
 
     fn is_assignment_target_contains_reference(
@@ -220,7 +209,7 @@ impl<'a, 'b: 'a> NameSymbolCollector<'a, 'b> {
         target: &AssignmentTarget,
         reference_id: ReferenceId,
     ) -> bool {
-        let result = match target {
+        match target {
             AssignmentTarget::AssignmentTargetIdentifier(id) => id.reference_id() == reference_id,
             AssignmentTarget::ArrayAssignmentTarget(array_target) => {
                 for element in &array_target.elements {
@@ -262,8 +251,7 @@ impl<'a, 'b: 'a> NameSymbolCollector<'a, 'b> {
                 false
             }
             _ => false,
-        };
-        result
+        }
     }
 
     fn find_assign_binding_pattern_kind_of_specific_symbol(
@@ -352,7 +340,6 @@ impl<'a, 'b: 'a> NameSymbolCollector<'a, 'b> {
             AssignmentTargetMaybeDefault::AssignmentTargetWithDefault(assign_target) => {
                 self.is_expression_whose_name_needs_to_be_kept(&assign_target.init)
             }
-            AssignmentTargetMaybeDefault::AssignmentTargetIdentifier(_) => false,
             AssignmentTargetMaybeDefault::ArrayAssignmentTarget(inner_array) => {
                 for element in &inner_array.elements {
                     let Some(binding) = element else { continue };
@@ -392,7 +379,6 @@ impl<'a, 'b: 'a> NameSymbolCollector<'a, 'b> {
 
     fn is_assignment_target_contains_anonymous_function(&self, target: &AssignmentTarget) -> bool {
         match target {
-            AssignmentTarget::AssignmentTargetIdentifier(_) => false,
             AssignmentTarget::ArrayAssignmentTarget(array_target) => {
                 for element in &array_target.elements {
                     let Some(binding) = element else { continue };

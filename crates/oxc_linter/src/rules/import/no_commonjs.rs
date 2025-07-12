@@ -210,10 +210,10 @@ impl Rule for NoCommonjs {
             }
             AstKind::CallExpression(call_expr) => {
                 // Only skip non-root-scope require calls if allowConditionalRequire is true
-                if self.allow_conditional_require {
-                    if node.scope_id() != ctx.scoping().root_scope_id() {
-                        return;
-                    }
+                if self.allow_conditional_require
+                    && node.scope_id() != ctx.scoping().root_scope_id()
+                {
+                    return;
                 }
 
                 if !call_expr.is_require_call() {

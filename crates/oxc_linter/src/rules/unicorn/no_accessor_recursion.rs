@@ -123,36 +123,35 @@ impl Rule for NoAccessorRecursion {
                                 ));
                                 return;
                             }
-                            if property.kind == PropertyKind::Set {
-                                if is_property_write(target, ctx) {
-                                    // Only report if this is not the object of another member expression (outermost in the write chain)
-                                    let mut is_outermost = true;
-                                    for other in &member_exprs {
-                                        if other.id() != target.id() {
-                                            if let Some(other_member_expr) =
-                                                other.kind().as_member_expression_kind()
+                            if property.kind == PropertyKind::Set && is_property_write(target, ctx)
+                            {
+                                // Only report if this is not the object of another member expression (outermost in the write chain)
+                                let mut is_outermost = true;
+                                for other in &member_exprs {
+                                    if other.id() != target.id() {
+                                        if let Some(other_member_expr) =
+                                            other.kind().as_member_expression_kind()
+                                        {
+                                            if other_member_expr
+                                                .object()
+                                                .without_parentheses()
+                                                .span()
+                                                == target.span()
                                             {
-                                                if other_member_expr
-                                                    .object()
-                                                    .without_parentheses()
-                                                    .span()
-                                                    == target.span()
-                                                {
-                                                    is_outermost = false;
-                                                    break;
-                                                }
+                                                is_outermost = false;
+                                                break;
                                             }
                                         }
                                     }
-                                    if !is_outermost {
-                                        continue;
-                                    }
-                                    ctx.diagnostic(no_accessor_recursion_diagnostic(
-                                        member_expr.span(),
-                                        "setters",
-                                    ));
-                                    return;
                                 }
+                                if !is_outermost {
+                                    continue;
+                                }
+                                ctx.diagnostic(no_accessor_recursion_diagnostic(
+                                    member_expr.span(),
+                                    "setters",
+                                ));
+                                return;
                             }
                         }
                         // e.g. "class Foo { get bar(value) { return this.bar } }"
@@ -178,36 +177,36 @@ impl Rule for NoAccessorRecursion {
                                 ));
                                 return;
                             }
-                            if method_def.kind == MethodDefinitionKind::Set {
-                                if is_property_write(target, ctx) {
-                                    // Only report if this is not the object of another member expression (outermost in the write chain)
-                                    let mut is_outermost = true;
-                                    for other in &member_exprs {
-                                        if other.id() != target.id() {
-                                            if let Some(other_member_expr) =
-                                                other.kind().as_member_expression_kind()
+                            if method_def.kind == MethodDefinitionKind::Set
+                                && is_property_write(target, ctx)
+                            {
+                                // Only report if this is not the object of another member expression (outermost in the write chain)
+                                let mut is_outermost = true;
+                                for other in &member_exprs {
+                                    if other.id() != target.id() {
+                                        if let Some(other_member_expr) =
+                                            other.kind().as_member_expression_kind()
+                                        {
+                                            if other_member_expr
+                                                .object()
+                                                .without_parentheses()
+                                                .span()
+                                                == target.span()
                                             {
-                                                if other_member_expr
-                                                    .object()
-                                                    .without_parentheses()
-                                                    .span()
-                                                    == target.span()
-                                                {
-                                                    is_outermost = false;
-                                                    break;
-                                                }
+                                                is_outermost = false;
+                                                break;
                                             }
                                         }
                                     }
-                                    if !is_outermost {
-                                        continue;
-                                    }
-                                    ctx.diagnostic(no_accessor_recursion_diagnostic(
-                                        member_expr.span(),
-                                        "setters",
-                                    ));
-                                    return;
                                 }
+                                if !is_outermost {
+                                    continue;
+                                }
+                                ctx.diagnostic(no_accessor_recursion_diagnostic(
+                                    member_expr.span(),
+                                    "setters",
+                                ));
+                                return;
                             }
                         }
                         _ => {}
@@ -308,8 +307,6 @@ fn is_property_write<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>) -> bool {
                         if node.span().start >= left_span.start && node.span().end <= left_span.end
                         {
                             return true;
-                        } else {
-                            break;
                         }
                     }
                     AstKind::Program(_) | AstKind::Function(_) => break,
