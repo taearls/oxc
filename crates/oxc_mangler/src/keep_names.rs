@@ -120,7 +120,7 @@ impl<'a, 'b: 'a> NameSymbolCollector<'a, 'b> {
                 else {
                     return false;
                 };
-                debug_assert!(matches!(grand_parent_node_kind, AstKind::AssignmentTarget(_)));
+                debug_assert!(matches!(grand_parent_node_kind, AstKind::AssignmentExpression(_)));
 
                 match grand_grand_parent_node_kind {
                     AstKind::AssignmentExpression(assign_expr) => {

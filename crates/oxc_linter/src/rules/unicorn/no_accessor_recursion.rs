@@ -191,7 +191,7 @@ fn is_property_write<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>) -> bool {
             argument.span() == node.span()
         }
         // e.g. "this.bar = 1" or "[this.bar] = array"
-        AstKind::AssignmentTarget(assign_target) => assign_target.span() == node.span(),
+        AstKind::AssignmentExpression(assign_target) => assign_target.span() == node.span(),
         _ => false,
     }
 }

@@ -1,4 +1,4 @@
-use oxc_ast::{AstKind, ast::AssignmentTarget};
+use oxc_ast::AstKind;
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_macros::declare_oxc_lint;
 use oxc_span::Span;
@@ -105,16 +105,9 @@ impl Rule for NoRestSpreadProperties {
                     ));
                 }
             }
-            AstKind::AssignmentTarget(assign_target) => {
-                let AssignmentTarget::ObjectAssignmentTarget(object_assign) = assign_target else {
-                    return;
-                };
-                let Some(rest) = &object_assign.rest else {
-                    return;
-                };
-
+            AstKind::ObjectAssignmentTarget(assign_target) => {
                 ctx.diagnostic(no_rest_spread_properties_diagnostic(
-                    rest.span,
+                    assign_target.span,
                     "object rest property",
                     self.object_rest_message.as_str(),
                 ));
