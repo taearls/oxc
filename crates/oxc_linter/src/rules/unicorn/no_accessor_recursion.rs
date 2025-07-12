@@ -1,9 +1,6 @@
 use oxc_ast::{
     AstKind, MemberExpressionKind,
-    ast::{
-        BindingPatternKind, MethodDefinition, MethodDefinitionKind, ObjectProperty, PropertyKey,
-        PropertyKind, UpdateExpression,
-    },
+    ast::{BindingPatternKind, MethodDefinitionKind, PropertyKey, PropertyKind, UpdateExpression},
 };
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_macros::declare_oxc_lint;
@@ -363,14 +360,6 @@ fn get_nearest_function<'a>(node: &AstNode, ctx: &'a LintContext) -> Option<&'a 
         }
     }
     if matches!(parent.kind(), AstKind::Function(_)) { Some(parent) } else { None }
-}
-
-fn get_property_or_method_def_name<'a>(parent: &'a AstNode<'a>) -> Option<String> {
-    match parent.kind() {
-        AstKind::ObjectProperty(ObjectProperty { key, .. })
-        | AstKind::MethodDefinition(MethodDefinition { key, .. }) => Some(key.name()?.to_string()),
-        _ => None,
-    }
 }
 
 #[test]
