@@ -106,11 +106,19 @@ impl Rule for NoRestSpreadProperties {
                 }
             }
             AstKind::ObjectAssignmentTarget(assign_target) => {
-                ctx.diagnostic(no_rest_spread_properties_diagnostic(
-                    assign_target.span,
-                    "object rest property",
-                    self.object_rest_message.as_str(),
-                ));
+                // Only report if the rest property exists and is not an array assignment target
+                if let Some(rest) = &assign_target.rest {
+                    if !matches!(
+                        rest.target,
+                        oxc_ast::ast::AssignmentTarget::ArrayAssignmentTarget(_)
+                    ) {
+                        ctx.diagnostic(no_rest_spread_properties_diagnostic(
+                            rest.span,
+                            "object rest property",
+                            self.object_rest_message.as_str(),
+                        ));
+                    }
+                }
             }
             _ => {}
         }
