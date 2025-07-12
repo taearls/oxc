@@ -1,9 +1,8 @@
-use itertools::Itertools;
 use oxc_allocator::GetAddress;
 use oxc_ast::AstKind;
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_macros::declare_oxc_lint;
-use oxc_semantic::{AstNode, AstNodes, NodeId};
+use oxc_semantic::{AstNodes, NodeId};
 use oxc_span::Span;
 use oxc_syntax::class::ElementKind;
 
@@ -16,6 +15,7 @@ fn no_unused_private_class_members_diagnostic(name: &str, span: Span) -> OxcDiag
 #[derive(Debug, Default, Clone)]
 pub struct NoUnusedPrivateClassMembers;
 
+// Remove unused imports and debug output
 declare_oxc_lint!(
     /// ### What it does
     ///
@@ -98,7 +98,6 @@ impl Rule for NoUnusedPrivateClassMembers {
                 }
                 if element.is_private
                     && !ctx.classes().iter_private_identifiers(class_id).any(|ident| {
-                        // If the element is a property, it must be read.
                         (!element.kind.is_property() || is_read(ident.id, ctx.nodes()))
                             && ident.element_ids.contains(&element_id)
                     })
@@ -114,13 +113,27 @@ impl Rule for NoUnusedPrivateClassMembers {
 }
 
 fn is_read(current_node_id: NodeId, nodes: &AstNodes) -> bool {
-    for (curr, parent) in
-        nodes.ancestors(current_node_id).tuple_windows::<(&AstNode<'_>, &AstNode<'_>)>()
-    {
-        match (curr.kind(), parent.kind()) {
-            // Skip member expressions in assignment targets
-            (AstKind::SimpleAssignmentTarget(_), AstKind::SimpleAssignmentTarget(_)) => {}
+    // Walk up the ancestor chain, skipping over SimpleAssignmentTarget wrappers
+    let mut ancestors = nodes.ancestors(current_node_id).peekable();
+    let mut curr = if let Some(node) = ancestors.next() {
+        node
+    } else {
+        return true;
+    };
 
+    // Skip over any SimpleAssignmentTarget wrappers
+    while let Some(parent) = ancestors.peek() {
+        if matches!(parent.kind(), AstKind::SimpleAssignmentTarget(_)) {
+            curr = ancestors.next().unwrap();
+        } else {
+            break;
+        }
+    }
+
+    // Now curr is the innermost non-SimpleAssignmentTarget node, parent is the next meaningful ancestor
+    let parent = ancestors.next();
+    if let Some(parent) = parent {
+        match (curr.kind(), parent.kind()) {
             // Assignment targets are never reads
             (
                 AstKind::AssignmentExpression(_) | AstKind::SimpleAssignmentTarget(_),
@@ -135,7 +148,6 @@ fn is_read(current_node_id: NodeId, nodes: &AstNodes) -> bool {
             ) => {
                 return false;
             }
-
             // Handle compound assignments (like +=, -=, etc.)
             (AstKind::SimpleAssignmentTarget(_), AstKind::AssignmentExpression(parent_expr)) => {
                 if parent_expr.operator != oxc_ast::ast::AssignmentOperator::Assign {
@@ -144,34 +156,28 @@ fn is_read(current_node_id: NodeId, nodes: &AstNodes) -> bool {
                 }
                 return false;
             }
-
             // Update expressions are reads unless they're standalone statements
             (_, AstKind::UpdateExpression(_)) => {
                 let parent_kind = nodes.parent_kind(parent.id());
                 return !matches!(parent_kind, AstKind::ExpressionStatement(_));
             }
-
             // Handle assignment expressions
             (_, AstKind::AssignmentExpression(parent_expr)) => {
                 let curr_addr = curr.kind().address();
                 let right_addr = parent_expr.right.address();
                 let is_right = curr_addr == right_addr;
                 let parent_kind = nodes.parent_kind(parent.id());
-
                 // Right-hand side is always a read
                 if is_right {
                     return true;
                 }
-
                 // Handle compound operators (like +=, -=, etc.)
                 if parent_expr.operator != oxc_ast::ast::AssignmentOperator::Assign {
                     return !matches!(parent_kind, AstKind::ExpressionStatement(_));
                 }
-
                 // Left-hand side of simple assignment is not a read
                 return false;
             }
-
             // Default: treat as read
             _ => return true,
         }
