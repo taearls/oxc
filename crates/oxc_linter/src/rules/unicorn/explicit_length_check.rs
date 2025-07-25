@@ -234,10 +234,11 @@ impl ExplicitLengthCheck {
         }
 
         let fixed = format!(
-            "{}{}{}{}{}{}",
+            "{}{}{}{}{}{}{}",
             if need_pad_start { " " } else { "" },
             if need_paren { "(" } else { "" },
             static_member_expr.span.source_text(ctx.source_text()),
+            " ",
             check_code,
             if need_paren { ")" } else { "" },
             if need_pad_end { " " } else { "" },
