@@ -214,8 +214,6 @@ impl ExplicitLengthCheck {
                     kind.span()
                 }
             }
-            // For negated expressions like !Boolean(...), replace the entire expression
-            AstKind::UnaryExpression(_) => kind.span(),
             // For other cases, use the node's span
             _ => kind.span(),
         };
