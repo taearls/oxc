@@ -9,9 +9,10 @@ use oxc_ast::{
     AstKind, AstType,
     ast::{
         Argument, ArrayExpressionElement, ArrowFunctionExpression, BindingPattern,
-        BindingPatternKind, CallExpression, ChainElement, Expression, FormalParameters, Function,
-        FunctionBody, IdentifierReference, StaticMemberExpression, TSTypeAnnotation,
-        TSTypeParameterInstantiation, TSTypeReference, VariableDeclarationKind, VariableDeclarator,
+        BindingPatternKind, CallExpression, ChainElement, ChainExpression, Expression,
+        FormalParameters, Function, FunctionBody, IdentifierReference, StaticMemberExpression,
+        TSTypeAnnotation, TSTypeParameterInstantiation, TSTypeReference, VariableDeclarationKind,
+        VariableDeclarator,
     },
     match_expression,
 };
@@ -450,6 +451,7 @@ impl Rule for ExhaustiveDeps {
             if let Some(function_body) = callback_node.body() {
                 found_dependencies.visit_function_body(function_body);
             }
+            
 
             (found_dependencies.found_dependencies, found_dependencies.refs_inside_cleanups)
         };
@@ -487,8 +489,20 @@ impl Rule for ExhaustiveDeps {
             if is_effect {
                 let contains_set_state_call = {
                     let mut finder = ExhaustiveDepsVisitor::new(ctx.semantic());
-                    if let Some(function_body) = callback_node.body() {
-                        finder.visit_function_body_root(function_body);
+                    // Visit the function node itself, not just its body
+                    match callback_node {
+                        CallbackNode::Function(func) => {
+                            finder.enter_node(AstKind::Function(func));
+                            if let Some(function_body) = &func.body {
+                                finder.visit_function_body_root(function_body);
+                            }
+                            finder.leave_node(AstKind::Function(func));
+                        }
+                        CallbackNode::ArrowFunction(arrow_func) => {
+                            finder.enter_node(AstKind::ArrowFunctionExpression(arrow_func));
+                            finder.visit_function_body_root(&arrow_func.body);
+                            finder.leave_node(AstKind::ArrowFunctionExpression(arrow_func));
+                        }
                     }
                     finder.set_state_call
                 };
@@ -564,7 +578,8 @@ impl Rule for ExhaustiveDeps {
         }
 
         let undeclared_deps = found_dependencies.difference(&declared_dependencies).filter(|dep| {
-            if declared_dependencies.iter().any(|decl_dep| dep.contains(decl_dep)) {
+            // Check if any declared dependency contains/satisfies this found dependency
+            if declared_dependencies.iter().any(|decl_dep| decl_dep.contains(dep)) {
                 return false;
             }
 
@@ -821,10 +836,24 @@ impl Dependency<'_> {
     }
 }
 
-fn chain_contains(a: &[Atom<'_>], b: &[Atom<'_>]) -> bool {
-    for (index, part) in b.iter().enumerate() {
-        let Some(other) = a.get(index) else { return false };
-        if other != part {
+fn chain_contains(declared_chain: &[Atom<'_>], found_chain: &[Atom<'_>]) -> bool {
+    // If declared chain is empty, it contains everything (e.g., `props` contains `props.foo`)
+    if declared_chain.is_empty() {
+        return true;
+    }
+
+    // If declared chain is longer than found chain, it can't contain it
+    if declared_chain.len() > found_chain.len() {
+        return false;
+    }
+
+    // Check if declared chain is a prefix of found chain
+    for (index, declared_part) in declared_chain.iter().enumerate() {
+        if let Some(found_part) = found_chain.get(index) {
+            if declared_part != found_part {
+                return false;
+            }
+        } else {
             return false;
         }
     }
@@ -848,7 +877,21 @@ fn analyze_property_chain<'a, 'b>(
         Expression::JSXElement(_) => Ok(None),
         Expression::StaticMemberExpression(expr) => concat_members(expr, semantic),
         Expression::ChainExpression(chain_expr) => match &chain_expr.expression {
-            ChainElement::StaticMemberExpression(expr) => concat_members(expr, semantic),
+            ChainElement::StaticMemberExpression(expr) => {
+                // For ChainExpression containing StaticMemberExpression,
+                // we need special handling for optional chaining
+                analyze_optional_static_member(expr, semantic)
+            }
+            ChainElement::CallExpression(call_expr) => {
+                // For optional calls like props.foo?.toString()
+                // We need to analyze the callee, but stop at optional boundaries
+                analyze_optional_call_chain(&call_expr.callee, semantic)
+            }
+            ChainElement::ComputedMemberExpression(expr) => {
+                // For computed member access like props.foo?.[bar]
+                // Analyze the object part
+                analyze_property_chain(&expr.object, semantic)
+            }
             _ => Err(()),
         },
         _ => Err(()),
@@ -863,6 +906,12 @@ fn concat_members<'a, 'b>(
         return Ok(None);
     };
 
+    // Check if this member expression has optional chaining
+    // For props.foo?.toString(), we should only depend on props.foo, not props.foo.toString
+    if member_expr.optional {
+        return Ok(Some(source));
+    }
+
     let new_chain = Vec::from([member_expr.property.name]);
 
     Ok(Some(Dependency {
@@ -872,6 +921,68 @@ fn concat_members<'a, 'b>(
         chain: [source.chain, new_chain].concat(),
         symbol_id: semantic.scoping().get_reference(source.reference_id).symbol_id(),
     }))
+}
+
+fn analyze_optional_static_member<'a, 'b>(
+    member_expr: &'b StaticMemberExpression<'a>,
+    semantic: &'b Semantic<'a>,
+) -> Result<Option<Dependency<'a>>, ()> {
+    // This function is called when we're inside a ChainExpression,
+    // which means optional chaining is involved somewhere in the chain.
+    // For dependency arrays like [props?.foo?.bar], we want to build the full chain
+    // but for usage like props.foo?.toString(), we want to stop at the optional boundary.
+
+    // Get the object dependency first
+    let Some(source) = analyze_property_chain(&member_expr.object, semantic)? else {
+        return Ok(None);
+    };
+
+    // For optional static member expressions, we continue building the chain
+    // This handles cases like props?.foo?.bar -> props.foo.bar
+    let new_chain = Vec::from([member_expr.property.name]);
+
+    Ok(Some(Dependency {
+        span: member_expr.span,
+        name: source.name,
+        reference_id: source.reference_id,
+        chain: [source.chain, new_chain].concat(),
+        symbol_id: semantic.scoping().get_reference(source.reference_id).symbol_id(),
+    }))
+}
+
+fn analyze_optional_call_chain<'a, 'b>(
+    expr: &'b Expression<'a>,
+    semantic: &'b Semantic<'a>,
+) -> Result<Option<Dependency<'a>>, ()> {
+    // For call expressions inside ChainExpression like props.foo?.toString()
+    // We want to find the dependency up to the optional boundary
+    match expr.get_inner_expression() {
+        Expression::StaticMemberExpression(member_expr) => {
+            // For optional method calls like props.foo?.toString(),
+            // we should only depend on props.foo, not props.foo.toString
+            // because the optional chaining means if props.foo changes,
+            // the entire expression should be re-evaluated
+
+            // Since we're in a ChainExpression with CallExpression, the optional
+            // chaining occurs at the call site, so we should depend on the object
+            // of the member expression (props.foo) rather than the full chain
+            analyze_property_chain(&member_expr.object, semantic)
+        }
+        _ => analyze_property_chain(expr, semantic),
+    }
+}
+
+fn contains_optional_chaining(expr: &Expression) -> bool {
+    match expr.get_inner_expression() {
+        Expression::StaticMemberExpression(member) => {
+            member.optional || contains_optional_chaining(&member.object)
+        }
+        Expression::ComputedMemberExpression(member) => {
+            member.optional || contains_optional_chaining(&member.object)
+        }
+        Expression::ChainExpression(_) => true,
+        _ => false,
+    }
 }
 
 fn is_identifier_a_dependency<'a>(
@@ -1056,28 +1167,58 @@ fn is_stable_value<'a, 'b>(
                 return false;
             };
 
-            let BindingPatternKind::BindingIdentifier(binding_ident) = &second_arg.kind else {
+            let BindingPatternKind::BindingIdentifier(_binding_ident) = &second_arg.kind else {
                 return false;
             };
 
-            if (init_name == "useState"
+            if init_name == "useRef" {
+                // useRef() return value is stable
+                return true;
+            } else if init_name == "useState"
                 || init_name == "useReducer"
                 || init_name == "useTransition"
-                || init_name == "useActionState")
-                && binding_ident.name == ident_name
-                && !ctx
-                    .semantic()
-                    .symbol_references(
-                        ctx.scoping().get_reference(ident_reference_id).symbol_id().unwrap(),
-                    )
-                    .any(|reference| {
-                        matches!(
-                            ctx.nodes().parent_kind(reference.node_id()),
-                            AstKind::SimpleAssignmentTarget(_)
-                        )
-                    })
+                || init_name == "useActionState"
             {
-                return true;
+                // State setters (like setState, dispatch) are stable and don't need dependencies
+                // State values (like state1, state2) are NOT stable and need dependencies
+                // We need to distinguish between them by checking if this is the setter (second element)
+                let BindingPatternKind::ArrayPattern(array_pat) = &declaration.id.kind else {
+                    return false;
+                };
+
+                let Some(Some(second_arg)) = array_pat.elements.get(1) else {
+                    return false;
+                };
+
+                let BindingPatternKind::BindingIdentifier(setter_ident) = &second_arg.kind else {
+                    return false;
+                };
+
+                // If this identifier is the setter (second element), check if it's been reassigned
+                if setter_ident.name == ident_name {
+                    // Check if this setter has been written to more than once (reassigned)
+                    let symbol_id =
+                        ctx.scoping().get_reference(ident_reference_id).symbol_id().unwrap();
+                    let write_count = ctx
+                        .semantic()
+                        .symbol_references(symbol_id)
+                        .filter(|reference| {
+                            matches!(
+                                ctx.nodes().parent_kind(reference.node_id()),
+                                AstKind::SimpleAssignmentTarget(_)
+                            )
+                        })
+                        .count();
+
+                    // If written to (reassigned), it's not stable
+                    if write_count > 0 {
+                        return false;
+                    }
+
+                    return true; // State setters are stable (unless reassigned)
+                } else {
+                    return false; // State values are NOT stable
+                }
             }
 
             false
@@ -1277,6 +1418,83 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
         self.stack.pop();
     }
 
+    fn visit_call_expression(&mut self, it: &CallExpression<'a>) {
+        // For method calls like props.foo.bar.toString(), we only want to depend on 
+        // the object being called on (props.foo.bar), not the full chain including 
+        // the method name (props.foo.bar.toString)
+        match &it.callee {
+            Expression::StaticMemberExpression(member_expr) => {
+                // Visit only the object part, not the full member expression
+                self.visit_expression(&member_expr.object);
+            }
+            _ => {
+                // For other types of callees, visit normally
+                self.visit_expression(&it.callee);
+            }
+        }
+        
+        // Always visit arguments
+        for arg in &it.arguments {
+            match arg {
+                Argument::SpreadElement(spread) => {
+                    self.visit_expression(&spread.argument);
+                }
+                _ => {
+                    if let Some(expr) = arg.as_expression() {
+                        self.visit_expression(expr);
+                    }
+                }
+            }
+        }
+    }
+
+    fn visit_chain_expression(&mut self, it: &ChainExpression<'a>) {
+        // For now, let's use the default visitor behavior to ensure all child nodes are visited
+        // This ensures that any member expressions or identifiers inside the chain get processed
+        match &it.expression {
+            ChainElement::StaticMemberExpression(member_expr) => {
+                self.visit_static_member_expression(member_expr);
+            }
+            ChainElement::ComputedMemberExpression(member_expr) => {
+                self.visit_expression(&member_expr.object);
+                self.visit_expression(&member_expr.expression);
+            }
+            ChainElement::CallExpression(call_expr) => {
+                // This is the key case: props.foo?.toString()
+                // For optional call chains, we need special handling to avoid
+                // detecting the full chain as a dependency
+                if let Expression::StaticMemberExpression(member_expr) = &call_expr.callee {
+                    // For props.foo?.toString(), we should only depend on props.foo
+                    // not props.foo.toString, so we visit just the object
+                    self.visit_expression(&member_expr.object);
+                } else {
+                    // For other callee types, visit normally
+                    self.visit_expression(&call_expr.callee);
+                }
+                
+                // Always visit arguments
+                for arg in &call_expr.arguments {
+                    match arg {
+                        Argument::SpreadElement(spread) => {
+                            self.visit_expression(&spread.argument);
+                        }
+                        _ => {
+                            if let Some(expr) = arg.as_expression() {
+                                self.visit_expression(expr);
+                            }
+                        }
+                    }
+                }
+            }
+            ChainElement::PrivateFieldExpression(private_expr) => {
+                self.visit_expression(&private_expr.object);
+            }
+            ChainElement::TSNonNullExpression(non_null_expr) => {
+                self.visit_expression(&non_null_expr.expression);
+            }
+        }
+    }
+
     fn visit_static_member_expression(&mut self, it: &StaticMemberExpression<'a>) {
         if it.property.name == "current" && is_inside_effect_cleanup(&self.stack) {
             // Safety: this is safe
@@ -1424,23 +1642,32 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                         return;
                     };
 
-                    let BindingPatternKind::BindingIdentifier(binding_ident) = &second_arg.kind
+                    let BindingPatternKind::BindingIdentifier(_binding_ident) = &second_arg.kind
                     else {
                         return;
                     };
 
-                    binding_ident.name == ident.name
+                    _binding_ident.name == ident.name
                 }
                 _ => false,
             };
 
-            if is_set_state_call
-                && self
+            if is_set_state_call {
+                // Always add setState calls as dependencies, but only mark as infinite rerender problem
+                // if they're at the top level of the useEffect body
+                let function_count = self
                     .stack
                     .iter()
-                    .all(|&ty| !matches!(ty, AstType::Function | AstType::ArrowFunctionExpression))
-            {
-                self.set_state_call = true;
+                    .filter(|&&ty| {
+                        matches!(ty, AstType::Function | AstType::ArrowFunctionExpression)
+                    })
+                    .count();
+
+                let is_at_top_level_of_effect = function_count == 1; // Only the effect callback itself, no nested functions
+
+                if is_at_top_level_of_effect {
+                    self.set_state_call = true;
+                }
             }
         }
     }
