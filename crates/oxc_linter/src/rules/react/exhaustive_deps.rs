@@ -629,7 +629,7 @@ impl Rule for ExhaustiveDeps {
             });
 
             for dep in unnecessary_deps {
-                if found_dependencies.iter().any(|found_dep| dep.contains(found_dep)) {
+                if found_dependencies.iter().any(|found_dep| found_dep.contains(dep)) {
                     continue;
                 }
 
