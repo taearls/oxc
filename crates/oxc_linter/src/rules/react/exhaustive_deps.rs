@@ -629,7 +629,7 @@ impl Rule for ExhaustiveDeps {
             });
 
             for dep in unnecessary_deps {
-                if found_dependencies.iter().any(|found_dep| found_dep.contains(dep)) {
+                if found_dependencies.iter().any(|found_dep| dep.contains(found_dep)) {
                     continue;
                 }
 
@@ -1481,19 +1481,36 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
         // expression.
         self.visit_binding_pattern(&decl.id);
         if let Some(init) = &decl.init {
-            // SAFETY:
-            // 1. All nodes live inside the arena, which has a lifetime of 'a.
-            //    The arena lives longer than any Rule pass, so this visitor
-            //    will drop before the node does.
-            // 2. This visitor is read-only, and it drops all references after
-            //    visiting the node.  Therefore, no mutable references will be
-            //    created before this stack is dropped.
-            let decl = unsafe {
-                std::mem::transmute::<&VariableDeclarator<'_>, &'a VariableDeclarator<'a>>(decl)
-            };
-            self.decl_stack.push(decl);
-            self.visit_expression(init);
-            self.decl_stack.pop();
+            // If this is an object destructure from a member expression, skip reporting dependency for the object
+            let is_object_destructure =
+                matches!(decl.id.kind, BindingPatternKind::ObjectPattern(_));
+            let is_member_expr =
+                matches!(init.get_inner_expression(), Expression::StaticMemberExpression(_));
+            if is_object_destructure && is_member_expr {
+                let prev = self.skip_reporting_dependency;
+                self.skip_reporting_dependency = true;
+                // SAFETY:
+                // 1. All nodes live inside the arena, which has a lifetime of 'a.
+                //    The arena lives longer than any Rule pass, so this visitor
+                //    will drop before the node does.
+                // 2. This visitor is read-only, and it drops all references after
+                //    visiting the node.  Therefore, no mutable references will be
+                //    created before this stack is dropped.
+                let decl = unsafe {
+                    std::mem::transmute::<&VariableDeclarator<'_>, &'a VariableDeclarator<'a>>(decl)
+                };
+                self.decl_stack.push(decl);
+                self.visit_expression(init);
+                self.decl_stack.pop();
+                self.skip_reporting_dependency = prev;
+            } else {
+                let decl = unsafe {
+                    std::mem::transmute::<&VariableDeclarator<'_>, &'a VariableDeclarator<'a>>(decl)
+                };
+                self.decl_stack.push(decl);
+                self.visit_expression(init);
+                self.decl_stack.pop();
+            }
         }
         self.stack.pop();
     }
@@ -1581,36 +1598,22 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
             it.property.name, it.optional
         );
 
-        // For method calls like props.foo.bar.toString(), we only want to depend on
-        // the object being called on (props.foo.bar), not the full chain including
-        // the method name (props.foo.bar.toString)
-        match analyze_property_chain(&it.object, self.semantic) {
-            Ok(source) => {
-                if let Some(source) = source {
-                    println!(
-                        "DEBUG: visit_static_member_expression found source dependency: {:?}",
-                        source
-                    );
-                    self.found_dependencies.insert(source);
-                }
-            }
-            Err(()) => {
-                println!(
-                    "DEBUG: visit_static_member_expression analyze_property_chain failed, visiting object"
-                );
-                self.visit_expression(&it.object);
-            }
-        }
-
-        // Also analyze the full chain for cases like props.foo
-        // We need to create a new StaticMemberExpression to analyze the full chain
+        // Only analyze the full chain for cases like props.foo
+        // Do not add the parent/source dependency separately
         let full_chain_dep = concat_members(it, self.semantic);
         if let Ok(Some(source)) = full_chain_dep {
             println!(
                 "DEBUG: visit_static_member_expression found full chain dependency: {:?}",
                 source
             );
-            self.found_dependencies.insert(source);
+            if !self.skip_reporting_dependency {
+                println!("DEBUG: Adding static member dependency: {:?}", source);
+                self.found_dependencies.insert(source);
+            } else {
+                println!(
+                    "DEBUG: Skipping static member dependency due to skip_reporting_dependency flag"
+                );
+            }
         }
     }
 
@@ -1618,21 +1621,29 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
         if self.skip_reporting_dependency {
             return;
         }
+        // Guard: If the last node in the stack is a StaticMemberExpression, skip adding the parent dependency.
+        if let Some(AstType::StaticMemberExpression) = self.stack.last() {
+            return;
+        }
         let reference_id = ident.reference_id();
         let symbol_id = self.semantic.scoping().get_reference(reference_id).symbol_id();
 
         let mut destructured_props: Vec<Vec<Atom<'a>>> = vec![];
         let mut did_see_ref = false;
-        let needs_full_identifier = self
-            .iter_destructure_bindings(|chain| {
-                if chain.len() == 1 && chain[0] == Atom::from("current") {
-                    did_see_ref = true;
-                } else {
-                    destructured_props.push(chain);
-                }
-            })
-            .unwrap_or(true);
-        if needs_full_identifier || (destructured_props.is_empty() && !did_see_ref) {
+        self.iter_destructure_bindings(|chain| {
+            if chain.len() == 1 && chain[0] == Atom::from("current") {
+                did_see_ref = true;
+            } else {
+                println!(
+                    "DEBUG: Adding destructured property chain as dependency: {:?} for ident: {:?}",
+                    chain, ident.name
+                );
+                destructured_props.push(chain);
+            }
+        });
+        // Only add the parent if destructured_props is empty and did_see_ref is false
+        if destructured_props.is_empty() && !did_see_ref {
+            println!("DEBUG: Adding parent as dependency: {:?}", ident.name);
             self.found_dependencies.insert(Dependency {
                 name: ident.name,
                 reference_id,
@@ -1640,7 +1651,8 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                 chain: vec![],
                 symbol_id,
             });
-        } else {
+        } else if !destructured_props.is_empty() {
+            // Only add destructured property chains, never the parent
             for prop_chain in destructured_props {
                 self.found_dependencies.insert(Dependency {
                     name: ident.name,
