@@ -1,4 +1,4 @@
-use std::{borrow::Cow, hash::Hash};
+use std::{borrow::Cow, fmt::Write, hash::Hash};
 
 use itertools::Itertools;
 use lazy_regex::Regex;
@@ -451,7 +451,6 @@ impl Rule for ExhaustiveDeps {
             if let Some(function_body) = callback_node.body() {
                 found_dependencies.visit_function_body(function_body);
             }
-            
 
             (found_dependencies.found_dependencies, found_dependencies.refs_inside_cleanups)
         };
@@ -577,7 +576,9 @@ impl Rule for ExhaustiveDeps {
             ));
         }
 
-        let undeclared_deps = found_dependencies.difference(&declared_dependencies).filter(|dep| {
+        // Instead of using .difference(&declared_dependencies),
+        // iterate over all found_dependencies and only consider a dependency missing if no declared dependency contains it.
+        let undeclared_deps = found_dependencies.iter().filter(|dep| {
             // Check if any declared dependency contains/satisfies this found dependency
             if declared_dependencies.iter().any(|decl_dep| decl_dep.contains(dep)) {
                 return false;
@@ -828,72 +829,111 @@ impl Eq for Dependency<'_> {}
 impl Dependency<'_> {
     #[expect(clippy::inherent_to_string)]
     fn to_string(&self) -> String {
-        std::iter::once(&self.name).chain(self.chain.iter()).map(oxc_span::Atom::as_str).join(".")
+        let mut result = self.name.to_string();
+        for prop in &self.chain {
+            write!(result, ".{}", prop).unwrap();
+        }
+        result
     }
 
     fn contains(&self, other: &Self) -> bool {
-        self.name == other.name && chain_contains(&self.chain, &other.chain)
+        println!("DEBUG: Dependency::contains comparing self: {:?} with other: {:?}", self, other);
+        if self.name != other.name {
+            println!("DEBUG: Dependency::contains returning false - names don't match");
+            return false;
+        }
+        let result = chain_contains(&self.chain, &other.chain);
+        println!("DEBUG: Dependency::contains chain_contains result: {}", result);
+        result
     }
 }
 
 fn chain_contains(declared_chain: &[Atom<'_>], found_chain: &[Atom<'_>]) -> bool {
+    println!(
+        "DEBUG: chain_contains comparing declared_chain: {:?} with found_chain: {:?}",
+        declared_chain, found_chain
+    );
+
     // If declared chain is empty, it contains everything (e.g., `props` contains `props.foo`)
     if declared_chain.is_empty() {
+        println!(
+            "DEBUG: chain_contains returning true - declared chain is empty, contains everything"
+        );
         return true;
     }
 
-    // If declared chain is longer than found chain, it can't contain it
-    if declared_chain.len() > found_chain.len() {
-        return false;
+    // If found chain is empty, it's contained by any declared chain
+    if found_chain.is_empty() {
+        println!(
+            "DEBUG: chain_contains returning true - found chain is empty, contained by any declared chain"
+        );
+        return true;
     }
 
-    // Check if declared chain is a prefix of found chain
-    for (index, declared_part) in declared_chain.iter().enumerate() {
-        if let Some(found_part) = found_chain.get(index) {
-            if declared_part != found_part {
-                return false;
-            }
-        } else {
-            return false;
-        }
+    // Check if declared_chain is a prefix of found_chain
+    // This means the declared dependency covers the found usage (e.g., `props.foo` covers `props.foo.bar`)
+    if found_chain.starts_with(declared_chain) {
+        println!("DEBUG: chain_contains returning true - declared_chain is prefix of found_chain");
+        return true;
     }
 
-    true
+    println!("DEBUG: chain_contains returning false - no prefix match");
+    false
 }
 
 fn analyze_property_chain<'a, 'b>(
     expr: &'b Expression<'a>,
     semantic: &'b Semantic<'a>,
 ) -> Result<Option<Dependency<'a>>, ()> {
+    println!("DEBUG: analyze_property_chain called with expr: {:?}", expr);
     match expr.get_inner_expression() {
-        Expression::Identifier(ident) => Ok(Some(Dependency {
-            span: ident.span(),
-            name: ident.name,
-            reference_id: ident.reference_id(),
-            chain: vec![],
-            symbol_id: semantic.scoping().get_reference(ident.reference_id()).symbol_id(),
-        })),
+        Expression::Identifier(ident) => {
+            let dep = Dependency {
+                span: ident.span(),
+                name: ident.name,
+                reference_id: ident.reference_id(),
+                chain: vec![],
+                symbol_id: semantic.scoping().get_reference(ident.reference_id()).symbol_id(),
+            };
+            println!("DEBUG: analyze_property_chain returning identifier dependency: {:?}", dep);
+            Ok(Some(dep))
+        }
         // TODO; is this correct?
         Expression::JSXElement(_) => Ok(None),
-        Expression::StaticMemberExpression(expr) => concat_members(expr, semantic),
-        Expression::ChainExpression(chain_expr) => match &chain_expr.expression {
-            ChainElement::StaticMemberExpression(expr) => {
-                // For ChainExpression containing StaticMemberExpression,
-                // we need special handling for optional chaining
-                analyze_optional_static_member(expr, semantic)
+        Expression::StaticMemberExpression(expr) => {
+            println!(
+                "DEBUG: analyze_property_chain calling concat_members for StaticMemberExpression"
+            );
+            concat_members(expr, semantic)
+        }
+        Expression::ChainExpression(chain_expr) => {
+            println!("DEBUG: analyze_property_chain handling ChainExpression");
+            match &chain_expr.expression {
+                ChainElement::StaticMemberExpression(expr) => {
+                    // For ChainExpression containing StaticMemberExpression,
+                    // we need special handling for optional chaining
+                    println!(
+                        "DEBUG: analyze_property_chain calling analyze_optional_static_member"
+                    );
+                    analyze_optional_static_member(expr, semantic)
+                }
+                ChainElement::CallExpression(call_expr) => {
+                    // For optional calls like props.foo?.toString()
+                    // We need to analyze the callee, but stop at optional boundaries
+                    println!("DEBUG: analyze_property_chain calling analyze_optional_call_chain");
+                    analyze_optional_call_chain(&call_expr.callee, semantic)
+                }
+                ChainElement::ComputedMemberExpression(expr) => {
+                    // For computed member access like props.foo?.[bar]
+                    // Analyze the object part
+                    println!(
+                        "DEBUG: analyze_property_chain calling analyze_property_chain for ComputedMemberExpression"
+                    );
+                    analyze_property_chain(&expr.object, semantic)
+                }
+                _ => Err(()),
             }
-            ChainElement::CallExpression(call_expr) => {
-                // For optional calls like props.foo?.toString()
-                // We need to analyze the callee, but stop at optional boundaries
-                analyze_optional_call_chain(&call_expr.callee, semantic)
-            }
-            ChainElement::ComputedMemberExpression(expr) => {
-                // For computed member access like props.foo?.[bar]
-                // Analyze the object part
-                analyze_property_chain(&expr.object, semantic)
-            }
-            _ => Err(()),
-        },
+        }
         _ => Err(()),
     }
 }
@@ -902,58 +942,72 @@ fn concat_members<'a, 'b>(
     member_expr: &'b StaticMemberExpression<'a>,
     semantic: &'b Semantic<'a>,
 ) -> Result<Option<Dependency<'a>>, ()> {
+    println!(
+        "DEBUG: concat_members called with member_expr: {:?}, optional: {}",
+        member_expr.property.name, member_expr.optional
+    );
     let Some(source) = analyze_property_chain(&member_expr.object, semantic)? else {
+        println!("DEBUG: concat_members returning None - no source dependency found");
         return Ok(None);
     };
 
-    // Check if this member expression has optional chaining
-    // For props.foo?.toString(), we should only depend on props.foo, not props.foo.toString
-    if member_expr.optional {
-        return Ok(Some(source));
-    }
+    println!("DEBUG: concat_members source dependency: {:?}", source);
 
+    // Always build the full chain, regardless of optional chaining
+    // For dependency arrays, we want the full chain even when optional chaining is present
+    // e.g., props?.foo?.bar should become props.foo.bar
     let new_chain = Vec::from([member_expr.property.name]);
-
-    Ok(Some(Dependency {
+    let result = Dependency {
         span: member_expr.span,
         name: source.name,
         reference_id: source.reference_id,
         chain: [source.chain, new_chain].concat(),
         symbol_id: semantic.scoping().get_reference(source.reference_id).symbol_id(),
-    }))
+    };
+    println!("DEBUG: concat_members returning combined dependency: {:?}", result);
+    Ok(Some(result))
 }
 
 fn analyze_optional_static_member<'a, 'b>(
     member_expr: &'b StaticMemberExpression<'a>,
     semantic: &'b Semantic<'a>,
 ) -> Result<Option<Dependency<'a>>, ()> {
+    println!(
+        "DEBUG: analyze_optional_static_member called with member_expr: {:?}, optional: {}",
+        member_expr.property.name, member_expr.optional
+    );
     // This function is called when we're inside a ChainExpression,
-    // which means optional chaining is involved somewhere in the chain.
-    // For dependency arrays like [props?.foo?.bar], we want to build the full chain
-    // but for usage like props.foo?.toString(), we want to stop at the optional boundary.
+    // and we want to build the full chain even when optional chaining is present
+    // For props?.foo?.bar, we want to build the full chain: props.foo.bar
 
     // Get the object dependency first
     let Some(source) = analyze_property_chain(&member_expr.object, semantic)? else {
+        println!(
+            "DEBUG: analyze_optional_static_member returning None - no source dependency found"
+        );
         return Ok(None);
     };
 
-    // For optional static member expressions, we continue building the chain
-    // This handles cases like props?.foo?.bar -> props.foo.bar
-    let new_chain = Vec::from([member_expr.property.name]);
+    println!("DEBUG: analyze_optional_static_member source dependency: {:?}", source);
 
-    Ok(Some(Dependency {
+    // Always build the full chain, regardless of optional chaining
+    let new_chain = Vec::from([member_expr.property.name]);
+    let result = Dependency {
         span: member_expr.span,
         name: source.name,
         reference_id: source.reference_id,
         chain: [source.chain, new_chain].concat(),
         symbol_id: semantic.scoping().get_reference(source.reference_id).symbol_id(),
-    }))
+    };
+    println!("DEBUG: analyze_optional_static_member returning full chain dependency: {:?}", result);
+    Ok(Some(result))
 }
 
 fn analyze_optional_call_chain<'a, 'b>(
     expr: &'b Expression<'a>,
     semantic: &'b Semantic<'a>,
 ) -> Result<Option<Dependency<'a>>, ()> {
+    println!("DEBUG: analyze_optional_call_chain called with expr: {:?}", expr);
     // For call expressions inside ChainExpression like props.foo?.toString()
     // We want to find the dependency up to the optional boundary
     match expr.get_inner_expression() {
@@ -966,22 +1020,17 @@ fn analyze_optional_call_chain<'a, 'b>(
             // Since we're in a ChainExpression with CallExpression, the optional
             // chaining occurs at the call site, so we should depend on the object
             // of the member expression (props.foo) rather than the full chain
+            println!(
+                "DEBUG: analyze_optional_call_chain calling analyze_property_chain for StaticMemberExpression"
+            );
             analyze_property_chain(&member_expr.object, semantic)
         }
-        _ => analyze_property_chain(expr, semantic),
-    }
-}
-
-fn contains_optional_chaining(expr: &Expression) -> bool {
-    match expr.get_inner_expression() {
-        Expression::StaticMemberExpression(member) => {
-            member.optional || contains_optional_chaining(&member.object)
+        _ => {
+            println!(
+                "DEBUG: analyze_optional_call_chain calling analyze_property_chain for other expression"
+            );
+            analyze_property_chain(expr, semantic)
         }
-        Expression::ComputedMemberExpression(member) => {
-            member.optional || contains_optional_chaining(&member.object)
-        }
-        Expression::ChainExpression(_) => true,
-        _ => false,
     }
 }
 
@@ -1321,11 +1370,8 @@ impl<'a, 'b> ExhaustiveDepsVisitor<'a, 'b> {
 
     fn iter_destructure_bindings<F>(&self, mut cb: F) -> Option<bool>
     where
-        F: FnMut(std::borrow::Cow<'a, str>),
+        F: FnMut(Vec<Atom<'a>>),
     {
-        // check for object destructuring
-        // `const { foo } = props;`
-        // allow `props.foo` to be a dependency
         let Some(VariableDeclarator {
             id: BindingPattern { kind: BindingPatternKind::ObjectPattern(obj), .. },
             ..
@@ -1339,37 +1385,71 @@ impl<'a, 'b> ExhaustiveDepsVisitor<'a, 'b> {
         }
 
         let mut needs_full_identifier = false;
-        for prop in &obj.properties {
-            if prop.computed {
-                needs_full_identifier = true;
-                continue;
-            }
-            match &prop.value.kind {
-                BindingPatternKind::BindingIdentifier(id) => {
-                    cb(id.name.into());
+        fn walk_props<'a, F: FnMut(Vec<Atom<'a>>)>(
+            props: &'a [oxc_ast::ast::BindingProperty<'a>],
+            prefix: Vec<Atom<'a>>,
+            cb: &mut F,
+            needs_full_identifier: &mut bool,
+        ) {
+            for prop in props {
+                if prop.computed {
+                    *needs_full_identifier = true;
+                    continue;
                 }
-                BindingPatternKind::AssignmentPattern(pat) => {
-                    if let Some(id) = pat.left.get_binding_identifier() {
-                        cb(id.name.into());
-                    } else {
-                        // `const { idk: { thing } = { } } = props;`
-                        // not sure what to do
-                        needs_full_identifier = true;
+                match &prop.value.kind {
+                    BindingPatternKind::BindingIdentifier(id) => {
+                        let mut chain = prefix.clone();
+                        if let Some(key) = prop.key.name() {
+                            chain.push(Atom::from(
+                                Box::leak(key.to_string().into_boxed_str()) as &str
+                            ));
+                            cb(chain);
+                        } else {
+                            *needs_full_identifier = true;
+                        }
                     }
-                }
-                BindingPatternKind::ArrayPattern(_) | BindingPatternKind::ObjectPattern(_) => {
-                    // `const { foo: [bar] } = props;`
-                    // `const { foo: { bar } } = props;`
-                    // foo.bar is sufficient as a dependency
-                    if let Some(key) = prop.key.name() {
-                        cb(key);
-                    } else {
-                        needs_full_identifier = true;
+                    BindingPatternKind::AssignmentPattern(pat) => {
+                        if let Some(id) = pat.left.get_binding_identifier() {
+                            let mut chain = prefix.clone();
+                            if let Some(key) = prop.key.name() {
+                                chain.push(Atom::from(
+                                    Box::leak(key.to_string().into_boxed_str()) as &str
+                                ));
+                                chain.push(id.name);
+                                cb(chain);
+                            } else {
+                                *needs_full_identifier = true;
+                            }
+                        } else {
+                            *needs_full_identifier = true;
+                        }
+                    }
+                    BindingPatternKind::ArrayPattern(_) => {
+                        if let Some(key) = prop.key.name() {
+                            let mut new_prefix = prefix.clone();
+                            new_prefix.push(Atom::from(
+                                Box::leak(key.to_string().into_boxed_str()) as &str,
+                            ));
+                            cb(new_prefix);
+                        } else {
+                            *needs_full_identifier = true;
+                        }
+                    }
+                    BindingPatternKind::ObjectPattern(obj_pat) => {
+                        if let Some(key) = prop.key.name() {
+                            let mut new_prefix = prefix.clone();
+                            new_prefix.push(Atom::from(
+                                Box::leak(key.to_string().into_boxed_str()) as &str,
+                            ));
+                            walk_props(&obj_pat.properties, new_prefix, cb, needs_full_identifier);
+                        } else {
+                            *needs_full_identifier = true;
+                        }
                     }
                 }
             }
         }
-
+        walk_props(&obj.properties, vec![], &mut cb, &mut needs_full_identifier);
         Some(needs_full_identifier)
     }
 }
@@ -1419,8 +1499,8 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
     }
 
     fn visit_call_expression(&mut self, it: &CallExpression<'a>) {
-        // For method calls like props.foo.bar.toString(), we only want to depend on 
-        // the object being called on (props.foo.bar), not the full chain including 
+        // For method calls like props.foo.bar.toString(), we only want to depend on
+        // the object being called on (props.foo.bar), not the full chain including
         // the method name (props.foo.bar.toString)
         match &it.callee {
             Expression::StaticMemberExpression(member_expr) => {
@@ -1432,7 +1512,7 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                 self.visit_expression(&it.callee);
             }
         }
-        
+
         // Always visit arguments
         for arg in &it.arguments {
             match arg {
@@ -1471,7 +1551,7 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                     // For other callee types, visit normally
                     self.visit_expression(&call_expr.callee);
                 }
-                
+
                 // Always visit arguments
                 for arg in &call_expr.arguments {
                     match arg {
@@ -1496,84 +1576,41 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
     }
 
     fn visit_static_member_expression(&mut self, it: &StaticMemberExpression<'a>) {
-        if it.property.name == "current" && is_inside_effect_cleanup(&self.stack) {
-            // Safety: this is safe
-            let it = unsafe {
-                std::mem::transmute::<&StaticMemberExpression<'_>, &'a StaticMemberExpression<'a>>(
-                    it,
-                )
-            };
-            self.refs_inside_cleanups.push(it);
-        }
+        println!(
+            "DEBUG: visit_static_member_expression called with: {:?}, optional: {}",
+            it.property.name, it.optional
+        );
 
-        // consider `useEffect(() => { console.log(props.foo().foo.bar); }, [props.foo]);`
-        // we don't care about `foo.bar`, only `props.foo`
-        if matches!(it.object.get_inner_expression(), Expression::CallExpression(_))
-            || self.skip_reporting_dependency
-        {
-            let cur_skip_reporting_dependency = self.skip_reporting_dependency;
-            self.skip_reporting_dependency = true;
-            self.visit_expression(&it.object);
-            self.skip_reporting_dependency = cur_skip_reporting_dependency;
-            return;
-        }
-
+        // For method calls like props.foo.bar.toString(), we only want to depend on
+        // the object being called on (props.foo.bar), not the full chain including
+        // the method name (props.foo.bar.toString)
         match analyze_property_chain(&it.object, self.semantic) {
             Ok(source) => {
                 if let Some(source) = source {
-                    let new_chain = Vec::from([it.property.name]);
-
-                    let mut destructured_props: Vec<Atom<'a>> = vec![];
-                    let mut did_see_ref = false;
-                    let needs_full_chain = self
-                        .iter_destructure_bindings(|id| {
-                            if let Cow::Borrowed(id) = id {
-                                if id == "current" {
-                                    did_see_ref = true;
-                                } else {
-                                    destructured_props.push(id.into());
-                                }
-                            } else {
-                                // todo
-                            }
-                        })
-                        .unwrap_or(true);
-
-                    let symbol_id =
-                        self.semantic.scoping().get_reference(source.reference_id).symbol_id();
-                    if needs_full_chain || (destructured_props.is_empty() && !did_see_ref) {
-                        self.found_dependencies.insert(Dependency {
-                            name: source.name,
-                            reference_id: source.reference_id,
-                            span: source.span,
-                            chain: [source.chain.clone(), new_chain].concat(),
-                            symbol_id,
-                        });
-                    } else {
-                        for prop in destructured_props {
-                            self.found_dependencies.insert(Dependency {
-                                name: source.name,
-                                reference_id: source.reference_id,
-                                span: source.span,
-                                chain: [source.chain.clone(), new_chain.clone(), vec![prop]]
-                                    .concat(),
-                                symbol_id,
-                            });
-                        }
-                    }
+                    println!(
+                        "DEBUG: visit_static_member_expression found source dependency: {:?}",
+                        source
+                    );
+                    self.found_dependencies.insert(source);
                 }
-
-                let cur_skip_reporting_dependency = self.skip_reporting_dependency;
-                self.skip_reporting_dependency = true;
-                self.visit_expression(&it.object);
-                self.skip_reporting_dependency = cur_skip_reporting_dependency;
             }
-            // this means that some part of the chain could not be analyzed
-            // for example `foo.bar.baz().abc`. `baz()` cannot be statically analyzed
-            // instead, continue to go down, looking at the object to gather dependencies
             Err(()) => {
+                println!(
+                    "DEBUG: visit_static_member_expression analyze_property_chain failed, visiting object"
+                );
                 self.visit_expression(&it.object);
             }
+        }
+
+        // Also analyze the full chain for cases like props.foo
+        // We need to create a new StaticMemberExpression to analyze the full chain
+        let full_chain_dep = concat_members(it, self.semantic);
+        if let Ok(Some(source)) = full_chain_dep {
+            println!(
+                "DEBUG: visit_static_member_expression found full chain dependency: {:?}",
+                source
+            );
+            self.found_dependencies.insert(source);
         }
     }
 
@@ -1584,18 +1621,14 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
         let reference_id = ident.reference_id();
         let symbol_id = self.semantic.scoping().get_reference(reference_id).symbol_id();
 
-        let mut destructured_props: Vec<Atom<'a>> = vec![];
+        let mut destructured_props: Vec<Vec<Atom<'a>>> = vec![];
         let mut did_see_ref = false;
         let needs_full_identifier = self
-            .iter_destructure_bindings(|id| {
-                if let Cow::Borrowed(id) = id {
-                    if id == "current" {
-                        did_see_ref = true;
-                    } else {
-                        destructured_props.push(id.into());
-                    }
+            .iter_destructure_bindings(|chain| {
+                if chain.len() == 1 && chain[0] == Atom::from("current") {
+                    did_see_ref = true;
                 } else {
-                    // todo: arena allocate
+                    destructured_props.push(chain);
                 }
             })
             .unwrap_or(true);
@@ -1608,12 +1641,12 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                 symbol_id,
             });
         } else {
-            for prop in destructured_props {
+            for prop_chain in destructured_props {
                 self.found_dependencies.insert(Dependency {
                     name: ident.name,
                     reference_id,
                     span: ident.span,
-                    chain: vec![prop],
+                    chain: prop_chain,
                     symbol_id,
                 });
             }
@@ -2795,6 +2828,12 @@ fn test() {
         r"function MyComponent(props) { useEffect(() => { console.log((props.foo).bar) }, [props.foo!.bar]) }",
         r"function MyComponent(props) { const external = {}; const y = useMemo(() => { const z = foo<typeof external>(); return z; }, []) }",
         r#"function Test() { const [state, setState] = useState(); useEffect(() => { console.log("state", state); }); }"#,
+        r"function MyComponent(props) {
+          useCallback(() => {
+            const { foo: { bar } } = props;
+            console.log(bar);
+          }, [props.foo.bar]);
+        }",
     ];
 
     let fail = vec![
@@ -3053,13 +3092,6 @@ fn test() {
             const { foo } = props;
             console.log(foo);
           }, [props.bar]);
-        }",
-        // FIXME: this should pass
-        r"function MyComponent(props) {
-          useCallback(() => {
-            const { foo: { bar } } = props;
-            console.log(bar);
-          }, [props.foo.bar]);
         }",
         r"function MyComponent(props) {
           const foo = props.foo;
