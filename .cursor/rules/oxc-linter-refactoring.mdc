@@ -1,0 +1,80 @@
+---
+globs: crates/oxc_linter/*
+alwaysApply: true
+---
+# OXC Linter Rule Refactoring Guidelines
+
+## Code Simplification Patterns
+
+When working on oxc linting rules, apply these refactoring patterns to improve code quality:
+
+### 1. Extract Complex Match Arms
+When you see large match statements with repetitive logic:
+- **Before**: 16+ match arms with identical patterns
+- **After**: Extract helper functions and use consolidated logic
+- **Example**: Use helper functions like `is_assignment_condition_met()` to reduce duplication
+
+### 2. Break Down Complex Functions
+Functions over ~50 lines with multiple responsibilities should be split:
+- Extract focused helper functions with single responsibilities
+- Use descriptive function names that document intent
+- Reduce nesting levels from 4-5 deep to 1-2 maximum
+
+### 3. Consolidate Repetitive Patterns
+Look for these common patterns to simplify:
+- **Span comparisons**: Use generic span checking instead of type-specific matches
+- **Assignment target validation**: Extract into reusable helper functions
+- **Expression type checking**: Use enums and pattern matching instead of runtime checks
+
+### 4. Use Type-Safe Enums
+Replace runtime pattern matching with compile-time type safety:
+```rust
+#[derive(Debug, Clone, Copy)]
+enum ExpressionType {
+    Array,
+    Object,
+}
+```
+
+### 5. Improve Error Handling
+- Use `Option` return types with `?` operator for cleaner early returns
+- Replace nested `if-let` with guard clauses
+- Validate each step before proceeding to next
+
+## Specific Refactoring Targets
+
+### Complex Symbol Reference Checking
+When dealing with symbol references in AST traversal:
+- Extract separate functions for different check types
+- Use clear function names like `prevents_for_of_conversion_direct_usage()`
+- Separate concerns: direct usage vs. array access vs. non-array access
+
+### Assignment Expression Handling
+For complex assignment expression logic:
+- Extract condition checking into helper functions
+- Use helper functions like `is_assignment_to_symbol()`
+- Consolidate span-based comparisons
+
+### Member Expression Processing
+When processing member expressions:
+- Extract property checking logic
+- Use helper functions for context validation
+- Separate static vs. computed member expression handling
+
+## Code Quality Metrics
+
+After refactoring, ensure:
+- **Reduced line count**: 70-80% reduction in complex functions
+- **Improved readability**: Main logic reads like documentation
+- **Better maintainability**: Changes isolated in focused functions
+- **Enhanced testability**: Helper functions can be unit tested independently
+- **Same performance**: No additional overhead introduced
+
+## Anti-Patterns to Avoid
+
+- Deeply nested match statements (>3 levels)
+- Functions with mixed concerns
+- Repeated pattern matching logic
+- Complex conditional chains without helper functions
+- Runtime type checking when compile-time alternatives exist
+---

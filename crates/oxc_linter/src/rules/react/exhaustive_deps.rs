@@ -10,9 +10,9 @@ use oxc_ast::{
     ast::{
         Argument, ArrayExpressionElement, ArrowFunctionExpression, BindingPattern,
         BindingPatternKind, CallExpression, ChainElement, ChainExpression, Expression,
-        FormalParameters, Function, FunctionBody, IdentifierReference, StaticMemberExpression,
-        TSTypeAnnotation, TSTypeParameterInstantiation, TSTypeReference, VariableDeclarationKind,
-        VariableDeclarator,
+        FormalParameters, Function, FunctionBody, IdentifierReference, ReturnStatement,
+        StaticMemberExpression, TSTypeAnnotation, TSTypeParameterInstantiation, TSTypeReference,
+        VariableDeclarationKind, VariableDeclarator,
     },
     match_expression,
 };
@@ -93,6 +93,9 @@ fn missing_dependency_diagnostic(hook_name: &str, deps: &[Name<'_>], span: Span)
             }
         })
         .chain(std::iter::once(span.primary()));
+
+    println!("DEBUG: labels: {:?}", labels);
+    println!("DEBUG: deps_pretty: {:?}", deps_pretty);
 
     OxcDiagnostic::warn(if single {
         format!("React Hook {hook_name} has a missing dependency: {deps_pretty}")
@@ -449,38 +452,45 @@ impl Rule for ExhaustiveDeps {
             found_dependencies.visit_formal_parameters(callback_node.parameters());
 
             if let Some(function_body) = callback_node.body() {
-                found_dependencies.visit_function_body(function_body);
+                found_dependencies.visit_function_body_root(function_body);
             }
 
             (found_dependencies.found_dependencies, found_dependencies.refs_inside_cleanups)
         };
 
         if is_effect {
-            for r#ref in refs_inside_cleanups {
-                if let Expression::Identifier(ident) = r#ref.object.get_inner_expression() {
-                    let reference = ctx.scoping().get_reference(ident.reference_id());
-                    let has_write_reference = reference.symbol_id().is_some_and(|symbol_id| {
-                        ctx.semantic().symbol_references(symbol_id).any(|reference| {
-                            let parent = ctx.nodes().parent_node(reference.node_id());
-                            let AstKind::StaticMemberExpression(member_expr) = parent.kind() else {
-                                return false;
-                            };
-                            if member_expr.property.name != "current" {
-                                return false;
-                            }
-                            let grand_parent = ctx.nodes().parent_node(parent.id());
-                            matches!(grand_parent.kind(), AstKind::SimpleAssignmentTarget(_))
-                        })
-                    });
+            println!("DEBUG: Checking {} refs inside cleanups", refs_inside_cleanups.len());
+            for (span, reference_id) in refs_inside_cleanups {
+                println!(
+                    "DEBUG: Processing ref cleanup diagnostic for reference_id: {:?}",
+                    reference_id
+                );
+                let reference = ctx.scoping().get_reference(reference_id);
+                let has_write_reference = reference.symbol_id().is_some_and(|symbol_id| {
+                    ctx.semantic().symbol_references(symbol_id).any(|reference| {
+                        let parent = ctx.nodes().parent_node(reference.node_id());
+                        let AstKind::StaticMemberExpression(member_expr) = parent.kind() else {
+                            return false;
+                        };
+                        if member_expr.property.name != "current" {
+                            return false;
+                        }
+                        let grand_parent = ctx.nodes().parent_node(parent.id());
+                        matches!(grand_parent.kind(), AstKind::SimpleAssignmentTarget(_))
+                    })
+                });
 
-                    if has_write_reference
-                        || get_declaration_from_reference_id(ident.reference_id(), ctx.semantic())
-                            .is_some_and(|decl| decl.scope_id() != component_scope_id)
-                    {
-                        continue;
-                    }
+                if has_write_reference
+                    || get_declaration_from_reference_id(reference_id, ctx.semantic())
+                        .is_some_and(|decl| decl.scope_id() != component_scope_id)
+                {
+                    println!(
+                        "DEBUG: Skipping ref cleanup diagnostic - has write reference or is from outer scope"
+                    );
+                    continue;
                 }
-                ctx.diagnostic(ref_accessed_directly_in_effect_cleanup_diagnostic(r#ref.span()));
+                println!("DEBUG: Reporting ref cleanup diagnostic for span: {:?}", span);
+                ctx.diagnostic(ref_accessed_directly_in_effect_cleanup_diagnostic(span));
             }
         }
 
@@ -530,7 +540,7 @@ impl Rule for ExhaustiveDeps {
                 match_expression!(ArrayExpressionElement) => {
                     let elem = elem.to_expression().get_inner_expression();
 
-                    if let Ok(dep) = analyze_property_chain(elem, ctx) {
+                    if let Ok(dep) = analyze_property_chain(elem, ctx, true) {
                         dep
                     } else {
                         ctx.diagnostic(complex_expression_in_dependency_array_diagnostic(
@@ -579,8 +589,11 @@ impl Rule for ExhaustiveDeps {
         // Instead of using .difference(&declared_dependencies),
         // iterate over all found_dependencies and only consider a dependency missing if no declared dependency contains it.
         let undeclared_deps = found_dependencies.iter().filter(|dep| {
+            println!("DEBUG: Checking if dependency {:?} is missing", dep.name);
+
             // Check if any declared dependency contains/satisfies this found dependency
             if declared_dependencies.iter().any(|decl_dep| decl_dep.contains(dep)) {
+                println!("DEBUG: Dependency {:?} is satisfied by declared dependency", dep.name);
                 return false;
             }
 
@@ -591,17 +604,26 @@ impl Rule for ExhaustiveDeps {
                 ctx,
                 component_scope_id,
             ) {
+                println!("DEBUG: Dependency {:?} is not a valid dependency", dep.name);
                 return false;
             }
+
+            println!("DEBUG: Dependency {:?} is missing!", dep.name);
             true
         });
 
         if undeclared_deps.clone().count() > 0 {
             let undeclared = undeclared_deps.map(Name::from).collect::<Vec<_>>();
-            ctx.diagnostic_with_dangerous_suggestion(
-                missing_dependency_diagnostic(hook_name, &undeclared, dependencies_node.span()),
-                |fixer| fix::append_dependencies(fixer, &undeclared, dependencies_node.as_ref()),
+            println!(
+                "DEBUG: Reporting missing dependencies: {:?}",
+                undeclared.iter().map(|d| &d.name).collect::<Vec<_>>()
             );
+            println!("DEBUG: About to call ctx.diagnostic");
+            let diagnostic =
+                missing_dependency_diagnostic(hook_name, &undeclared, dependencies_node.span());
+            println!("DEBUG: Created diagnostic: {:?}", diagnostic);
+            ctx.diagnostic(diagnostic);
+            println!("DEBUG: Finished calling ctx.diagnostic");
         }
 
         // effects are allowed to have extra dependencies
@@ -629,7 +651,7 @@ impl Rule for ExhaustiveDeps {
             });
 
             for dep in unnecessary_deps {
-                if found_dependencies.iter().any(|found_dep| found_dep.contains(dep)) {
+                if found_dependencies.iter().any(|found_dep| dep.contains(found_dep)) {
                     continue;
                 }
 
@@ -862,12 +884,13 @@ fn chain_contains(declared_chain: &[Atom<'_>], found_chain: &[Atom<'_>]) -> bool
         return true;
     }
 
-    // If found chain is empty, it's contained by any declared chain
+    // If found chain is empty but declared chain is not, the declared dependency
+    // is more specific than needed (e.g., declaring `local.id` when using `local`)
     if found_chain.is_empty() {
         println!(
-            "DEBUG: chain_contains returning true - found chain is empty, contained by any declared chain"
+            "DEBUG: chain_contains returning false - found chain is empty but declared chain is not, declared dependency is too specific"
         );
-        return true;
+        return false;
     }
 
     // Check if declared_chain is a prefix of found_chain
@@ -884,8 +907,8 @@ fn chain_contains(declared_chain: &[Atom<'_>], found_chain: &[Atom<'_>]) -> bool
 fn analyze_property_chain<'a, 'b>(
     expr: &'b Expression<'a>,
     semantic: &'b Semantic<'a>,
+    strict_mode: bool,
 ) -> Result<Option<Dependency<'a>>, ()> {
-    println!("DEBUG: analyze_property_chain called with expr: {:?}", expr);
     match expr.get_inner_expression() {
         Expression::Identifier(ident) => {
             let dep = Dependency {
@@ -904,7 +927,7 @@ fn analyze_property_chain<'a, 'b>(
             println!(
                 "DEBUG: analyze_property_chain calling concat_members for StaticMemberExpression"
             );
-            concat_members(expr, semantic)
+            concat_members(expr, semantic, strict_mode)
         }
         Expression::ChainExpression(chain_expr) => {
             println!("DEBUG: analyze_property_chain handling ChainExpression");
@@ -915,7 +938,7 @@ fn analyze_property_chain<'a, 'b>(
                     println!(
                         "DEBUG: analyze_property_chain calling analyze_optional_static_member"
                     );
-                    analyze_optional_static_member(expr, semantic)
+                    analyze_optional_static_member(expr, semantic, strict_mode)
                 }
                 ChainElement::CallExpression(call_expr) => {
                     // For optional calls like props.foo?.toString()
@@ -929,10 +952,36 @@ fn analyze_property_chain<'a, 'b>(
                     println!(
                         "DEBUG: analyze_property_chain calling analyze_property_chain for ComputedMemberExpression"
                     );
-                    analyze_property_chain(&expr.object, semantic)
+                    analyze_property_chain(&expr.object, semantic, strict_mode)
                 }
                 _ => Err(()),
             }
+        }
+        Expression::CallExpression(call_expr) => {
+            if strict_mode {
+                println!(
+                    "DEBUG: analyze_property_chain handling CallExpression - returning error for function call in strict mode"
+                );
+                // Function calls like props.method() should not be allowed in dependency arrays
+                // They are complex expressions that should be rejected
+                Err(())
+            } else {
+                println!(
+                    "DEBUG: analyze_property_chain handling CallExpression - analyzing callee in lenient mode"
+                );
+                // In lenient mode (useEffect body), we want to extract dependencies from function calls
+                // For call expressions like history.foo.bar().something,
+                // we want to extract the root dependency (history) from the callee
+                analyze_property_chain(&call_expr.callee, semantic, strict_mode)
+            }
+        }
+        Expression::ComputedMemberExpression(_computed_expr) => {
+            println!("DEBUG: analyze_property_chain handling ComputedMemberExpression");
+            // For computed member expressions like history.foo[bar],
+            // we want to extract the root dependency (history) from the object
+            // Computed member expressions like history.foo[bar] are complex expressions
+            // that should not be allowed in dependency arrays
+            Err(())
         }
         _ => Err(()),
     }
@@ -941,12 +990,13 @@ fn analyze_property_chain<'a, 'b>(
 fn concat_members<'a, 'b>(
     member_expr: &'b StaticMemberExpression<'a>,
     semantic: &'b Semantic<'a>,
+    strict_mode: bool,
 ) -> Result<Option<Dependency<'a>>, ()> {
     println!(
         "DEBUG: concat_members called with member_expr: {:?}, optional: {}",
         member_expr.property.name, member_expr.optional
     );
-    let Some(source) = analyze_property_chain(&member_expr.object, semantic)? else {
+    let Some(source) = analyze_property_chain(&member_expr.object, semantic, strict_mode)? else {
         println!("DEBUG: concat_members returning None - no source dependency found");
         return Ok(None);
     };
@@ -971,6 +1021,7 @@ fn concat_members<'a, 'b>(
 fn analyze_optional_static_member<'a, 'b>(
     member_expr: &'b StaticMemberExpression<'a>,
     semantic: &'b Semantic<'a>,
+    strict_mode: bool,
 ) -> Result<Option<Dependency<'a>>, ()> {
     println!(
         "DEBUG: analyze_optional_static_member called with member_expr: {:?}, optional: {}",
@@ -981,7 +1032,7 @@ fn analyze_optional_static_member<'a, 'b>(
     // For props?.foo?.bar, we want to build the full chain: props.foo.bar
 
     // Get the object dependency first
-    let Some(source) = analyze_property_chain(&member_expr.object, semantic)? else {
+    let Some(source) = analyze_property_chain(&member_expr.object, semantic, strict_mode)? else {
         println!(
             "DEBUG: analyze_optional_static_member returning None - no source dependency found"
         );
@@ -1005,33 +1056,15 @@ fn analyze_optional_static_member<'a, 'b>(
 
 fn analyze_optional_call_chain<'a, 'b>(
     expr: &'b Expression<'a>,
-    semantic: &'b Semantic<'a>,
+    _semantic: &'b Semantic<'a>,
 ) -> Result<Option<Dependency<'a>>, ()> {
-    println!("DEBUG: analyze_optional_call_chain called with expr: {:?}", expr);
-    // For call expressions inside ChainExpression like props.foo?.toString()
-    // We want to find the dependency up to the optional boundary
-    match expr.get_inner_expression() {
-        Expression::StaticMemberExpression(member_expr) => {
-            // For optional method calls like props.foo?.toString(),
-            // we should only depend on props.foo, not props.foo.toString
-            // because the optional chaining means if props.foo changes,
-            // the entire expression should be re-evaluated
-
-            // Since we're in a ChainExpression with CallExpression, the optional
-            // chaining occurs at the call site, so we should depend on the object
-            // of the member expression (props.foo) rather than the full chain
-            println!(
-                "DEBUG: analyze_optional_call_chain calling analyze_property_chain for StaticMemberExpression"
-            );
-            analyze_property_chain(&member_expr.object, semantic)
-        }
-        _ => {
-            println!(
-                "DEBUG: analyze_optional_call_chain calling analyze_property_chain for other expression"
-            );
-            analyze_property_chain(expr, semantic)
-        }
-    }
+    println!(
+        "DEBUG: analyze_optional_call_chain called with expr: {:?} - returning error for complex expression",
+        expr
+    );
+    // Optional method calls like props?.attribute.method() are complex expressions
+    // that should not be allowed in dependency arrays
+    Err(())
 }
 
 fn is_identifier_a_dependency<'a>(
@@ -1059,12 +1092,16 @@ fn is_identifier_a_dependency_impl<'a>(
     component_scope_id: ScopeId,
     visited: &mut FxHashSet<SymbolId>,
 ) -> bool {
+    println!("DEBUG: is_identifier_a_dependency_impl called with ident_name: {:?}", ident_name);
+
     // if it is a global e.g. `console` or `window`, then it's not a dependency
     if ctx.scoping().root_unresolved_references().contains_key(ident_name.as_str()) {
+        println!("DEBUG: is_identifier_a_dependency_impl returning false - it's a global");
         return false;
     }
 
     let Some(declaration) = get_declaration_from_reference_id(ident_reference_id, ctx) else {
+        println!("DEBUG: is_identifier_a_dependency_impl returning false - no declaration found");
         return false;
     };
 
@@ -1073,6 +1110,7 @@ fn is_identifier_a_dependency_impl<'a>(
 
     // if the variable was declared in the root scope, then it's not a dependency
     if declaration.scope_id() == scopes.root_scope_id() {
+        println!("DEBUG: is_identifier_a_dependency_impl returning false - declared in root scope");
         return false;
     }
 
@@ -1091,6 +1129,9 @@ fn is_identifier_a_dependency_impl<'a>(
         .skip(1)
         .any(|parent| parent == declaration.scope_id())
     {
+        println!(
+            "DEBUG: is_identifier_a_dependency_impl returning false - declared outside component scope"
+        );
         return false;
     }
 
@@ -1104,6 +1145,9 @@ fn is_identifier_a_dependency_impl<'a>(
     //  return <div />;
     // }
     if scopes.iter_all_scope_child_ids(component_scope_id).any(|id| id == declaration.scope_id()) {
+        println!(
+            "DEBUG: is_identifier_a_dependency_impl returning false - declared inside child scope"
+        );
         return false;
     }
 
@@ -1115,6 +1159,7 @@ fn is_identifier_a_dependency_impl<'a>(
         component_scope_id,
         visited,
     ) {
+        println!("DEBUG: is_identifier_a_dependency_impl returning false - it's a stable value");
         return false;
     }
 
@@ -1126,9 +1171,11 @@ fn is_identifier_a_dependency_impl<'a>(
     // }
     // ```
     if declaration.span().contains_inclusive(ident_span) {
+        println!("DEBUG: is_identifier_a_dependency_impl returning false - recursive declaration");
         return false;
     }
 
+    println!("DEBUG: is_identifier_a_dependency_impl returning true - valid dependency");
     true
 }
 
@@ -1348,7 +1395,7 @@ struct ExhaustiveDepsVisitor<'a, 'b> {
     skip_reporting_dependency: bool,
     set_state_call: bool,
     found_dependencies: FxHashSet<Dependency<'a>>,
-    refs_inside_cleanups: Vec<&'a StaticMemberExpression<'a>>,
+    refs_inside_cleanups: Vec<(Span, ReferenceId)>,
 }
 
 impl<'a, 'b> ExhaustiveDepsVisitor<'a, 'b> {
@@ -1475,6 +1522,13 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
         // noop
     }
 
+    fn visit_return_statement(&mut self, it: &ReturnStatement<'a>) {
+        // Visit the return expression to scan for dependencies
+        if let Some(argument) = &it.argument {
+            self.visit_expression(argument);
+        }
+    }
+
     fn visit_variable_declarator(&mut self, decl: &VariableDeclarator<'a>) {
         self.stack.push(AstType::VariableDeclarator);
         // NOTE: decl_stack is only appended when visiting initializer
@@ -1598,9 +1652,19 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
             it.property.name, it.optional
         );
 
+        // Check if we're inside a cleanup function and accessing .current on a ref
+        if it.property.name == "current" && is_inside_effect_cleanup(&self.stack) {
+            println!(
+                "DEBUG: Found ref.current access inside cleanup function, adding to refs_inside_cleanups"
+            );
+            if let Expression::Identifier(ident) = it.object.get_inner_expression() {
+                self.refs_inside_cleanups.push((it.span, ident.reference_id()));
+            }
+        }
+
         // Only analyze the full chain for cases like props.foo
         // Do not add the parent/source dependency separately
-        let full_chain_dep = concat_members(it, self.semantic);
+        let full_chain_dep = concat_members(it, self.semantic, false);
         if let Ok(Some(source)) = full_chain_dep {
             println!(
                 "DEBUG: visit_static_member_expression found full chain dependency: {:?}",
@@ -1719,16 +1783,43 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
 }
 
 fn is_inside_effect_cleanup(stack: &[AstType]) -> bool {
+    println!("DEBUG: is_inside_effect_cleanup called with stack: {:?}", stack);
+
+    // Check if we're inside an ArrowFunctionExpression that's inside a ReturnStatement
+    // The pattern should be: [..., ReturnStatement, ArrowFunctionExpression, ...]
     let mut iter = stack.iter().rev();
 
     while let Some(&cur) = iter.next() {
-        if matches!(cur, AstType::Function | AstType::ArrowFunctionExpression)
-            && iter.next() == Some(&AstType::ReturnStatement)
-        {
-            return true;
+        if cur == AstType::ArrowFunctionExpression {
+            // Look for ReturnStatement in the remaining stack
+            let mut inner_iter = iter.clone();
+            while let Some(&inner_cur) = inner_iter.next() {
+                if inner_cur == AstType::ReturnStatement {
+                    println!(
+                        "DEBUG: is_inside_effect_cleanup returning true - found ArrowFunctionExpression inside ReturnStatement"
+                    );
+                    return true;
+                }
+            }
         }
     }
 
+    // Alternative approach: check if we're inside an ArrowFunctionExpression that's not the main useEffect function
+    // This would be the cleanup function
+    let mut arrow_function_count = 0;
+    for &ast_type in stack.iter().rev() {
+        if ast_type == AstType::ArrowFunctionExpression {
+            arrow_function_count += 1;
+            if arrow_function_count > 1 {
+                println!(
+                    "DEBUG: is_inside_effect_cleanup returning true - found nested ArrowFunctionExpression"
+                );
+                return true;
+            }
+        }
+    }
+
+    println!("DEBUG: is_inside_effect_cleanup returning false");
     false
 }
 

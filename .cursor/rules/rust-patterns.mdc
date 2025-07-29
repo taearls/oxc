@@ -1,0 +1,20 @@
+---
+description: Rust Patterns
+globs: *.rs
+alwaysApply: false
+---
+# Rust Refactoring Patterns
+
+## Extract Helper Functions
+When you see complex nested logic, extract it into focused helper functions.
+
+## Use Guard Clauses
+Replace nested conditions with early returns for cleaner code flow.
+
+## Consolidate Pattern Matching
+Replace repetitive match arms with helper functions that handle common patterns.
+
+## Type-Safe Enums
+Use enums instead of runtime string/type checking for better safety.
+
+---
