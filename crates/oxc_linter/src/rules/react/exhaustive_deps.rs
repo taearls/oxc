@@ -489,6 +489,76 @@ impl Rule for ExhaustiveDeps {
                     );
                     continue;
                 }
+
+                // Check if this is a reactive value (useRef, prop, or parameter) that has a .current property
+                let Some(declaration) = get_declaration_from_reference_id(reference_id, ctx) else {
+                    println!("DEBUG: Skipping ref cleanup diagnostic - no declaration found");
+                    continue;
+                };
+
+                let is_reactive = match declaration.kind() {
+                    AstKind::VariableDeclarator(declarator) => {
+                        // Check if the initializer is a useRef call
+                        match &declarator.init {
+                            Some(init) => match init.get_inner_expression() {
+                                Expression::CallExpression(call_expr) => {
+                                    match func_call_without_react_namespace(call_expr) {
+                                        Some(init_name) => {
+                                            if init_name == "useRef" {
+                                                println!(
+                                                    "DEBUG: Found useRef - reporting ref cleanup diagnostic"
+                                                );
+                                                true
+                                            } else {
+                                                println!(
+                                                    "DEBUG: Skipping ref cleanup diagnostic - not a useRef (it's {})",
+                                                    init_name
+                                                );
+                                                false
+                                            }
+                                        }
+                                        None => {
+                                            println!(
+                                                "DEBUG: Skipping ref cleanup diagnostic - can't get function name"
+                                            );
+                                            false
+                                        }
+                                    }
+                                }
+                                _ => {
+                                    println!(
+                                        "DEBUG: Skipping ref cleanup diagnostic - initializer is not CallExpression"
+                                    );
+                                    false
+                                }
+                            },
+                            None => {
+                                println!("DEBUG: Skipping ref cleanup diagnostic - no initializer");
+                                false
+                            }
+                        }
+                    }
+                    AstKind::FormalParameter(_) => {
+                        // Parameters can be refs if they're passed as props
+                        // Since we're already in the context of accessing .current,
+                        // this parameter is being used as a ref
+                        println!(
+                            "DEBUG: Found parameter being used as ref - reporting ref cleanup diagnostic"
+                        );
+                        true
+                    }
+                    _ => {
+                        println!(
+                            "DEBUG: Skipping ref cleanup diagnostic - declaration is not VariableDeclarator or FormalParameter"
+                        );
+                        false
+                    }
+                };
+
+                if !is_reactive {
+                    continue;
+                }
+
                 println!("DEBUG: Reporting ref cleanup diagnostic for span: {:?}", span);
                 ctx.diagnostic(ref_accessed_directly_in_effect_cleanup_diagnostic(span));
             }
@@ -1180,6 +1250,7 @@ fn is_identifier_a_dependency_impl<'a>(
 }
 
 // https://github.com/facebook/react/blob/fee786a057774ab687aff765345dd86fce534ab2/packages/eslint-plugin-react-hooks/src/ExhaustiveDeps.js#L164
+
 fn is_stable_value<'a, 'b>(
     node: &'b AstNode<'a>,
     ident_name: Atom<'a>,
@@ -1396,6 +1467,7 @@ struct ExhaustiveDepsVisitor<'a, 'b> {
     set_state_call: bool,
     found_dependencies: FxHashSet<Dependency<'a>>,
     refs_inside_cleanups: Vec<(Span, ReferenceId)>,
+    inside_cleanup_function: bool,
 }
 
 impl<'a, 'b> ExhaustiveDepsVisitor<'a, 'b> {
@@ -1408,6 +1480,7 @@ impl<'a, 'b> ExhaustiveDepsVisitor<'a, 'b> {
             set_state_call: false,
             found_dependencies: FxHashSet::default(),
             refs_inside_cleanups: vec![],
+            inside_cleanup_function: false,
         }
     }
 
@@ -1523,9 +1596,11 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
     }
 
     fn visit_return_statement(&mut self, it: &ReturnStatement<'a>) {
-        // Visit the return expression to scan for dependencies
         if let Some(argument) = &it.argument {
+            let prev = self.inside_cleanup_function;
+            self.inside_cleanup_function = true;
             self.visit_expression(argument);
+            self.inside_cleanup_function = prev;
         }
     }
 
@@ -1653,11 +1728,13 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
         );
 
         // Check if we're inside a cleanup function and accessing .current on a ref
-        if it.property.name == "current" && is_inside_effect_cleanup(&self.stack) {
-            println!(
-                "DEBUG: Found ref.current access inside cleanup function, adding to refs_inside_cleanups"
-            );
+        if it.property.name == "current" && self.inside_cleanup_function {
             if let Expression::Identifier(ident) = it.object.get_inner_expression() {
+                // For now, we'll add all .current accesses in cleanup functions to the refs_inside_cleanups
+                // The diagnostic logic will filter out non-refs later
+                println!(
+                    "DEBUG: Found .current access inside cleanup function, adding to refs_inside_cleanups"
+                );
                 self.refs_inside_cleanups.push((it.span, ident.reference_id()));
             }
         }
