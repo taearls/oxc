@@ -692,7 +692,11 @@ impl Rule for ExhaustiveDeps {
             let diagnostic =
                 missing_dependency_diagnostic(hook_name, &undeclared, dependencies_node.span());
             println!("DEBUG: Created diagnostic: {:?}", diagnostic);
-            ctx.diagnostic(diagnostic);
+
+            // Add fix if we have a dependencies node
+            ctx.diagnostic_with_fix(diagnostic, |fixer| {
+                fix::append_dependencies(fixer, &undeclared, &*dependencies_node)
+            });
             println!("DEBUG: Finished calling ctx.diagnostic");
         }
 
@@ -4542,18 +4546,6 @@ fn test() {
             // None,
             // FixKind::DangerousSuggestion,
         ),
-        // (
-        //     r#"const useHook = () => {
-        //       const [state, setState] = useState(0);
-        //       const foo = useCallback(() => state);
-        //     }"#,
-        //     r#"const useHook = () => {
-        //       const [state, setState] = useState(0);
-        //       const foo = useCallback(() => state, [state]);
-        //     }"#,
-        //     // None,
-        //     // FixKind::DangerousSuggestion,
-        // ),
     ];
 
     Tester::new(
