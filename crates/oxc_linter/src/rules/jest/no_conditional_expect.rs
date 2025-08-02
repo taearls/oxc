@@ -112,20 +112,6 @@ struct InConditional(bool);
 struct InJestTest(bool);
 
 impl Rule for NoConditionalExpect {
-    // fn run<'a>(&self, node: &AstNode<'a>, ctx: &LintContext<'a>) {
-    //     if let AstKind::Function(func) = node.kind() {
-    //         // Only check top-level functions (not nested ones) since those are the ones
-    //         // that could be passed by reference to Jest tests
-    //         if is_top_level_function(node, ctx) {
-    //             if let Some(func_body) = &func.body {
-    //                 if function_used_in_jest_tests(node, ctx) {
-    //                     check_function_body_for_conditional_expects(func_body, ctx);
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-
     fn run_on_jest_node<'a, 'c>(
         &self,
         possible_jest_node: &PossibleJestNode<'a, 'c>,
