@@ -491,13 +491,7 @@ impl Rule for ExhaustiveDeps {
                             Some(init) => match init.get_inner_expression() {
                                 Expression::CallExpression(call_expr) => {
                                     match func_call_without_react_namespace(call_expr) {
-                                        Some(init_name) => {
-                                            if init_name == "useRef" {
-                                                true
-                                            } else {
-                                                false
-                                            }
-                                        }
+                                        Some(init_name) => init_name == "useRef",
                                         None => false,
                                     }
                                 }
@@ -640,7 +634,7 @@ impl Rule for ExhaustiveDeps {
             let undeclared = undeclared_deps.map(Name::from).collect::<Vec<_>>();
             ctx.diagnostic_with_dangerous_suggestion(
                 missing_dependency_diagnostic(hook_name, &undeclared, dependencies_node.span()),
-                |fixer| fix::append_dependencies(fixer, &undeclared, &*dependencies_node),
+                |fixer| fix::append_dependencies(fixer, &undeclared, dependencies_node),
             );
         }
 
@@ -871,7 +865,7 @@ impl Dependency<'_> {
     fn to_string(&self) -> String {
         let mut result = self.name.to_string();
         for prop in &self.chain {
-            write!(result, ".{}", prop).unwrap();
+            write!(result, ".{prop}").unwrap();
         }
         result
     }
@@ -880,8 +874,7 @@ impl Dependency<'_> {
         if self.name != other.name {
             return false;
         }
-        let result = chain_contains(&self.chain, &other.chain);
-        result
+        chain_contains(&self.chain, &other.chain)
     }
 }
 
@@ -1017,7 +1010,7 @@ fn analyze_optional_static_member<'a, 'b>(
 }
 
 fn analyze_optional_call_chain<'a, 'b>(
-    expr: &'b Expression<'a>,
+    _expr: &'b Expression<'a>,
     _semantic: &'b Semantic<'a>,
 ) -> Result<Option<Dependency<'a>>, ()> {
     // Optional method calls like props?.attribute.method() are complex expressions
@@ -1391,7 +1384,7 @@ impl<'a, 'b> ExhaustiveDepsVisitor<'a, 'b> {
                     continue;
                 }
                 match &prop.value.kind {
-                    BindingPatternKind::BindingIdentifier(id) => {
+                    BindingPatternKind::BindingIdentifier(_id) => {
                         let mut chain = prefix.clone();
                         if let Some(key) = prop.key.name() {
                             chain.push(Atom::from(
@@ -1609,9 +1602,9 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
         // Do not add the parent/source dependency separately
         let full_chain_dep = concat_members(it, self.semantic, false);
         if let Ok(Some(source)) = full_chain_dep {
-            if !self.skip_reporting_dependency {
-                self.found_dependencies.insert(source);
+            if self.skip_reporting_dependency {
             } else {
+                self.found_dependencies.insert(source);
             }
         }
     }
@@ -1621,7 +1614,7 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
             return;
         }
         // Guard: If the last node in the stack is a StaticMemberExpression, skip adding the parent dependency.
-        if let Some(AstType::StaticMemberExpression) = self.stack.last() {
+        if matches!(self.stack.last(), Some(AstType::StaticMemberExpression)) {
             return;
         }
         let reference_id = ident.reference_id();
