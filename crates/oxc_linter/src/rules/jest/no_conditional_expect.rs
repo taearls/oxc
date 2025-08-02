@@ -1,4 +1,4 @@
-use oxc_ast::AstKind;
+use oxc_ast::{AstKind, ast::Expression};
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_macros::declare_oxc_lint;
 use oxc_semantic::{AstNode, NodeId};
@@ -131,26 +131,10 @@ impl Rule for NoConditionalExpect {
     ) {
         let node = possible_jest_node.node;
         if let AstKind::CallExpression(call_expr) = node.kind() {
-            println!("[DEBUG] Found CallExpression, checking if it's an expect call");
-
             let Some(jest_fn_call) = parse_expect_jest_fn_call(call_expr, possible_jest_node, ctx)
             else {
-                println!("[DEBUG] Not an expect call, returning early");
                 return;
             };
-
-            // Check if this is expect.fail, which should be allowed in conditional contexts
-            let is_expect_fail = if let Some(matcher) = jest_fn_call.matcher() {
-                if let Some(name) = matcher.name() { name == "fail" } else { false }
-            } else {
-                false
-            };
-
-            if is_expect_fail {
-                println!("[DEBUG] Found expect.fail, checking conditional context");
-            }
-
-            println!("[DEBUG] Found expect call: {:?}", jest_fn_call.head.span);
 
             // Record visited nodes for avoid infinite loop.
             let mut visited = FxHashSet::default();
@@ -165,39 +149,12 @@ impl Rule for NoConditionalExpect {
                 possible_jest_node,
             );
 
-            println!(
-                "[DEBUG] check_parents result: {:?}, in_jest_test: {:?}",
-                has_condition_or_catch, in_jest_test
-            );
-
             if matches!(has_condition_or_catch, InConditional(true)) {
                 // Check if we're in a Jest test context
                 if matches!(in_jest_test, InJestTest(true)) {
-                    println!("[DEBUG] Found conditional expect in Jest test, creating diagnostic");
                     ctx.diagnostic(no_conditional_expect_diagnostic(jest_fn_call.head.span));
-                } else {
-                    // For standalone functions, check if this is expect.fail, which should be allowed
-                    let is_expect_fail = if let Some(matcher) = jest_fn_call.matcher() {
-                        if let Some(name) = matcher.name() { name == "fail" } else { false }
-                    } else {
-                        false
-                    };
-
-                    if is_expect_fail {
-                        println!(
-                            "[DEBUG] Found expect.fail in conditional context in standalone function, allowing it"
-                        );
-                    } else {
-                        println!(
-                            "[DEBUG] Conditional expect not in Jest test context, no diagnostic needed"
-                        );
-                    }
                 }
-            } else {
-                println!("[DEBUG] No conditional context found, no diagnostic needed");
             }
-        } else {
-            println!("[DEBUG] Node is not a CallExpression: {:?}", node.kind());
         }
     }
 }
@@ -221,11 +178,8 @@ fn function_used_in_jest_tests<'a>(func_node: &AstNode<'a>, ctx: &LintContext<'a
     };
 
     let Some(name) = func_name else {
-        println!("[DEBUG] Function has no name, skipping");
         return false;
     };
-
-    println!("[DEBUG] Checking if function '{}' is used in Jest tests", name);
 
     // Search for Jest test calls that reference this function
     let mut is_used_in_jest = false;
@@ -243,12 +197,10 @@ fn function_used_in_jest_tests<'a>(func_node: &AstNode<'a>, ctx: &LintContext<'a
             ) {
                 // Check if any argument is an identifier that matches our function name
                 for arg in &call_expr.arguments {
-                    if let Some(expr) = arg.as_expression() {
-                        if let oxc_ast::ast::Expression::Identifier(ident) = expr {
-                            if ident.name == name {
-                                is_used_in_jest = true;
-                                break;
-                            }
+                    if let Some(Expression::Identifier(ident)) = arg.as_expression() {
+                        if ident.name == name {
+                            is_used_in_jest = true;
+                            break;
                         }
                     }
                 }
@@ -344,7 +296,6 @@ fn check_expression_for_conditional_expects<'a>(
             // Check if this is an expect call
             if let Expression::Identifier(ident) = &call.callee {
                 if ident.name == "expect" && in_conditional {
-                    println!("[DEBUG] Found conditional expect in function: {:?}", ident.span);
                     ctx.diagnostic(no_conditional_expect_diagnostic(ident.span));
                 }
             }
@@ -354,15 +305,8 @@ fn check_expression_for_conditional_expects<'a>(
                     if ident.name == "expect" && in_conditional {
                         // Check if this is expect.fail, which should be allowed
                         if member.property.name == "fail" {
-                            println!(
-                                "[DEBUG] Found expect.fail in conditional context, allowing it"
-                            );
                             return; // Don't flag expect.fail
                         }
-                        println!(
-                            "[DEBUG] Found conditional expect method call in function: {:?}",
-                            ident.span
-                        );
                         ctx.diagnostic(no_conditional_expect_diagnostic(ident.span));
                     }
                 }
@@ -388,24 +332,15 @@ fn check_parents<'a>(
     ctx: &LintContext<'a>,
     jest_node: &PossibleJestNode<'a, '_>,
 ) -> (InConditional, InJestTest) {
-    println!(
-        "[DEBUG] check_parents called with node_id: {:?}, in_conditional: {:?}",
-        node.id(),
-        in_conditional
-    );
-
     // if the node is already visited, we should return `false` to avoid infinite loop.
     if !visited.insert(node.id()) {
-        println!("[DEBUG] Node already visited, returning InConditional(false)");
         return (InConditional(false), in_jest_test);
     }
 
     let parent_node = ctx.nodes().parent_node(node.id());
-    println!("[DEBUG] Parent node kind: {:?}", parent_node.kind());
 
     match parent_node.kind() {
         AstKind::CallExpression(call_expr) => {
-            println!("[DEBUG] Parent is CallExpression");
             let jest_node = PossibleJestNode { node: parent_node, original: None };
 
             if is_type_of_jest_fn_call(
@@ -414,16 +349,11 @@ fn check_parents<'a>(
                 ctx,
                 &[JestFnKind::General(JestGeneralFnKind::Test)],
             ) {
-                println!(
-                    "[DEBUG] Parent is a Jest test function, returning current in_conditional: {:?}",
-                    in_conditional
-                );
                 return (in_conditional, InJestTest(true));
             }
 
             if let Some(member_expr) = call_expr.callee.as_member_expression() {
                 if member_expr.static_property_name() == Some("catch") {
-                    println!("[DEBUG] Found catch method call, marking as conditional");
                     return check_parents(
                         parent_node,
                         visited,
@@ -435,8 +365,12 @@ fn check_parents<'a>(
                 }
             }
         }
-        AstKind::CatchClause(_) => {
-            println!("[DEBUG] Found CatchClause, marking as conditional");
+        AstKind::CatchClause(_)
+        | AstKind::SwitchStatement(_)
+        | AstKind::IfStatement(_)
+        | AstKind::ConditionalExpression(_)
+        | AstKind::LogicalExpression(_)
+        | AstKind::Function(_) => {
             // Continue checking but mark that we're in a conditional context
             return check_parents(
                 parent_node,
@@ -447,80 +381,12 @@ fn check_parents<'a>(
                 jest_node,
             );
         }
-        AstKind::SwitchStatement(_) => {
-            println!("[DEBUG] Found SwitchStatement, marking as conditional");
-            return check_parents(
-                parent_node,
-                visited,
-                InConditional(true),
-                in_jest_test,
-                ctx,
-                jest_node,
-            );
-        }
-        AstKind::IfStatement(_) => {
-            println!("[DEBUG] Found IfStatement, marking as conditional");
-            return check_parents(
-                parent_node,
-                visited,
-                InConditional(true),
-                in_jest_test,
-                ctx,
-                jest_node,
-            );
-        }
-        AstKind::ConditionalExpression(_) => {
-            println!("[DEBUG] Found ConditionalExpression, marking as conditional");
-            return check_parents(
-                parent_node,
-                visited,
-                InConditional(true),
-                in_jest_test,
-                ctx,
-                jest_node,
-            );
-        }
-        AstKind::LogicalExpression(_) => {
-            println!("[DEBUG] Found LogicalExpression, marking as conditional");
-            return check_parents(
-                parent_node,
-                visited,
-                InConditional(true),
-                in_jest_test,
-                ctx,
-                jest_node,
-            );
-        }
-        AstKind::Function(_) => {
-            println!("[DEBUG] Found Function, checking if it's passed to Jest test");
-            // For now, let's preserve the conditional status and continue checking
-            // The function detection will be handled separately
-            println!("[DEBUG] Function found, preserving conditional status");
-            return check_parents(
-                parent_node,
-                visited,
-                in_conditional,
-                in_jest_test,
-                ctx,
-                jest_node,
-            );
-        }
         AstKind::Program(_) => {
-            println!(
-                "[DEBUG] Reached Program level, returning current in_conditional: {:?}",
-                in_conditional
-            );
             return (in_conditional, in_jest_test);
         }
-        _ => {
-            println!("[DEBUG] Other node type: {:?}, continuing check", parent_node.kind());
-        }
+        _ => {}
     }
 
-    println!(
-        "[DEBUG] Continuing to check parent with current in_conditional: {:?}",
-        in_conditional
-    );
     check_parents(parent_node, visited, in_conditional, in_jest_test, ctx, jest_node)
 }
 

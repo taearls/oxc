@@ -1201,7 +1201,7 @@ fn is_stable_value<'a, 'b>(
                 return false;
             };
 
-            let BindingPatternKind::BindingIdentifier(_binding_ident) = &second_arg.kind else {
+            let BindingPatternKind::BindingIdentifier(_) = &second_arg.kind else {
                 return false;
             };
 
@@ -1250,8 +1250,6 @@ fn is_stable_value<'a, 'b>(
                     }
 
                     return true; // State setters are stable (unless reassigned)
-                } else {
-                    return false; // State values are NOT stable
                 }
             }
 
@@ -1674,12 +1672,12 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                         return;
                     };
 
-                    let BindingPatternKind::BindingIdentifier(_binding_ident) = &second_arg.kind
+                    let BindingPatternKind::BindingIdentifier(binding_ident) = &second_arg.kind
                     else {
                         return;
                     };
 
-                    _binding_ident.name == ident.name
+                    binding_ident.name == ident.name
                 }
                 _ => false,
             };
@@ -1703,38 +1701,6 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
             }
         }
     }
-}
-
-fn is_inside_effect_cleanup(stack: &[AstType]) -> bool {
-    // Check if we're inside an ArrowFunctionExpression that's inside a ReturnStatement
-    // The pattern should be: [..., ReturnStatement, ArrowFunctionExpression, ...]
-    let mut iter = stack.iter().rev();
-
-    while let Some(&cur) = iter.next() {
-        if cur == AstType::ArrowFunctionExpression {
-            // Look for ReturnStatement in the remaining stack
-            let mut inner_iter = iter.clone();
-            while let Some(&inner_cur) = inner_iter.next() {
-                if inner_cur == AstType::ReturnStatement {
-                    return true;
-                }
-            }
-        }
-    }
-
-    // Alternative approach: check if we're inside an ArrowFunctionExpression that's not the main useEffect function
-    // This would be the cleanup function
-    let mut arrow_function_count = 0;
-    for &ast_type in stack.iter().rev() {
-        if ast_type == AstType::ArrowFunctionExpression {
-            arrow_function_count += 1;
-            if arrow_function_count > 1 {
-                return true;
-            }
-        }
-    }
-
-    false
 }
 
 mod fix {
