@@ -1319,6 +1319,65 @@ fn func_call_without_react_namespace<'a>(
     None
 }
 
+fn walk_props<'a, F: FnMut(Vec<Atom<'a>>)>(
+    props: &'a [oxc_ast::ast::BindingProperty<'a>],
+    prefix: &[Atom<'a>],
+    cb: &mut F,
+    needs_full_identifier: &mut bool,
+) {
+    for prop in props {
+        if prop.computed {
+            *needs_full_identifier = true;
+            continue;
+        }
+        match &prop.value.kind {
+            BindingPatternKind::BindingIdentifier(_id) => {
+                let mut chain = prefix.to_owned();
+                if let Some(key) = prop.key.name() {
+                    chain.push(Atom::from(Box::leak(key.to_string().into_boxed_str()) as &str));
+                    cb(chain);
+                } else {
+                    *needs_full_identifier = true;
+                }
+            }
+            BindingPatternKind::AssignmentPattern(pat) => {
+                if let Some(id) = pat.left.get_binding_identifier() {
+                    let mut chain = prefix.to_owned();
+                    if let Some(key) = prop.key.name() {
+                        chain.push(Atom::from(Box::leak(key.to_string().into_boxed_str()) as &str));
+                        chain.push(id.name);
+                        cb(chain);
+                    } else {
+                        *needs_full_identifier = true;
+                    }
+                } else {
+                    *needs_full_identifier = true;
+                }
+            }
+            BindingPatternKind::ArrayPattern(_) => {
+                if let Some(key) = prop.key.name() {
+                    let mut new_prefix = prefix.to_owned();
+                    new_prefix
+                        .push(Atom::from(Box::leak(key.to_string().into_boxed_str()) as &str));
+                    cb(new_prefix);
+                } else {
+                    *needs_full_identifier = true;
+                }
+            }
+            BindingPatternKind::ObjectPattern(obj_pat) => {
+                if let Some(key) = prop.key.name() {
+                    let mut new_prefix = prefix.to_owned();
+                    new_prefix
+                        .push(Atom::from(Box::leak(key.to_string().into_boxed_str()) as &str));
+                    walk_props(&obj_pat.properties, &new_prefix, cb, needs_full_identifier);
+                } else {
+                    *needs_full_identifier = true;
+                }
+            }
+        }
+    }
+}
+
 struct ExhaustiveDepsVisitor<'a, 'b> {
     semantic: &'b Semantic<'a>,
     stack: Vec<AstType>,
@@ -1370,71 +1429,8 @@ impl<'a, 'b> ExhaustiveDepsVisitor<'a, 'b> {
         }
 
         let mut needs_full_identifier = false;
-        fn walk_props<'a, F: FnMut(Vec<Atom<'a>>)>(
-            props: &'a [oxc_ast::ast::BindingProperty<'a>],
-            prefix: Vec<Atom<'a>>,
-            cb: &mut F,
-            needs_full_identifier: &mut bool,
-        ) {
-            for prop in props {
-                if prop.computed {
-                    *needs_full_identifier = true;
-                    continue;
-                }
-                match &prop.value.kind {
-                    BindingPatternKind::BindingIdentifier(_id) => {
-                        let mut chain = prefix.clone();
-                        if let Some(key) = prop.key.name() {
-                            chain.push(Atom::from(
-                                Box::leak(key.to_string().into_boxed_str()) as &str
-                            ));
-                            cb(chain);
-                        } else {
-                            *needs_full_identifier = true;
-                        }
-                    }
-                    BindingPatternKind::AssignmentPattern(pat) => {
-                        if let Some(id) = pat.left.get_binding_identifier() {
-                            let mut chain = prefix.clone();
-                            if let Some(key) = prop.key.name() {
-                                chain.push(Atom::from(
-                                    Box::leak(key.to_string().into_boxed_str()) as &str
-                                ));
-                                chain.push(id.name);
-                                cb(chain);
-                            } else {
-                                *needs_full_identifier = true;
-                            }
-                        } else {
-                            *needs_full_identifier = true;
-                        }
-                    }
-                    BindingPatternKind::ArrayPattern(_) => {
-                        if let Some(key) = prop.key.name() {
-                            let mut new_prefix = prefix.clone();
-                            new_prefix.push(Atom::from(
-                                Box::leak(key.to_string().into_boxed_str()) as &str,
-                            ));
-                            cb(new_prefix);
-                        } else {
-                            *needs_full_identifier = true;
-                        }
-                    }
-                    BindingPatternKind::ObjectPattern(obj_pat) => {
-                        if let Some(key) = prop.key.name() {
-                            let mut new_prefix = prefix.clone();
-                            new_prefix.push(Atom::from(
-                                Box::leak(key.to_string().into_boxed_str()) as &str,
-                            ));
-                            walk_props(&obj_pat.properties, new_prefix, cb, needs_full_identifier);
-                        } else {
-                            *needs_full_identifier = true;
-                        }
-                    }
-                }
-            }
-        }
-        walk_props(&obj.properties, vec![], &mut cb, &mut needs_full_identifier);
+
+        walk_props(&obj.properties, &[], &mut cb, &mut needs_full_identifier);
         Some(needs_full_identifier)
     }
 }
@@ -1483,27 +1479,10 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
             if is_object_destructure && is_member_expr {
                 let prev = self.skip_reporting_dependency;
                 self.skip_reporting_dependency = true;
-                // SAFETY:
-                // 1. All nodes live inside the arena, which has a lifetime of 'a.
-                //    The arena lives longer than any Rule pass, so this visitor
-                //    will drop before the node does.
-                // 2. This visitor is read-only, and it drops all references after
-                //    visiting the node.  Therefore, no mutable references will be
-                //    created before this stack is dropped.
-                let decl = unsafe {
-                    std::mem::transmute::<&VariableDeclarator<'_>, &'a VariableDeclarator<'a>>(decl)
-                };
-                self.decl_stack.push(decl);
-                self.visit_expression(init);
-                self.decl_stack.pop();
+                self.perform_variable_declarator_visit(decl, init);
                 self.skip_reporting_dependency = prev;
             } else {
-                let decl = unsafe {
-                    std::mem::transmute::<&VariableDeclarator<'_>, &'a VariableDeclarator<'a>>(decl)
-                };
-                self.decl_stack.push(decl);
-                self.visit_expression(init);
-                self.decl_stack.pop();
+                self.perform_variable_declarator_visit(decl, init);
             }
         }
         self.stack.pop();
@@ -1700,6 +1679,28 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                 }
             }
         }
+    }
+}
+
+impl<'a> ExhaustiveDepsVisitor<'a, '_> {
+    fn perform_variable_declarator_visit(
+        &mut self,
+        decl: &VariableDeclarator<'a>,
+        init: &Expression<'a>,
+    ) {
+        // SAFETY:
+        // 1. All nodes live inside the arena, which has a lifetime of 'a.
+        //    The arena lives longer than any Rule pass, so this visitor
+        //    will drop before the node does.
+        // 2. This visitor is read-only, and it drops all references after
+        //    visiting the node.  Therefore, no mutable references will be
+        //    created before this stack is dropped.
+        let decl = unsafe {
+            std::mem::transmute::<&VariableDeclarator<'_>, &'a VariableDeclarator<'a>>(decl)
+        };
+        self.decl_stack.push(decl);
+        self.visit_expression(init);
+        self.decl_stack.pop();
     }
 }
 
