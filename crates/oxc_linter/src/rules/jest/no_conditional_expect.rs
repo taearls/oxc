@@ -14,6 +14,11 @@ use crate::{
     },
 };
 
+// String constants to avoid repeated allocations
+const EXPECT_STR: &str = "expect";
+const FAIL_STR: &str = "fail";
+const CATCH_STR: &str = "catch";
+
 fn no_conditional_expect_diagnostic(span: Span) -> OxcDiagnostic {
     OxcDiagnostic::warn("Unexpected conditional expect")
         .with_help("Avoid calling `expect` conditionally")
@@ -172,9 +177,6 @@ fn function_used_in_jest_tests<'a>(func_node: &AstNode<'a>, ctx: &LintContext<'a
         return false;
     };
 
-    // Search for Jest test calls that reference this function
-    let mut is_used_in_jest = false;
-
     // Walk through all nodes to find Jest test calls
     for node in ctx.semantic().nodes().iter() {
         if let AstKind::CallExpression(call_expr) = node.kind() {
@@ -190,19 +192,15 @@ fn function_used_in_jest_tests<'a>(func_node: &AstNode<'a>, ctx: &LintContext<'a
                 for arg in &call_expr.arguments {
                     if let Some(Expression::Identifier(ident)) = arg.as_expression() {
                         if ident.name == name {
-                            is_used_in_jest = true;
-                            break;
+                            return true; // Early return when found
                         }
                     }
-                }
-                if is_used_in_jest {
-                    break;
                 }
             }
         }
     }
 
-    is_used_in_jest
+    false
 }
 
 fn check_function_body_for_conditional_expects<'a>(
@@ -246,6 +244,10 @@ fn check_statement_for_conditional_expects_with_context<'a>(
             }
         }
         Statement::BlockStatement(block) => {
+            // Early return for empty blocks
+            if block.body.is_empty() {
+                return;
+            }
             for stmt in &block.body {
                 check_statement_for_conditional_expects_with_context(stmt, ctx, in_conditional);
             }
@@ -262,6 +264,40 @@ fn check_statement_for_conditional_expects_with_context<'a>(
             }
         }
         _ => {}
+    }
+}
+
+// Optimized expect detection with early returns
+fn is_expect_call(expr: &oxc_ast::ast::Expression<'_>) -> bool {
+    match expr {
+        oxc_ast::ast::Expression::Identifier(ident) => ident.name == EXPECT_STR,
+        oxc_ast::ast::Expression::StaticMemberExpression(member) => {
+            if let oxc_ast::ast::Expression::Identifier(ident) = &member.object {
+                ident.name == EXPECT_STR
+            } else if let oxc_ast::ast::Expression::CallExpression(inner_call) = &member.object {
+                if let oxc_ast::ast::Expression::Identifier(ident) = &inner_call.callee {
+                    ident.name == EXPECT_STR
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        }
+        _ => false,
+    }
+}
+
+// Optimized expect.fail detection
+fn is_expect_fail_call(expr: &oxc_ast::ast::Expression<'_>) -> bool {
+    if let oxc_ast::ast::Expression::StaticMemberExpression(member) = expr {
+        if let oxc_ast::ast::Expression::Identifier(ident) = &member.object {
+            ident.name == EXPECT_STR && member.property.name == FAIL_STR
+        } else {
+            false
+        }
+    } else {
+        false
     }
 }
 
@@ -284,34 +320,46 @@ fn check_expression_for_conditional_expects<'a>(
             check_expression_for_conditional_expects(&conditional.alternate, ctx, true);
         }
         Expression::CallExpression(call) => {
-            // Check if this is an expect call
-            if let Expression::Identifier(ident) = &call.callee {
-                if ident.name == "expect" && in_conditional {
-                    ctx.diagnostic(no_conditional_expect_diagnostic(ident.span));
-                }
+            // Early return for non-expect calls
+            if !is_expect_call(&call.callee) {
+                return;
             }
-            // Also check member expressions like expect().toBe() or expect.fail()
-            else if let Expression::StaticMemberExpression(member) = &call.callee {
-                if let Expression::Identifier(ident) = &member.object {
-                    if ident.name == "expect" && in_conditional {
-                        // Check if this is expect.fail, which should be allowed
-                        if member.property.name == "fail" {
-                            return; // Don't flag expect.fail
-                        }
-                        ctx.diagnostic(no_conditional_expect_diagnostic(ident.span));
-                    }
-                }
-                // Also check chained calls like expect().toBe()
-                else if let Expression::CallExpression(inner_call) = &member.object {
-                    if let Expression::Identifier(ident) = &inner_call.callee {
-                        if ident.name == "expect" && in_conditional {
-                            ctx.diagnostic(no_conditional_expect_diagnostic(ident.span));
-                        }
-                    }
+
+            // Early return for expect.fail which should be allowed
+            if is_expect_fail_call(&call.callee) {
+                return;
+            }
+
+            if in_conditional {
+                // Optimized span extraction
+                let span = extract_expect_span(&call.callee);
+                if let Some(span) = span {
+                    ctx.diagnostic(no_conditional_expect_diagnostic(span));
                 }
             }
         }
         _ => {}
+    }
+}
+
+// Optimized span extraction for expect calls
+fn extract_expect_span(callee: &oxc_ast::ast::Expression<'_>) -> Option<Span> {
+    match callee {
+        oxc_ast::ast::Expression::Identifier(ident) => Some(ident.span),
+        oxc_ast::ast::Expression::StaticMemberExpression(member) => {
+            if let oxc_ast::ast::Expression::Identifier(ident) = &member.object {
+                Some(ident.span)
+            } else if let oxc_ast::ast::Expression::CallExpression(inner_call) = &member.object {
+                if let oxc_ast::ast::Expression::Identifier(ident) = &inner_call.callee {
+                    Some(ident.span)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
+        _ => None,
     }
 }
 
@@ -342,8 +390,9 @@ fn check_parents<'a>(
                 return (in_conditional, InJestTest(true));
             }
 
+            // Optimized catch detection
             if let Some(member_expr) = call_expr.callee.as_member_expression() {
-                if member_expr.static_property_name() == Some("catch") {
+                if member_expr.static_property_name() == Some(CATCH_STR) {
                     return check_parents(
                         parent_node,
                         visited,
