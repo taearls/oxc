@@ -112,19 +112,19 @@ struct InConditional(bool);
 struct InJestTest(bool);
 
 impl Rule for NoConditionalExpect {
-    fn run<'a>(&self, node: &AstNode<'a>, ctx: &LintContext<'a>) {
-        if let AstKind::Function(func) = node.kind() {
-            // Only check top-level functions (not nested ones) since those are the ones
-            // that could be passed by reference to Jest tests
-            if is_top_level_function(node, ctx) {
-                if let Some(func_body) = &func.body {
-                    if function_used_in_jest_tests(node, ctx) {
-                        check_function_body_for_conditional_expects(func_body, ctx);
-                    }
-                }
-            }
-        }
-    }
+    // fn run<'a>(&self, node: &AstNode<'a>, ctx: &LintContext<'a>) {
+    //     if let AstKind::Function(func) = node.kind() {
+    //         // Only check top-level functions (not nested ones) since those are the ones
+    //         // that could be passed by reference to Jest tests
+    //         if is_top_level_function(node, ctx) {
+    //             if let Some(func_body) = &func.body {
+    //                 if function_used_in_jest_tests(node, ctx) {
+    //                     check_function_body_for_conditional_expects(func_body, ctx);
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 
     fn run_on_jest_node<'a, 'c>(
         &self,
@@ -133,22 +133,110 @@ impl Rule for NoConditionalExpect {
     ) {
         let node = possible_jest_node.node;
         if let AstKind::CallExpression(call_expr) = node.kind() {
-            let Some(jest_fn_call) = parse_expect_jest_fn_call(call_expr, possible_jest_node, ctx)
-            else {
+            // First try to parse as a Jest expect call
+            if let Some(jest_fn_call) =
+                parse_expect_jest_fn_call(call_expr, possible_jest_node, ctx)
+            {
+                // Record visited nodes for avoid infinite loop.
+                let mut visited = FxHashSet::default();
+
+                // When first visiting the node, we assume it's not in a conditional block.
+                let (has_condition_or_catch, in_jest_test) =
+                    check_parents(node, &mut visited, InConditional(false), InJestTest(false), ctx);
+
+                if matches!(has_condition_or_catch, InConditional(true)) {
+                    // Check if we're in a Jest test context
+                    if matches!(in_jest_test, InJestTest(true)) {
+                        ctx.diagnostic(no_conditional_expect_diagnostic(jest_fn_call.head.span));
+                    }
+                }
                 return;
-            };
+            }
 
-            // Record visited nodes for avoid infinite loop.
-            let mut visited = FxHashSet::default();
+            // If not a Jest expect call, check if it's a regular expect call that might be in a function used by Jest
+            if let Expression::Identifier(ident) = &call_expr.callee {
+                if ident.name == EXPECT_STR {
+                    // Check if this expect call is inside a function that's used in Jest tests
+                    if is_expect_in_jest_function_context(node, ctx) {
+                        // Record visited nodes for avoid infinite loop.
+                        let mut visited = FxHashSet::default();
 
-            // When first visiting the node, we assume it's not in a conditional block.
-            let (has_condition_or_catch, in_jest_test) =
-                check_parents(node, &mut visited, InConditional(false), InJestTest(false), ctx);
+                        // When first visiting the node, we assume it's not in a conditional block.
+                        let (has_condition_or_catch, _) = check_parents(
+                            node,
+                            &mut visited,
+                            InConditional(false),
+                            InJestTest(false),
+                            ctx,
+                        );
 
-            if matches!(has_condition_or_catch, InConditional(true)) {
-                // Check if we're in a Jest test context
-                if matches!(in_jest_test, InJestTest(true)) {
-                    ctx.diagnostic(no_conditional_expect_diagnostic(jest_fn_call.head.span));
+                        if matches!(has_condition_or_catch, InConditional(true)) {
+                            // Check if this expect call is in a finally block, which should be allowed
+                            if !is_in_finally_block_simple(node, ctx) {
+                                ctx.diagnostic(no_conditional_expect_diagnostic(ident.span));
+                            }
+                        }
+                    }
+                }
+            }
+            // Also check member expressions like expect().toBe() or expect.fail()
+            else if let Expression::StaticMemberExpression(member) = &call_expr.callee {
+                if let Expression::Identifier(ident) = &member.object {
+                    if ident.name == EXPECT_STR {
+                        // Check if this is expect.fail, which should be allowed
+                        if member.property.name == FAIL_STR {
+                            return; // Don't flag expect.fail
+                        }
+
+                        // Check if this expect call is inside a function that's used in Jest tests
+                        if is_expect_in_jest_function_context(node, ctx) {
+                            // Record visited nodes for avoid infinite loop.
+                            let mut visited = FxHashSet::default();
+
+                            // When first visiting the node, we assume it's not in a conditional block.
+                            let (has_condition_or_catch, _) = check_parents(
+                                node,
+                                &mut visited,
+                                InConditional(false),
+                                InJestTest(false),
+                                ctx,
+                            );
+
+                            if matches!(has_condition_or_catch, InConditional(true)) {
+                                ctx.diagnostic(no_conditional_expect_diagnostic(ident.span));
+                            }
+                        }
+                    }
+                }
+                // Also check chained calls like expect().toBe()
+                else if let Expression::CallExpression(inner_call) = &member.object {
+                    if let Expression::Identifier(ident) = &inner_call.callee {
+                        if ident.name == EXPECT_STR {
+                            // Check if this expect call is inside a function that's used in Jest tests
+                            if is_expect_in_jest_function_context(node, ctx) {
+                                // Record visited nodes for avoid infinite loop.
+                                let mut visited = FxHashSet::default();
+
+                                // When first visiting the node, we assume it's not in a conditional block.
+                                let (has_condition_or_catch, _) = check_parents(
+                                    node,
+                                    &mut visited,
+                                    InConditional(false),
+                                    InJestTest(false),
+                                    ctx,
+                                );
+
+                                if matches!(has_condition_or_catch, InConditional(true)) {
+                                    // Check if this expect call is in a finally block, which should be allowed
+                                    if !is_in_finally_block_simple(node, ctx) {
+                                        ctx.diagnostic(no_conditional_expect_diagnostic(
+                                            ident.span,
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -164,6 +252,56 @@ fn is_top_level_function<'a>(func_node: &AstNode<'a>, ctx: &LintContext<'a>) -> 
             | AstKind::ExportNamedDeclaration(_)
             | AstKind::ExportDefaultDeclaration(_)
     )
+}
+
+fn is_expect_in_jest_function_context<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>) -> bool {
+    // Walk up the AST to find if this expect call is inside a function that's used in Jest tests
+    let mut current_node = node;
+
+    loop {
+        let parent_node = ctx.nodes().parent_node(current_node.id());
+
+        match parent_node.kind() {
+            AstKind::Function(_func) => {
+                // Check if this is a top-level function
+                if is_top_level_function(parent_node, ctx) {
+                    // Check if this function is used in Jest tests
+                    return function_used_in_jest_tests(parent_node, ctx);
+                }
+                current_node = parent_node;
+            }
+            AstKind::Program(_) => {
+                // Reached the top level, not in a function used by Jest
+                return false;
+            }
+            _ => {
+                current_node = parent_node;
+            }
+        }
+    }
+}
+
+fn is_in_finally_block_simple<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>) -> bool {
+    // Simple check: walk up the AST and see if we encounter a TryStatement with a finalizer
+    let mut current_node = node;
+
+    loop {
+        let parent_node = ctx.nodes().parent_node(current_node.id());
+
+        match parent_node.kind() {
+            AstKind::TryStatement(try_stmt) => {
+                // If this try statement has a finalizer, we're in a finally block
+                return try_stmt.finalizer.is_some();
+            }
+            AstKind::Program(_) => {
+                // Reached the top level, not in a finally block
+                return false;
+            }
+            _ => {
+                current_node = parent_node;
+            }
+        }
+    }
 }
 
 fn function_used_in_jest_tests<'a>(func_node: &AstNode<'a>, ctx: &LintContext<'a>) -> bool {
@@ -201,166 +339,6 @@ fn function_used_in_jest_tests<'a>(func_node: &AstNode<'a>, ctx: &LintContext<'a
     }
 
     false
-}
-
-fn check_function_body_for_conditional_expects<'a>(
-    func_body: &oxc_allocator::Box<'_, oxc_ast::ast::FunctionBody<'a>>,
-    ctx: &LintContext<'a>,
-) {
-    // Walk through the function body looking for expect calls in conditional contexts
-    for stmt in &func_body.statements {
-        check_statement_for_conditional_expects(stmt, ctx);
-    }
-}
-
-fn check_statement_for_conditional_expects<'a>(
-    stmt: &oxc_ast::ast::Statement<'a>,
-    ctx: &LintContext<'a>,
-) {
-    check_statement_for_conditional_expects_with_context(stmt, ctx, false);
-}
-
-fn check_statement_for_conditional_expects_with_context<'a>(
-    stmt: &oxc_ast::ast::Statement<'a>,
-    ctx: &LintContext<'a>,
-    in_conditional: bool,
-) {
-    use oxc_ast::ast::Statement;
-
-    match stmt {
-        Statement::IfStatement(if_stmt) => {
-            // Check consequent and alternate for expect calls (these are conditional)
-            check_statement_for_conditional_expects_with_context(&if_stmt.consequent, ctx, true);
-            if let Some(alternate) = &if_stmt.alternate {
-                check_statement_for_conditional_expects_with_context(alternate, ctx, true);
-            }
-        }
-        Statement::SwitchStatement(switch_stmt) => {
-            // Check all switch cases for expect calls (these are conditional)
-            for case in &switch_stmt.cases {
-                for stmt in &case.consequent {
-                    check_statement_for_conditional_expects_with_context(stmt, ctx, true);
-                }
-            }
-        }
-        Statement::BlockStatement(block) => {
-            // Early return for empty blocks
-            if block.body.is_empty() {
-                return;
-            }
-            for stmt in &block.body {
-                check_statement_for_conditional_expects_with_context(stmt, ctx, in_conditional);
-            }
-        }
-        Statement::ExpressionStatement(expr_stmt) => {
-            check_expression_for_conditional_expects(&expr_stmt.expression, ctx, in_conditional);
-        }
-        Statement::TryStatement(try_stmt) => {
-            // Check catch clause for expect calls (these are conditional)
-            if let Some(catch_clause) = &try_stmt.handler {
-                for stmt in &catch_clause.body.body {
-                    check_statement_for_conditional_expects_with_context(stmt, ctx, true);
-                }
-            }
-        }
-        _ => {}
-    }
-}
-
-// Optimized expect detection with early returns
-fn is_expect_call(expr: &oxc_ast::ast::Expression<'_>) -> bool {
-    match expr {
-        oxc_ast::ast::Expression::Identifier(ident) => ident.name == EXPECT_STR,
-        oxc_ast::ast::Expression::StaticMemberExpression(member) => {
-            if let oxc_ast::ast::Expression::Identifier(ident) = &member.object {
-                ident.name == EXPECT_STR
-            } else if let oxc_ast::ast::Expression::CallExpression(inner_call) = &member.object {
-                if let oxc_ast::ast::Expression::Identifier(ident) = &inner_call.callee {
-                    ident.name == EXPECT_STR
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
-        }
-        _ => false,
-    }
-}
-
-// Optimized expect.fail detection
-fn is_expect_fail_call(expr: &oxc_ast::ast::Expression<'_>) -> bool {
-    if let oxc_ast::ast::Expression::StaticMemberExpression(member) = expr {
-        if let oxc_ast::ast::Expression::Identifier(ident) = &member.object {
-            ident.name == EXPECT_STR && member.property.name == FAIL_STR
-        } else {
-            false
-        }
-    } else {
-        false
-    }
-}
-
-fn check_expression_for_conditional_expects<'a>(
-    expr: &oxc_ast::ast::Expression<'a>,
-    ctx: &LintContext<'a>,
-    in_conditional: bool,
-) {
-    use oxc_ast::ast::Expression;
-
-    match expr {
-        Expression::LogicalExpression(logical) => {
-            // Both sides of logical expressions are conditional
-            check_expression_for_conditional_expects(&logical.left, ctx, true);
-            check_expression_for_conditional_expects(&logical.right, ctx, true);
-        }
-        Expression::ConditionalExpression(conditional) => {
-            // Both consequent and alternate are conditional
-            check_expression_for_conditional_expects(&conditional.consequent, ctx, true);
-            check_expression_for_conditional_expects(&conditional.alternate, ctx, true);
-        }
-        Expression::CallExpression(call) => {
-            // Early return for non-expect calls
-            if !is_expect_call(&call.callee) {
-                return;
-            }
-
-            // Early return for expect.fail which should be allowed
-            if is_expect_fail_call(&call.callee) {
-                return;
-            }
-
-            if in_conditional {
-                // Optimized span extraction
-                let span = extract_expect_span(&call.callee);
-                if let Some(span) = span {
-                    ctx.diagnostic(no_conditional_expect_diagnostic(span));
-                }
-            }
-        }
-        _ => {}
-    }
-}
-
-// Optimized span extraction for expect calls
-fn extract_expect_span(callee: &oxc_ast::ast::Expression<'_>) -> Option<Span> {
-    match callee {
-        oxc_ast::ast::Expression::Identifier(ident) => Some(ident.span),
-        oxc_ast::ast::Expression::StaticMemberExpression(member) => {
-            if let oxc_ast::ast::Expression::Identifier(ident) = &member.object {
-                Some(ident.span)
-            } else if let oxc_ast::ast::Expression::CallExpression(inner_call) = &member.object {
-                if let oxc_ast::ast::Expression::Identifier(ident) = &inner_call.callee {
-                    Some(ident.span)
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        }
-        _ => None,
-    }
 }
 
 fn check_parents<'a>(
@@ -402,6 +380,10 @@ fn check_parents<'a>(
                     );
                 }
             }
+        }
+        AstKind::BlockStatement(_) => {
+            // Continue checking without marking as conditional
+            return check_parents(parent_node, visited, in_conditional, in_jest_test, ctx);
         }
         AstKind::CatchClause(_)
         | AstKind::SwitchStatement(_)
