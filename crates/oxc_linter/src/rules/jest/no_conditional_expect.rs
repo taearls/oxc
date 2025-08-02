@@ -108,19 +108,16 @@ struct InJestTest(bool);
 
 impl Rule for NoConditionalExpect {
     fn run<'a>(&self, node: &AstNode<'a>, ctx: &LintContext<'a>) {
-        match node.kind() {
-            AstKind::Function(func) => {
-                // Only check top-level functions (not nested ones) since those are the ones
-                // that could be passed by reference to Jest tests
-                if is_top_level_function(node, ctx) {
-                    if let Some(func_body) = &func.body {
-                        if function_used_in_jest_tests(node, ctx) {
-                            check_function_body_for_conditional_expects(func_body, ctx);
-                        }
+        if let AstKind::Function(func) = node.kind() {
+            // Only check top-level functions (not nested ones) since those are the ones
+            // that could be passed by reference to Jest tests
+            if is_top_level_function(node, ctx) {
+                if let Some(func_body) = &func.body {
+                    if function_used_in_jest_tests(node, ctx) {
+                        check_function_body_for_conditional_expects(func_body, ctx);
                     }
                 }
             }
-            _ => {}
         }
     }
 
@@ -140,14 +137,8 @@ impl Rule for NoConditionalExpect {
             let mut visited = FxHashSet::default();
 
             // When first visiting the node, we assume it's not in a conditional block.
-            let (has_condition_or_catch, in_jest_test) = check_parents(
-                node,
-                &mut visited,
-                InConditional(false),
-                InJestTest(false),
-                ctx,
-                possible_jest_node,
-            );
+            let (has_condition_or_catch, in_jest_test) =
+                check_parents(node, &mut visited, InConditional(false), InJestTest(false), ctx);
 
             if matches!(has_condition_or_catch, InConditional(true)) {
                 // Check if we're in a Jest test context
@@ -330,7 +321,6 @@ fn check_parents<'a>(
     in_conditional: InConditional,
     in_jest_test: InJestTest,
     ctx: &LintContext<'a>,
-    jest_node: &PossibleJestNode<'a, '_>,
 ) -> (InConditional, InJestTest) {
     // if the node is already visited, we should return `false` to avoid infinite loop.
     if !visited.insert(node.id()) {
@@ -360,7 +350,6 @@ fn check_parents<'a>(
                         InConditional(true),
                         in_jest_test,
                         ctx,
-                        &jest_node,
                     );
                 }
             }
@@ -372,14 +361,7 @@ fn check_parents<'a>(
         | AstKind::LogicalExpression(_)
         | AstKind::Function(_) => {
             // Continue checking but mark that we're in a conditional context
-            return check_parents(
-                parent_node,
-                visited,
-                InConditional(true),
-                in_jest_test,
-                ctx,
-                jest_node,
-            );
+            return check_parents(parent_node, visited, InConditional(true), in_jest_test, ctx);
         }
         AstKind::Program(_) => {
             return (in_conditional, in_jest_test);
@@ -387,7 +369,7 @@ fn check_parents<'a>(
         _ => {}
     }
 
-    check_parents(parent_node, visited, in_conditional, in_jest_test, ctx, jest_node)
+    check_parents(parent_node, visited, in_conditional, in_jest_test, ctx)
 }
 
 #[test]
