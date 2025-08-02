@@ -468,7 +468,7 @@ impl Rule for ExhaustiveDeps {
                             return false;
                         }
                         let grand_parent = ctx.nodes().parent_node(parent.id());
-                        matches!(grand_parent.kind(), AstKind::SimpleAssignmentTarget(_))
+                        matches!(grand_parent.kind(), AstKind::AssignmentExpression(_))
                     })
                 });
 
@@ -515,175 +515,177 @@ impl Rule for ExhaustiveDeps {
 
                 ctx.diagnostic(ref_accessed_directly_in_effect_cleanup_diagnostic(span));
             }
-        }
 
-        let Some(dependencies_node) = dependencies_node else {
-            if is_effect {
-                let contains_set_state_call = {
-                    let mut finder = ExhaustiveDepsVisitor::new(ctx.semantic());
-                    // Visit the function node itself, not just its body
-                    match callback_node {
-                        CallbackNode::Function(func) => {
-                            finder.enter_node(AstKind::Function(func));
-                            if let Some(function_body) = &func.body {
-                                finder.visit_function_body_root(function_body);
+            let Some(dependencies_node) = dependencies_node else {
+                if is_effect {
+                    let contains_set_state_call = {
+                        let mut finder = ExhaustiveDepsVisitor::new(ctx.semantic());
+                        // Visit the function node itself, not just its body
+                        match callback_node {
+                            CallbackNode::Function(func) => {
+                                finder.enter_node(AstKind::Function(func));
+                                if let Some(function_body) = &func.body {
+                                    finder.visit_function_body_root(function_body);
+                                }
+                                finder.leave_node(AstKind::Function(func));
                             }
-                            finder.leave_node(AstKind::Function(func));
+                            CallbackNode::ArrowFunction(arrow_func) => {
+                                finder.enter_node(AstKind::ArrowFunctionExpression(arrow_func));
+                                finder.visit_function_body_root(&arrow_func.body);
+                                finder.leave_node(AstKind::ArrowFunctionExpression(arrow_func));
+                            }
                         }
-                        CallbackNode::ArrowFunction(arrow_func) => {
-                            finder.enter_node(AstKind::ArrowFunctionExpression(arrow_func));
-                            finder.visit_function_body_root(&arrow_func.body);
-                            finder.leave_node(AstKind::ArrowFunctionExpression(arrow_func));
-                        }
+                        finder.set_state_call
+                    };
+
+                    if contains_set_state_call {
+                        ctx.diagnostic(infinite_rerender_call_to_set_state_diagnostic(
+                            hook_name.as_str(),
+                            call_expr.callee.span(),
+                        ));
                     }
-                    finder.set_state_call
-                };
-
-                if contains_set_state_call {
-                    ctx.diagnostic(infinite_rerender_call_to_set_state_diagnostic(
-                        hook_name.as_str(),
-                        call_expr.callee.span(),
-                    ));
                 }
-            }
 
-            return;
-        };
+                return;
+            };
 
-        let declared_dependencies_iter =
-            dependencies_node.elements.iter().filter_map(|elem| match elem {
-                ArrayExpressionElement::Elision(_) => None,
-                ArrayExpressionElement::SpreadElement(_) => {
-                    ctx.diagnostic(complex_expression_in_dependency_array_diagnostic(
-                        hook_name.as_str(),
-                        elem.span(),
-                    ));
-                    None
-                }
-                match_expression!(ArrayExpressionElement) => {
-                    let elem = elem.to_expression().get_inner_expression();
-
-                    if let Ok(dep) = analyze_property_chain(elem, ctx, true) {
-                        dep
-                    } else {
+            let declared_dependencies_iter =
+                dependencies_node.elements.iter().filter_map(|elem| match elem {
+                    ArrayExpressionElement::Elision(_) => None,
+                    ArrayExpressionElement::SpreadElement(_) => {
                         ctx.diagnostic(complex_expression_in_dependency_array_diagnostic(
                             hook_name.as_str(),
                             elem.span(),
                         ));
                         None
                     }
-                }
-            });
+                    match_expression!(ArrayExpressionElement) => {
+                        let elem = elem.to_expression().get_inner_expression();
 
-        let declared_dependencies = {
-            let mut declared_dependencies = FxHashSet::default();
-            for item in declared_dependencies_iter {
-                let span = item.span;
-                if !declared_dependencies.insert(item) {
-                    ctx.diagnostic(literal_in_dependency_array_diagnostic(span));
-                }
-            }
+                        if let Ok(dep) = analyze_property_chain(elem, ctx, true) {
+                            dep
+                        } else {
+                            ctx.diagnostic(complex_expression_in_dependency_array_diagnostic(
+                                hook_name.as_str(),
+                                elem.span(),
+                            ));
+                            None
+                        }
+                    }
+                });
 
-            declared_dependencies
-        };
-
-        for dependency in &declared_dependencies {
-            if let Some(symbol_id) = dependency.symbol_id {
-                let dependency_scope_id = ctx.scoping().symbol_scope_id(symbol_id);
-                if !(ctx
-                    .semantic()
-                    .scoping()
-                    .scope_ancestors(component_scope_id)
-                    .skip(1)
-                    .contains(&dependency_scope_id)
-                    || dependency.chain.len() == 1 && dependency.chain[0] == "current")
-                {
-                    continue;
-                }
-            }
-
-            ctx.diagnostic(unnecessary_outer_scope_dependency_diagnostic(
-                hook_name,
-                &dependency.name,
-                dependency.span,
-            ));
-        }
-
-        // Instead of using .difference(&declared_dependencies),
-        // iterate over all found_dependencies and only consider a dependency missing if no declared dependency contains it.
-        let undeclared_deps = found_dependencies.iter().filter(|dep| {
-            // Check if any declared dependency contains/satisfies this found dependency
-            if declared_dependencies.iter().any(|decl_dep| decl_dep.contains(dep)) {
-                return false;
-            }
-
-            if !is_identifier_a_dependency(
-                dep.name,
-                dep.reference_id,
-                dep.span,
-                ctx,
-                component_scope_id,
-            ) {
-                return false;
-            }
-
-            true
-        });
-
-        if undeclared_deps.clone().count() > 0 {
-            let undeclared = undeclared_deps.map(Name::from).collect::<Vec<_>>();
-            ctx.diagnostic_with_dangerous_suggestion(
-                missing_dependency_diagnostic(hook_name, &undeclared, dependencies_node.span()),
-                |fixer| fix::append_dependencies(fixer, &undeclared, dependencies_node),
-            );
-        }
-
-        // effects are allowed to have extra dependencies
-        if !is_effect {
-            let unnecessary_deps: Vec<_> =
-                declared_dependencies.difference(&found_dependencies).collect();
-
-            // lastly, we need to compare for any unnecessary deps
-            // for example if `props.foo`, AND `props.foo.bar.baz` was declared in the deps array
-            // `props.foo.bar.baz` is unnecessary (already covered by `props.foo`)
-            declared_dependencies.iter().tuple_combinations().for_each(|(a, b)| {
-                if a.contains(b) {
-                    ctx.diagnostic(unnecessary_dependency_diagnostic(
-                        hook_name,
-                        &b.to_string(), // Report the more specific dependency as unnecessary
-                        dependencies_node.span,
-                    ));
-                } else if b.contains(a) {
-                    ctx.diagnostic(unnecessary_dependency_diagnostic(
-                        hook_name,
-                        &a.to_string(), // Report the more specific dependency as unnecessary
-                        dependencies_node.span,
-                    ));
-                }
-            });
-
-            for dep in unnecessary_deps {
-                if found_dependencies.iter().any(|found_dep| dep.contains(found_dep)) {
-                    continue;
+            let declared_dependencies = {
+                let mut declared_dependencies = FxHashSet::default();
+                for item in declared_dependencies_iter {
+                    let span = item.span;
+                    if !declared_dependencies.insert(item) {
+                        ctx.diagnostic(literal_in_dependency_array_diagnostic(span));
+                    }
                 }
 
-                ctx.diagnostic(unnecessary_dependency_diagnostic(
+                declared_dependencies
+            };
+
+            for dependency in &declared_dependencies {
+                if let Some(symbol_id) = dependency.symbol_id {
+                    let dependency_scope_id = ctx.scoping().symbol_scope_id(symbol_id);
+                    if !(ctx
+                        .semantic()
+                        .scoping()
+                        .scope_ancestors(component_scope_id)
+                        .skip(1)
+                        .contains(&dependency_scope_id)
+                        || dependency.chain.len() == 1 && dependency.chain[0] == "current")
+                    {
+                        continue;
+                    }
+                }
+
+                ctx.diagnostic(unnecessary_outer_scope_dependency_diagnostic(
                     hook_name,
-                    &dep.to_string(),
-                    dependencies_node.span,
+                    &dependency.name,
+                    dependency.span,
                 ));
             }
-        }
 
-        for dep in declared_dependencies {
-            let Some(symbol_id) = dep.symbol_id else { continue };
+            // Instead of using .difference(&declared_dependencies),
+            // iterate over all found_dependencies and only consider a dependency missing if no declared dependency contains it.
+            let undeclared_deps = found_dependencies.iter().filter(|dep| {
+                // Check if any declared dependency contains/satisfies this found dependency
+                if declared_dependencies.iter().any(|decl_dep| decl_dep.contains(dep)) {
+                    return false;
+                }
 
-            if dep.chain.is_empty() && is_symbol_declaration_referentially_unique(symbol_id, ctx) {
-                let name = ctx.scoping().symbol_name(symbol_id);
-                let decl_span = ctx.scoping().symbol_span(symbol_id);
-                ctx.diagnostic(dependency_changes_on_every_render_diagnostic(
-                    hook_name, dep.span, name, decl_span,
-                ));
+                if !is_identifier_a_dependency(
+                    dep.name,
+                    dep.reference_id,
+                    dep.span,
+                    ctx,
+                    component_scope_id,
+                ) {
+                    return false;
+                }
+
+                true
+            });
+
+            if undeclared_deps.clone().count() > 0 {
+                let undeclared = undeclared_deps.map(Name::from).collect::<Vec<_>>();
+                ctx.diagnostic_with_dangerous_suggestion(
+                    missing_dependency_diagnostic(hook_name, &undeclared, dependencies_node.span()),
+                    |fixer| fix::append_dependencies(fixer, &undeclared, dependencies_node),
+                );
+            }
+
+            // effects are allowed to have extra dependencies
+            if !is_effect {
+                let unnecessary_deps: Vec<_> =
+                    declared_dependencies.difference(&found_dependencies).collect();
+
+                // lastly, we need to compare for any unnecessary deps
+                // for example if `props.foo`, AND `props.foo.bar.baz` was declared in the deps array
+                // `props.foo.bar.baz` is unnecessary (already covered by `props.foo`)
+                declared_dependencies.iter().tuple_combinations().for_each(|(a, b)| {
+                    if a.contains(b) {
+                        ctx.diagnostic(unnecessary_dependency_diagnostic(
+                            hook_name,
+                            &b.to_string(), // Report the more specific dependency as unnecessary
+                            dependencies_node.span,
+                        ));
+                    } else if b.contains(a) {
+                        ctx.diagnostic(unnecessary_dependency_diagnostic(
+                            hook_name,
+                            &a.to_string(), // Report the more specific dependency as unnecessary
+                            dependencies_node.span,
+                        ));
+                    }
+                });
+
+                for dep in unnecessary_deps {
+                    if found_dependencies.iter().any(|found_dep| dep.contains(found_dep)) {
+                        continue;
+                    }
+
+                    ctx.diagnostic(unnecessary_dependency_diagnostic(
+                        hook_name,
+                        &dep.to_string(),
+                        dependencies_node.span,
+                    ));
+                }
+            }
+
+            for dep in declared_dependencies {
+                let Some(symbol_id) = dep.symbol_id else { continue };
+
+                if dep.chain.is_empty()
+                    && is_symbol_declaration_referentially_unique(symbol_id, ctx)
+                {
+                    let name = ctx.scoping().symbol_name(symbol_id);
+                    let decl_span = ctx.scoping().symbol_span(symbol_id);
+                    ctx.diagnostic(dependency_changes_on_every_render_diagnostic(
+                        hook_name, dep.span, name, decl_span,
+                    ));
+                }
             }
         }
     }
@@ -1201,56 +1203,28 @@ fn is_stable_value<'a, 'b>(
                 return false;
             };
 
-            let BindingPatternKind::BindingIdentifier(_) = &second_arg.kind else {
+            let BindingPatternKind::BindingIdentifier(binding_ident) = &second_arg.kind else {
                 return false;
             };
 
-            if init_name == "useRef" {
-                // useRef() return value is stable
-                return true;
-            } else if init_name == "useState"
+            if (init_name == "useState"
                 || init_name == "useReducer"
                 || init_name == "useTransition"
-                || init_name == "useActionState"
+                || init_name == "useActionState")
+                && binding_ident.name == ident_name
+                && !ctx
+                    .semantic()
+                    .symbol_references(
+                        ctx.scoping().get_reference(ident_reference_id).symbol_id().unwrap(),
+                    )
+                    .any(|reference| {
+                        matches!(
+                            ctx.nodes().parent_kind(reference.node_id()),
+                            AstKind::IdentifierReference(_) | AstKind::AssignmentExpression(_)
+                        )
+                    })
             {
-                // State setters (like setState, dispatch) are stable and don't need dependencies
-                // State values (like state1, state2) are NOT stable and need dependencies
-                // We need to distinguish between them by checking if this is the setter (second element)
-                let BindingPatternKind::ArrayPattern(array_pat) = &declaration.id.kind else {
-                    return false;
-                };
-
-                let Some(Some(second_arg)) = array_pat.elements.get(1) else {
-                    return false;
-                };
-
-                let BindingPatternKind::BindingIdentifier(setter_ident) = &second_arg.kind else {
-                    return false;
-                };
-
-                // If this identifier is the setter (second element), check if it's been reassigned
-                if setter_ident.name == ident_name {
-                    // Check if this setter has been written to more than once (reassigned)
-                    let symbol_id =
-                        ctx.scoping().get_reference(ident_reference_id).symbol_id().unwrap();
-                    let write_count = ctx
-                        .semantic()
-                        .symbol_references(symbol_id)
-                        .filter(|reference| {
-                            matches!(
-                                ctx.nodes().parent_kind(reference.node_id()),
-                                AstKind::SimpleAssignmentTarget(_)
-                            )
-                        })
-                        .count();
-
-                    // If written to (reassigned), it's not stable
-                    if write_count > 0 {
-                        return false;
-                    }
-
-                    return true; // State setters are stable (unless reassigned)
-                }
+                return true;
             }
 
             false
