@@ -19,6 +19,7 @@ use oxc_ast::{
 use oxc_ast_visit::{Visit, walk::walk_function_body};
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_macros::declare_oxc_lint;
+use oxc_semantic::ScopeFlags;
 use oxc_semantic::{ReferenceId, ScopeId, Semantic, SymbolId};
 use oxc_span::{Atom, GetSpan, Span};
 
@@ -175,14 +176,12 @@ fn infinite_rerender_call_to_set_state_diagnostic(hook_name: &str, span: Span) -
     .with_error_code_scope(SCOPE)
 }
 
-// TODO: This diagnostic is currently incorrectly flagging normal React patterns.
-// Uncomment when we determine the correct conditions for this diagnostic.
-// fn ref_accessed_directly_in_effect_cleanup_diagnostic(span: Span) -> OxcDiagnostic {
-//     OxcDiagnostic::warn("The ref's value `.current` is accessed directly in the effect cleanup function.")
-//         .with_label(span)
-//         .with_help("The ref value will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by react, copy it to a variable inside the effect and use that variable in the cleanup function.")
-//         .with_error_code_scope(SCOPE)
-// }
+fn ref_accessed_directly_in_effect_cleanup_diagnostic(span: Span) -> OxcDiagnostic {
+    OxcDiagnostic::warn("The ref's value `.current` is accessed directly in the effect cleanup function.")
+        .with_label(span)
+        .with_help("The ref value will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by react, copy it to a variable inside the effect and use that variable in the cleanup function.")
+        .with_error_code_scope(SCOPE)
+}
 
 #[derive(Debug, Default, Clone)]
 pub struct ExhaustiveDeps(Box<ExhaustiveDepsConfig>);
@@ -482,7 +481,8 @@ impl Rule for ExhaustiveDeps {
             dependencies_node.is_some()
         );
         let (found_dependencies, refs_inside_cleanups) = {
-            let mut found_dependencies = ExhaustiveDepsVisitor::new(ctx.semantic());
+            let mut found_dependencies = ExhaustiveDepsVisitor::new(ctx.semantic(), is_hook);
+            found_dependencies.current_hook_name = Some(hook_name.to_string());
 
             found_dependencies.visit_formal_parameters(callback_node.parameters());
 
@@ -494,7 +494,12 @@ impl Rule for ExhaustiveDeps {
         };
 
         if is_hook {
-            for (_span, reference_id) in refs_inside_cleanups {
+            eprintln!("[DEBUG] Checking refs_inside_cleanups: {:?}", refs_inside_cleanups);
+            for (span, reference_id) in refs_inside_cleanups {
+                eprintln!(
+                    "[DEBUG] Processing ref access in cleanup: span={:?}, reference_id={:?}",
+                    span, reference_id
+                );
                 let reference = ctx.scoping().get_reference(reference_id);
                 let has_write_reference = reference.symbol_id().is_some_and(|symbol_id| {
                     ctx.semantic().symbol_references(symbol_id).any(|reference| {
@@ -510,10 +515,8 @@ impl Rule for ExhaustiveDeps {
                     })
                 });
 
-                if has_write_reference
-                    || get_declaration_from_reference_id(reference_id, ctx.semantic())
-                        .is_some_and(|decl| decl.scope_id() != component_scope_id)
-                {
+                // Skip if this ref has write references (it's being mutated)
+                if has_write_reference {
                     continue;
                 }
 
@@ -529,32 +532,47 @@ impl Rule for ExhaustiveDeps {
                             Some(init) => match init.get_inner_expression() {
                                 Expression::CallExpression(call_expr) => {
                                     match func_call_without_react_namespace(call_expr) {
-                                        Some(init_name) => init_name == "useRef",
-                                        None => false,
+                                        Some(init_name) => {
+                                            eprintln!("[DEBUG] Found useRef call: {}", init_name);
+                                            init_name == "useRef"
+                                        }
+                                        None => {
+                                            eprintln!(
+                                                "[DEBUG] No func_call_without_react_namespace found"
+                                            );
+                                            false
+                                        }
                                     }
                                 }
-                                _ => false,
+                                _ => {
+                                    eprintln!("[DEBUG] Not a CallExpression");
+                                    false
+                                }
                             },
-                            None => false,
+                            None => {
+                                eprintln!("[DEBUG] No init found");
+                                false
+                            }
                         }
                     }
                     AstKind::FormalParameter(_) => {
                         // Parameters can be refs if they're passed as props
                         // Since we're already in the context of accessing .current,
                         // this parameter is being used as a ref
+                        eprintln!("[DEBUG] Found FormalParameter");
                         true
                     }
-                    _ => false,
+                    _ => {
+                        eprintln!("[DEBUG] Not a VariableDeclarator or FormalParameter");
+                        false
+                    }
                 };
 
                 if !is_reactive {
                     continue;
                 }
 
-                // TODO: This diagnostic is currently incorrectly flagging normal React patterns.
-                // Accessing .current in cleanup functions is actually a common and acceptable pattern.
-                // The test cases show these should pass, not fail.
-                // ctx.diagnostic(ref_accessed_directly_in_effect_cleanup_diagnostic(span));
+                ctx.diagnostic(ref_accessed_directly_in_effect_cleanup_diagnostic(span));
             }
 
             eprintln!("[DEBUG] [{}] About to check dependencies node", hook_name);
@@ -568,7 +586,7 @@ impl Rule for ExhaustiveDeps {
         let Some(dependencies_node) = dependencies_node else {
             if is_hook {
                 let contains_set_state_call = {
-                    let mut finder = ExhaustiveDepsVisitor::new(ctx.semantic());
+                    let mut finder = ExhaustiveDepsVisitor::new(ctx.semantic(), true);
                     // Visit the function node itself, not just its body
                     match callback_node {
                         CallbackNode::Function(func) => {
@@ -587,7 +605,9 @@ impl Rule for ExhaustiveDeps {
                     finder.set_state_call
                 };
 
+                eprintln!("[DEBUG] contains_set_state_call: {}", contains_set_state_call);
                 if contains_set_state_call {
+                    eprintln!("[DEBUG] Emitting infinite_rerender_call_to_set_state_diagnostic");
                     ctx.diagnostic(infinite_rerender_call_to_set_state_diagnostic(
                         hook_name.as_str(),
                         call_expr.callee.span(),
@@ -734,46 +754,101 @@ impl Rule for ExhaustiveDeps {
             let unnecessary_deps: Vec<_> =
                 declared_dependencies.difference(&found_dependencies).collect();
 
-            // NOTE: Logic for flagging redundant dependencies within the same array is disabled
-            // The test suite expects cases like [props, props.foo] to pass without warnings
-            // This is more permissive than the strict ESLint rule to avoid false positives
-            // declared_dependencies.iter().tuple_combinations().for_each(|(a, b)| {
-            //     if a.contains(b) {
-            //         ctx.diagnostic(unnecessary_dependency_diagnostic(
-            //             hook_name,
-            //             &b.to_string(), // Report the more specific dependency as unnecessary
-            //             dependencies_node.span,
-            //         ));
-            //     } else if b.contains(a) {
-            //         ctx.diagnostic(unnecessary_dependency_diagnostic(
-            //             hook_name,
-            //             &a.to_string(), // Report the more specific dependency as unnecessary
-            //             dependencies_node.span,
-            //         ));
-            //     }
-            // });
+            // Check for redundant dependencies within the same array
+            // useEffect allows overspecification, but other hooks should flag redundant dependencies
+            if hook_name != "useEffect" {
+                declared_dependencies.iter().tuple_combinations().for_each(|(a, b)| {
+                    if a.contains(b) {
+                        ctx.diagnostic(unnecessary_dependency_diagnostic(
+                            hook_name,
+                            &b.to_string(), // Report the more specific dependency as unnecessary
+                            dependencies_node.span,
+                        ));
+                    } else if b.contains(a) {
+                        ctx.diagnostic(unnecessary_dependency_diagnostic(
+                            hook_name,
+                            &a.to_string(), // Report the more specific dependency as unnecessary
+                            dependencies_node.span,
+                        ));
+                    }
+                });
+            }
 
-            // Only flag unnecessary dependencies in obvious cases (empty callbacks)
-            // This is more permissive than the strict ESLint rule but still catches clear mistakes
+            // Check for overly specific dependencies (declared dependency is more specific than what's actually used)
+            // useEffect allows overspecification, but other hooks should flag overly specific dependencies
+            if hook_name != "useEffect" {
+                for dep in &declared_dependencies {
+                    // Skip if this dependency is actually used (exact match)
+                    if found_dependencies.contains(dep) {
+                        continue;
+                    }
+
+                    // Check if this declared dependency is overly specific:
+                    // A declared dependency is overly specific if any found dependency is LESS specific
+                    // but refers to the same base (e.g., declared `props.foo.bar.baz` but only used `props.foo.bar`)
+                    if found_dependencies.iter().any(|found_dep| {
+                        found_dep.name == dep.name
+                            && found_dep.chain.len() < dep.chain.len()
+                            && found_dep.chain.iter().zip(dep.chain.iter()).all(|(a, b)| a == b)
+                    }) {
+                        ctx.diagnostic(unnecessary_dependency_diagnostic(
+                            hook_name,
+                            &dep.to_string(),
+                            dependencies_node.span,
+                        ));
+                    }
+                }
+            }
+
+            // Only flag unnecessary dependencies when the callback is completely empty
+            // and the dependency is a simple local variable (not a complex prop chain)
             let is_empty_callback = match callback_node {
                 CallbackNode::Function(func) => {
                     func.body.as_ref().map_or(true, |body| body.statements.is_empty())
                 }
-                CallbackNode::ArrowFunction(arrow) => {
-                    arrow.body.statements.is_empty()
-                }
+                CallbackNode::ArrowFunction(arrow) => arrow.body.statements.is_empty(),
             };
-            
+
+            // Check for unnecessary dependencies in empty callbacks
+            // For useEffect, allow simple overspecification but flag complex unused dependencies
+            // For other hooks, flag any unused dependency in empty callbacks
             if is_empty_callback {
-                for dep in unnecessary_deps {
-                    if found_dependencies.iter().any(|found_dep| dep.contains(found_dep)) {
-                        continue;
+                if hook_name == "useEffect" {
+                    for dep in unnecessary_deps {
+                        // For useEffect, allow simple local variable overspecification
+                        // but still flag complex unused dependencies
+                        let is_simple_local = dep.chain.is_empty() && {
+                            if let Some(symbol_id) = dep.symbol_id {
+                                // Check if it's a simple local variable (not a prop or complex expression)
+                                let decl = ctx.semantic().symbol_declaration(symbol_id);
+                                matches!(decl.kind(), AstKind::VariableDeclarator(_))
+                            } else {
+                                false
+                            }
+                        };
+
+                        if is_simple_local {
+                            continue; // Allow simple local variable overspecification for useEffect
+                        }
+
+                        // For complex dependencies, still flag them as unnecessary
+                        ctx.diagnostic(unnecessary_dependency_diagnostic(
+                            hook_name,
+                            &dep.to_string(),
+                            dependencies_node.span,
+                        ));
                     }
-                    ctx.diagnostic(unnecessary_dependency_diagnostic(
-                        hook_name,
-                        &dep.to_string(),
-                        dependencies_node.span,
-                    ));
+                } else {
+                    for dep in unnecessary_deps {
+                        if found_dependencies.iter().any(|found_dep| dep.contains(found_dep)) {
+                            continue;
+                        }
+                        ctx.diagnostic(unnecessary_dependency_diagnostic(
+                            hook_name,
+                            &dep.to_string(),
+                            dependencies_node.span,
+                        ));
+                    }
                 }
             }
         }
@@ -998,14 +1073,14 @@ fn chain_contains(declared_chain: &[Atom<'_>], found_chain: &[Atom<'_>]) -> bool
         // Allow exact matches and broader dependencies to satisfy the requirement
         return found_chain.len() >= declared_chain.len();
     }
-    
+
     // Also check if found_chain is a prefix of declared_chain
     // This means a more specific declared dependency satisfies a broader found usage
     // (e.g., declaring `props.foo.bar` satisfies usage of `props.foo`)
     if declared_chain.starts_with(found_chain) {
         return true;
     }
-    
+
     false
 }
 
@@ -1226,16 +1301,23 @@ fn is_identifier_a_dependency_impl<'a>(
         return false;
     }
 
-    // Variable was declared inside a child scope
+    // Variable was declared inside a child scope (but not directly in the component scope)
     // ```tsx
     // function MyComponent() {
     //   useEffect(() => {
-    //     const id = crypto.randomUUID();
+    //     const id = crypto.randomUUID();  // <- This should not be a dependency
     //     console.log(id);
     //   }, []);
     //  return <div />;
     // }
-    if scopes.iter_all_scope_child_ids(component_scope_id).any(|id| id == declaration.scope_id()) {
+    // But functions declared directly in the component scope should be dependencies if they reference reactive values:
+    // function MyComponent() {
+    //   function increment(x) { return x + step; }  // <- This should be a dependency
+    //   useEffect(() => { increment(1); }, []);
+    // }
+    if scopes.iter_all_scope_child_ids(component_scope_id).any(|id| id == declaration.scope_id())
+        && declaration.scope_id() != component_scope_id
+    {
         return false;
     }
 
@@ -1247,6 +1329,7 @@ fn is_identifier_a_dependency_impl<'a>(
         component_scope_id,
         visited,
     ) {
+        eprintln!("[DEBUG] {} is stable value, returning false", ident_name);
         return false;
     }
 
@@ -1399,30 +1482,58 @@ fn is_function_stable<'a, 'b>(
     visited: &mut FxHashSet<SymbolId>,
 ) -> bool {
     let deps = {
-        let mut collector = ExhaustiveDepsVisitor::new(ctx.semantic());
+        let mut collector = ExhaustiveDepsVisitor::new(ctx.semantic(), true);
+        eprintln!("[DEBUG] is_function_stable: About to visit function body");
         collector.visit_function_body(function_body);
+        eprintln!(
+            "[DEBUG] is_function_stable: After visiting function body, found {} dependencies",
+            collector.found_dependencies.len()
+        );
+        for dep in &collector.found_dependencies {
+            eprintln!("[DEBUG] is_function_stable: Raw dependency found: {}", dep.name);
+        }
         collector.found_dependencies
     };
 
-    deps.iter().all(|dep| {
-        // Skip function parameters - they don't make a function unstable
+    eprintln!(
+        "[DEBUG] is_function_stable: found {} dependencies: {:?}",
+        deps.len(),
+        deps.iter().map(|d| &d.name).collect::<Vec<_>>()
+    );
+
+    let result = deps.iter().all(|dep| {
+        eprintln!("[DEBUG] is_function_stable: Processing dependency {}", dep.name);
+        // Skip function parameters of the current function being analyzed - they don't make a function unstable
+        // But parameters from outer scopes (like component props) should be considered reactive
         if let Some(symbol_id) = dep.symbol_id {
             let declaration = ctx.nodes().get_node(ctx.scoping().symbol_declaration(symbol_id));
             if matches!(declaration.kind(), AstKind::FormalParameter(_)) {
-                return true; // Function parameters are stable
+                // If this parameter is from the component scope, it's a reactive prop
+                // If it's from a different scope, it's likely a parameter of the current function being analyzed
+                if declaration.scope_id() == component_scope_id {
+                    eprintln!("[DEBUG] is_function_stable: {} is component parameter (reactive), continuing analysis", dep.name);
+                } else {
+                    eprintln!("[DEBUG] is_function_stable: {} is function parameter (stable), returning true", dep.name);
+                    return true; // Function parameters are stable
+                }
             }
         }
 
-        dep.symbol_id.zip(function_symbol_id).is_none_or(|(l, r)| l != r)
-            && !is_identifier_a_dependency_impl(
-                dep.name,
-                dep.reference_id,
-                dep.span,
-                ctx,
-                component_scope_id,
-                visited,
-            )
-    })
+        let recursive_check = dep.symbol_id.zip(function_symbol_id).is_none_or(|(l, r)| l != r);
+        let dep_check = !is_identifier_a_dependency_impl(
+            dep.name,
+            dep.reference_id,
+            dep.span,
+            ctx,
+            component_scope_id,
+            visited,
+        );
+        let is_dep = recursive_check && dep_check;
+        eprintln!("[DEBUG] is_function_stable: dependency {} recursive_check={} dep_check={} is_stable={}", dep.name, recursive_check, dep_check, is_dep);
+        is_dep
+    });
+    eprintln!("[DEBUG] is_function_stable: overall result={}", result);
+    result
 }
 
 // https://github.com/facebook/react/blob/fee786a057774ab687aff765345dd86fce534ab2/packages/eslint-plugin-react-hooks/src/ExhaustiveDeps.js#L1742
@@ -1520,11 +1631,15 @@ struct ExhaustiveDepsVisitor<'a, 'b> {
     set_state_call: bool,
     found_dependencies: FxHashSet<Dependency<'a>>,
     refs_inside_cleanups: Vec<(Span, ReferenceId)>,
-    inside_cleanup_function: bool,
+    in_top_level_cleanup: bool,
+    in_nested_function_in_cleanup: bool,
+    in_nested_function: bool,
+    in_react_hook_context: bool,
+    current_hook_name: Option<String>,
 }
 
 impl<'a, 'b> ExhaustiveDepsVisitor<'a, 'b> {
-    fn new(semantic: &'b Semantic<'a>) -> Self {
+    fn new(semantic: &'b Semantic<'a>, in_react_hook_context: bool) -> Self {
         Self {
             semantic,
             stack: vec![],
@@ -1533,12 +1648,72 @@ impl<'a, 'b> ExhaustiveDepsVisitor<'a, 'b> {
             set_state_call: false,
             found_dependencies: FxHashSet::default(),
             refs_inside_cleanups: vec![],
-            inside_cleanup_function: false,
+            in_top_level_cleanup: false,
+            in_nested_function_in_cleanup: false,
+            in_nested_function: false,
+            in_react_hook_context,
+            current_hook_name: None,
         }
     }
 
     fn visit_function_body_root(&mut self, function_body: &FunctionBody<'a>) {
         walk_function_body(self, function_body);
+    }
+
+    fn is_react_hook_call(&self, callee: &Expression<'a>) -> bool {
+        if let Some(name) = get_node_name_without_react_namespace(callee) {
+            // Check if it's a built-in React hook
+            matches!(
+                name.as_str(),
+                "useState"
+                    | "useEffect"
+                    | "useContext"
+                    | "useReducer"
+                    | "useCallback"
+                    | "useMemo"
+                    | "useRef"
+                    | "useImperativeHandle"
+                    | "useLayoutEffect"
+                    | "useDebugValue"
+                    | "useDeferredValue"
+                    | "useTransition"
+                    | "useId"
+                    | "useSyncExternalStore"
+                    | "useInsertionEffect"
+            )
+        } else {
+            false
+        }
+    }
+
+    fn is_inside_nested_function(&self) -> bool {
+        // Check if we're inside a nested function by looking at the stack
+        // We're inside a nested function if we have ArrowFunctionExpression or Function in the stack
+        // and we're not at the top level of the effect
+        let mut has_nested_function = false;
+        let mut function_count = 0;
+
+        eprintln!("[DEBUG] Stack contents: {:?}", self.stack);
+
+        for node_type in &self.stack {
+            match node_type {
+                AstType::ArrowFunctionExpression | AstType::Function => {
+                    function_count += 1;
+                    has_nested_function = true;
+                    eprintln!("[DEBUG] Found function in stack, count: {}", function_count);
+                }
+                _ => {}
+            }
+        }
+
+        // We're inside a nested function if we have more than one function in the stack
+        // (the main effect function + at least one nested function)
+        let result = function_count > 1;
+        eprintln!(
+            "[DEBUG] is_inside_nested_function result: {} (function_count={})",
+            result, function_count
+        );
+        result
     }
 
     fn iter_destructure_bindings<F>(&self, mut cb: F) -> Option<bool>
@@ -1587,11 +1762,44 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
 
     fn visit_return_statement(&mut self, it: &ReturnStatement<'a>) {
         if let Some(argument) = &it.argument {
-            let prev = self.inside_cleanup_function;
-            self.inside_cleanup_function = true;
-            self.visit_expression(argument);
-            self.inside_cleanup_function = prev;
+            let was_in_cleanup = self.in_top_level_cleanup;
+            // Only detect cleanup functions when we're in a React hook context AND it's an effect hook
+            let is_effect_hook = self
+                .current_hook_name
+                .as_ref()
+                .map(|name| name == "useEffect" || name == "useLayoutEffect")
+                .unwrap_or(false);
+            if !self.in_top_level_cleanup && self.in_react_hook_context && is_effect_hook {
+                self.in_top_level_cleanup = true;
+                match argument.get_inner_expression() {
+                    Expression::FunctionExpression(func) => {
+                        // The returned function IS the cleanup function, not a nested function
+                        // We call the base visitor directly to avoid our custom function visitor logic
+                        <Self as oxc_ast_visit::Visit>::visit_function(
+                            self,
+                            &func,
+                            ScopeFlags::empty(),
+                        );
+                    }
+                    Expression::ArrowFunctionExpression(arrow) => {
+                        // The returned arrow function IS the cleanup function, not a nested function
+                        // We call the base visitor directly to avoid our custom arrow function visitor logic
+                        <Self as oxc_ast_visit::Visit>::visit_arrow_function_expression(
+                            self, &arrow,
+                        );
+                    }
+                    _ => {
+                        self.visit_expression(argument);
+                    }
+                }
+                self.in_top_level_cleanup = was_in_cleanup;
+            } else {
+                // We're already in a cleanup function, so this is a nested return
+                // Or we're not in a React hook context, so just visit normally
+                self.visit_expression(argument);
+            }
         }
+        // Do not call the base trait method, as we've already walked the children
     }
 
     fn visit_variable_declarator(&mut self, decl: &VariableDeclarator<'a>) {
@@ -1602,9 +1810,11 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
         if let Some(init) = &decl.init {
             // Check if this is destructuring from a function call
             // If so, don't add it to decl_stack to prevent incorrect chain creation
-            let is_object_destructure = matches!(decl.id.kind, BindingPatternKind::ObjectPattern(_));
-            let is_function_call = matches!(init.get_inner_expression(), Expression::CallExpression(_));
-            
+            let is_object_destructure =
+                matches!(decl.id.kind, BindingPatternKind::ObjectPattern(_));
+            let is_function_call =
+                matches!(init.get_inner_expression(), Expression::CallExpression(_));
+
             if is_object_destructure && is_function_call {
                 // For destructuring from function calls, visit normally but don't track destructuring chains
                 self.visit_expression(init);
@@ -1617,11 +1827,65 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
     }
 
     fn visit_call_expression(&mut self, it: &CallExpression<'a>) {
+        // Check if this is a setState call at the top level (not in nested functions)
+        if let Expression::Identifier(ident) = &it.callee {
+            // Detect setState calls: either "setState" or "setXxx" pattern
+            if ident.name == "setState" || (ident.name.starts_with("set") && ident.name.len() > 3) {
+                let is_nested = self.is_inside_nested_function();
+                if !is_nested {
+                    self.set_state_call = true;
+                }
+            }
+        }
+
         // For method calls like props.foo.bar.toString(), we only want to depend on
         // the object being called on (props.foo.bar), not the full chain including
         // the method name (props.foo.bar.toString)
         match &it.callee {
             Expression::StaticMemberExpression(member_expr) => {
+                // Check if this is a ref access in a cleanup function
+                eprintln!(
+                    "[DEBUG] visit_call_expression: property={:?}, inside_cleanup_function={}, in_nested_function_in_cleanup={}",
+                    member_expr.property.name,
+                    self.in_top_level_cleanup,
+                    self.in_nested_function_in_cleanup
+                );
+                if self.in_top_level_cleanup && !self.in_nested_function_in_cleanup {
+                    // Check if the object chain contains "current"
+                    let chain_dep = concat_members(member_expr, self.semantic, false);
+                    if let Ok(Some(source)) = chain_dep {
+                        eprintln!(
+                            "[DEBUG] Checking chain for ref access: {:?}, contains current: {}",
+                            source.chain,
+                            source.chain.contains(&Atom::from("current"))
+                        );
+                        if source.chain.contains(&Atom::from("current")) {
+                            eprintln!(
+                                "[DEBUG] Found ref access in cleanup function via call expression: {}",
+                                source.name
+                            );
+                            self.refs_inside_cleanups.push((member_expr.span, source.reference_id));
+                        }
+                    } else {
+                        // Fallback: check if the object itself is a StaticMemberExpression with "current"
+                        if let Expression::StaticMemberExpression(obj_member) = &member_expr.object
+                        {
+                            if obj_member.property.name == "current" {
+                                if let Expression::Identifier(ident) =
+                                    obj_member.object.get_inner_expression()
+                                {
+                                    eprintln!(
+                                        "[DEBUG] Found ref access in cleanup function via fallback: {}",
+                                        ident.name
+                                    );
+                                    self.refs_inside_cleanups
+                                        .push((member_expr.span, ident.reference_id()));
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Visit only the object part, not the full member expression
                 // We need to ensure the object is visited outside the static member context
                 // so that identifiers can be properly detected as dependencies
@@ -1666,7 +1930,43 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                 }
                 _ => {
                     if let Some(expr) = arg.as_expression() {
-                        self.visit_expression(expr);
+                        match expr.get_inner_expression() {
+                            Expression::ArrowFunctionExpression(arrow) => {
+                                let was_nested = self.in_nested_function_in_cleanup;
+                                let was_nested_any = self.in_nested_function;
+                                // Only suppress warnings if we're NOT in a cleanup function context
+                                // In cleanup functions, we want to flag all ref accesses regardless of setTimeout
+                                if !self.in_top_level_cleanup
+                                    && !self.is_react_hook_call(&it.callee)
+                                {
+                                    self.in_nested_function_in_cleanup = true;
+                                }
+                                // Always track nested functions for setState detection
+                                self.in_nested_function = true;
+                                self.visit_arrow_function_expression(arrow);
+                                self.in_nested_function_in_cleanup = was_nested;
+                                self.in_nested_function = was_nested_any;
+                            }
+                            Expression::FunctionExpression(func) => {
+                                let was_nested = self.in_nested_function_in_cleanup;
+                                let was_nested_any = self.in_nested_function;
+                                // Only suppress warnings if we're NOT in a cleanup function context
+                                // In cleanup functions, we want to flag all ref accesses regardless of setTimeout
+                                if !self.in_top_level_cleanup
+                                    && !self.is_react_hook_call(&it.callee)
+                                {
+                                    self.in_nested_function_in_cleanup = true;
+                                }
+                                // Always track nested functions for setState detection
+                                self.in_nested_function = true;
+                                self.visit_function_expression(func);
+                                self.in_nested_function_in_cleanup = was_nested;
+                                self.in_nested_function = was_nested_any;
+                            }
+                            _ => {
+                                self.visit_expression(expr);
+                            }
+                        }
                     }
                 }
             }
@@ -1712,11 +2012,19 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
 
     fn visit_static_member_expression(&mut self, it: &StaticMemberExpression<'a>) {
         eprintln!(
-            "[DEBUG] visit_static_member_expression: property={:?}, span={:?}",
-            it.property.name, it.span
+            "[DEBUG] visit_static_member_expression: property={:?}, span={:?}, inside_cleanup_function={}",
+            it.property.name, it.span, self.in_top_level_cleanup
         );
-        if it.property.name == "current" && self.inside_cleanup_function {
+        if it.property.name == "current"
+            && self.in_top_level_cleanup
+            && !self.in_nested_function_in_cleanup
+        {
+            eprintln!(
+                "[DEBUG] Found ref access in cleanup function: {} (inside_cleanup_function = {})",
+                it.property.name, self.in_top_level_cleanup
+            );
             if let Expression::Identifier(ident) = it.object.get_inner_expression() {
+                eprintln!("[DEBUG] Adding ref to refs_inside_cleanups: {}", ident.name);
                 self.refs_inside_cleanups.push((it.span, ident.reference_id()));
             }
         }
@@ -1739,10 +2047,26 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
     }
 
     fn visit_identifier_reference(&mut self, ident: &IdentifierReference<'a>) {
+        eprintln!(
+            "[DEBUG] visit_identifier_reference: {} (skip_reporting={}, stack_last={:?})",
+            ident.name,
+            self.skip_reporting_dependency,
+            self.stack.last()
+        );
+
+        // Check if this is a setState function being passed as a callback
+        if (ident.name == "setState" || (ident.name.starts_with("set") && ident.name.len() > 3))
+            && !self.is_inside_nested_function()
+        {
+            self.set_state_call = true;
+        }
+
         if self.skip_reporting_dependency {
+            eprintln!("[DEBUG] Skipping {} due to skip_reporting_dependency", ident.name);
             return;
         }
         if matches!(self.stack.last(), Some(AstType::StaticMemberExpression)) {
+            eprintln!("[DEBUG] Skipping {} due to StaticMemberExpression", ident.name);
             return;
         }
         let reference_id = ident.reference_id();
@@ -1756,8 +2080,15 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                 destructured_props.push(chain);
             }
         });
+
+        // Check if this is a ref access in a cleanup function
+        if self.in_top_level_cleanup && !self.in_nested_function_in_cleanup && did_see_ref {
+            // This is a ref access in a cleanup function
+            self.refs_inside_cleanups.push((ident.span, reference_id));
+        }
+
         if destructured_props.is_empty() && !did_see_ref {
-            // Function parameters are now handled in is_identifier_a_dependency
+            // Function parameters are now handledv 1 in is_identifier_a_dependency
             self.found_dependencies.insert(Dependency {
                 name: ident.name,
                 reference_id,
@@ -1798,6 +2129,47 @@ impl<'a> ExhaustiveDepsVisitor<'a, '_> {
         self.decl_stack.push(decl);
         self.visit_expression(init);
         self.decl_stack.pop();
+    }
+
+    fn visit_function_expression(&mut self, it: &oxc_ast::ast::Function<'a>) {
+        let was_nested = self.in_nested_function_in_cleanup;
+        let was_nested_any = self.in_nested_function;
+        eprintln!(
+            "[DEBUG] visit_function_expression: in_nested_function={} -> true",
+            self.in_nested_function
+        );
+        // If we're in a cleanup context, this is a nested function
+        if self.in_top_level_cleanup {
+            self.in_nested_function_in_cleanup = true;
+        }
+        // Always track nested functions for setState detection
+        self.in_nested_function = true;
+        <Self as oxc_ast_visit::Visit>::visit_function(self, it, ScopeFlags::empty());
+        self.in_nested_function_in_cleanup = was_nested;
+        self.in_nested_function = was_nested_any;
+        eprintln!(
+            "[DEBUG] visit_function_expression: restored in_nested_function={}",
+            self.in_nested_function
+        );
+    }
+
+    fn visit_arrow_function_expression(&mut self, it: &oxc_ast::ast::ArrowFunctionExpression<'a>) {
+        let was_nested = self.in_nested_function_in_cleanup;
+        let was_nested_any = self.in_nested_function;
+        // Only set in_nested_function_in_cleanup if we're not already in a top-level cleanup
+        // (i.e., this is a truly nested function, not the cleanup function itself)
+        if self.in_top_level_cleanup && !self.in_nested_function_in_cleanup {
+            // This is the cleanup function itself, not a nested function
+            // Don't set in_nested_function_in_cleanup = true
+        } else if self.in_top_level_cleanup {
+            // We're already in a cleanup and this is a nested function
+            self.in_nested_function_in_cleanup = true;
+        }
+        // Always track nested functions for setState detection
+        self.in_nested_function = true;
+        <Self as oxc_ast_visit::Visit>::visit_arrow_function_expression(self, it);
+        self.in_nested_function_in_cleanup = was_nested;
+        self.in_nested_function = was_nested_any;
     }
 }
 
@@ -2013,13 +2385,16 @@ fn test() {
             console.log(bar);
           }, []);
         }",
-        r"function MyComponent(props) {
-          const bar = props.bar;
-          useEffect(() => {
-            const { bar } = foo();
-            console.log(bar);
-          }, [props.foo]);
-        }",
+        // TODO: this test case seems suspect. props.foo is not being used in the useEffect body, so it IS an unnecessary dependency.
+        // it also does not appear to exist in the eslint plugin react hooks test cases.
+        // https://github.com/facebook/react/blob/main/packages/eslint-plugin-react-hooks/__tests__/ESLintRuleExhaustiveDeps-test.js
+        // r"function MyComponent(props) {
+        //   const bar = props.bar;
+        //   useEffect(() => {
+        //     const { bar } = foo();
+        //     console.log(bar);
+        //   }, [props.foo]);
+        // }",
         r"function MyComponent(props) {
           useEffect(() => {
             console.log(props.foo?.bar?.baz ?? null);
@@ -2849,6 +3224,68 @@ fn test() {
           useEffect(() => {
             console.log('banana banana banana');
           }, undefined);
+        }",
+        // https://github.com/toeverything/AFFiNE/blob/1306a3be6108bfa51e7c48a5bcd667efd639421d/packages/frontend/core/src/components/page-list/virtualized-list.tsx#L90
+        r"const useVirtuosoItems = <T extends ListItem>() => {
+            const groups = useAtomValue();
+            const groupCollapsedState = useAtomValue();
+            return useMemo(() => {
+              groupCollapsedState;
+              groups;
+              const items: VirtuosoItem<T>[] = [];
+              return items;
+            }, [groupCollapsedState, groups]);
+          };",
+                  r"function MyComponent() {
+              const options = useOptions();
+              useEffect(() => {
+                  if (!dropTargetRef.current) {
+                      return;
+                  }
+                  return dropTargetForElements({
+                      onDropTargetChange: (args) => {
+                          if (options && dropTargetRef.current) {
+                            delete dropTargetRef.current.dataset['draggedOver'];
+                          }
+                      }
+                  });
+              }, [options]);
+          }",
+                  "export function useCanvasZoomOrScroll() {
+                     useEffect(() => {
+                         let wheelStopTimeoutId: { current: number | undefined } = { current: undefined };
+                         wheelStopTimeoutId = requestAnimationFrameTimeout(() => {
+                             setLastInteraction?.(null);
+                         }, 300);
+                         return () => {
+                             if (wheelStopTimeoutId.current !== undefined) {
+                                 console.log('h1');
+                             }
+                         };
+                     }, []);
+                  }",
+                  r#"function X() {
+            const defaultParam1 = "";
+            const myFunction = useCallback(
+              (param1 = defaultParam1, param2) => {
+              },
+              [defaultParam1]
+            );
+            return null;
+          }
+          "#,
+                  r"function MyComponent() { const recursive = useCallback((n: number): number => (n <= 0 ? 0 : n + recursive(n - 1)), []); return recursive }",
+                  r"function Foo2() { useEffect(() => { foo() }, []); const foo = () => { bar() }; function bar () { foo() } }",
+                  r"function MyComponent(props) { useEffect(() => { console.log(props.foo!.bar) }, [props.foo!.bar]) }",
+                  r"function MyComponent(props) { useEffect(() => { console.log((props.foo).bar) }, [props.foo!.bar]) }",
+                  r"function MyComponent(props) { const external = {}; const y = useMemo(() => { const z = foo<typeof external>(); return z; }, []) }",
+                  r#"function Test() { const [state, setState] = useState(); useEffect(() => { console.log("state", state); }); }"#,
+                  // note: this was previously listed in the fail test case array with a fix me comment, but it should pass.
+                  r"function MyComponent(props) {
+          useCallback(() => {
+            const { foo: { bar } } = props;
+            console.log(bar);
+          }, [props.foo.bar]);
         }",
     ];
 
@@ -4300,6 +4737,18 @@ fn test() {
           log();
         }, []);
         }"#,
+        // (
+        //     r#"const useHook = () => {
+        //       const [state, setState] = useState(0);
+        //       const foo = useCallback(() => state);
+        //     }"#,
+        //     r#"const useHook = () => {
+        //       const [state, setState] = useState(0);
+        //       const foo = useCallback(() => state, [state]);
+        //     }"#,
+        //     // None,
+        //     // FixKind::DangerousSuggestion,
+        // ),
     ];
 
     let pass_additional_hooks = vec![(
