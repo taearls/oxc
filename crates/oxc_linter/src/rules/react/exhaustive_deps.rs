@@ -821,27 +821,46 @@ impl Rule for ExhaustiveDeps {
         {
             // FIRST: Check for redundant dependencies within the same array
             // All hooks should flag redundant dependencies (when one declared dependency contains another)
-            eprintln!("[DEBUG] Checking redundant dependencies among: {:?}", 
-                     declared_dependencies.iter().map(|d| d.to_string()).collect::<Vec<_>>());
-            declared_dependencies.iter().tuple_combinations().for_each(|(a, b)| {
-                eprintln!("[DEBUG] Comparing {} vs {}", a.to_string(), b.to_string());
-                eprintln!("[DEBUG] a.is_redundant_with(b): {}, b.is_redundant_with(a): {}", a.is_redundant_with(b), b.is_redundant_with(a));
-                if a.is_redundant_with(b) {
-                    eprintln!("[DEBUG] {} is broader than {}, reporting {} as unnecessary", a.to_string(), b.to_string(), b.to_string());
-                    ctx.diagnostic(unnecessary_dependency_diagnostic(
-                        hook_name,
-                        &b.to_string(), // Report the more specific dependency as unnecessary
-                        dependencies_node.span,
-                    ));
-                } else if b.is_redundant_with(a) {
-                    eprintln!("[DEBUG] {} is broader than {}, reporting {} as unnecessary", b.to_string(), a.to_string(), a.to_string());
-                    ctx.diagnostic(unnecessary_dependency_diagnostic(
-                        hook_name,
-                        &a.to_string(), // Report the more specific dependency as unnecessary
-                        dependencies_node.span,
-                    ));
-                }
-            });
+            eprintln!(
+                "[DEBUG] Checking redundant dependencies among: {:?}",
+                declared_dependencies.iter().map(|d| d.to_string()).collect::<Vec<_>>()
+            );
+
+            if (hook_name != "useEffect") {
+                declared_dependencies.iter().tuple_combinations().for_each(|(a, b)| {
+                    eprintln!("[DEBUG] Comparing {} vs {}", a.to_string(), b.to_string());
+                    eprintln!(
+                        "[DEBUG] a.is_redundant_with(b): {}, b.is_redundant_with(a): {}",
+                        a.is_redundant_with(b),
+                        b.is_redundant_with(a)
+                    );
+                    if a.is_redundant_with(b) {
+                        eprintln!(
+                            "[DEBUG] {} is broader than {}, reporting {} as unnecessary",
+                            a.to_string(),
+                            b.to_string(),
+                            b.to_string()
+                        );
+                        ctx.diagnostic(unnecessary_dependency_diagnostic(
+                            hook_name,
+                            &b.to_string(), // Report the more specific dependency as unnecessary
+                            dependencies_node.span,
+                        ));
+                    } else if b.is_redundant_with(a) {
+                        eprintln!(
+                            "[DEBUG] {} is broader than {}, reporting {} as unnecessary",
+                            b.to_string(),
+                            a.to_string(),
+                            a.to_string()
+                        );
+                        ctx.diagnostic(unnecessary_dependency_diagnostic(
+                            hook_name,
+                            &a.to_string(), // Report the more specific dependency as unnecessary
+                            dependencies_node.span,
+                        ));
+                    }
+                });
+            }
 
             // SECOND: Check for truly unnecessary dependencies (declared but never used)
             // But exclude dependencies that are made redundant by other declared dependencies
@@ -850,9 +869,9 @@ impl Rule for ExhaustiveDeps {
                 .filter(|dep| {
                     // Don't report a dependency as unnecessary if it contains other declared dependencies
                     // (i.e., it's the broader dependency in a redundant pair)
-                    !declared_dependencies.iter().any(|other_dep| {
-                        other_dep != *dep && dep.contains(other_dep)
-                    })
+                    !declared_dependencies
+                        .iter()
+                        .any(|other_dep| other_dep != *dep && dep.contains(other_dep))
                 })
                 .collect();
             unnecessary_deps.sort_by(|a, b| a.name.cmp(&b.name));
@@ -1146,7 +1165,7 @@ impl Dependency<'_> {
         }
         chain_contains(&self.chain, &other.chain)
     }
-    
+
     fn is_redundant_with(&self, other: &Self) -> bool {
         if self.name != other.name {
             return false;
@@ -1164,7 +1183,7 @@ fn redundant_chain_contains(self_chain: &[Atom<'_>], other_chain: &[Atom<'_>]) -
     if self_chain.is_empty() {
         return true;
     }
-    // Check if self_chain is a prefix of other_chain  
+    // Check if self_chain is a prefix of other_chain
     // This means self (broader) contains other (narrower)
     other_chain.starts_with(self_chain) && other_chain.len() >= self_chain.len()
 }
@@ -1317,14 +1336,17 @@ fn analyze_optional_call_chain<'a, 'b>(
     semantic: &'b Semantic<'a>,
     strict_mode: bool,
 ) -> Result<Option<Dependency<'a>>, ()> {
-    eprintln!("[DEBUG] analyze_optional_call_chain called with expr: {:?}, strict_mode: {}", expr, strict_mode);
-    
+    eprintln!(
+        "[DEBUG] analyze_optional_call_chain called with expr: {:?}, strict_mode: {}",
+        expr, strict_mode
+    );
+
     if strict_mode {
         // In strict mode (dependency arrays), optional method calls should be rejected as complex expressions
         eprintln!("[DEBUG] analyze_optional_call_chain: Rejecting due to strict mode");
         return Err(());
     }
-    
+
     // For optional method calls like props.foo?.toString(), we want to extract
     // the dependency from the object being called on (props.foo), not the full chain
     if let Expression::StaticMemberExpression(member_expr) = expr {
@@ -1943,18 +1965,27 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                 if let BindingPatternKind::ObjectPattern(obj_pattern) = &decl.id.kind {
                     // First visit the call expression to get the base dependency (e.g., `foo`)
                     self.visit_expression(init);
-                    
+
                     // Then for each destructured property, add it as a dependency with the property chain
                     for prop in &obj_pattern.properties {
                         if let oxc_ast::ast::PropertyKey::StaticIdentifier(key) = &prop.key {
                             // If we can extract dependencies from the call expression, add the property to the chain
-                            if let Expression::CallExpression(call_expr) = init.get_inner_expression() {
-                                if let Some(dep) = analyze_property_chain(&call_expr.callee, self.semantic, false).ok().flatten() {
+                            if let Expression::CallExpression(call_expr) =
+                                init.get_inner_expression()
+                            {
+                                if let Some(dep) =
+                                    analyze_property_chain(&call_expr.callee, self.semantic, false)
+                                        .ok()
+                                        .flatten()
+                                {
                                     let mut extended_dep = dep;
                                     extended_dep.chain.push(key.name.clone());
                                     extended_dep.span = prop.span;
-                                    
-                                    eprintln!("[DEBUG] Adding destructured dependency: {}", extended_dep.to_string());
+
+                                    eprintln!(
+                                        "[DEBUG] Adding destructured dependency: {}",
+                                        extended_dep.to_string()
+                                    );
                                     self.found_dependencies.insert(extended_dep);
                                 }
                             }
