@@ -810,21 +810,30 @@ impl Rule for ExhaustiveDeps {
             // Deduplicate undeclared dependencies: remove any dependency that is contained by another
             let mut filtered_deps = Vec::new();
             for dep in &undeclared_deps_vec {
-                let is_contained = undeclared_deps_vec.iter().any(|other| {
-                    other != dep && other.contains_for_dedup(dep)
-                });
+                let is_contained = undeclared_deps_vec
+                    .iter()
+                    .any(|other| other != dep && other.contains_for_dedup(dep));
                 eprintln!("[DEBUG] Dependency {:?} is_contained: {}", dep, is_contained);
-                eprintln!("[DEBUG] Checking if {} is contained by any other dependency", dep.to_string());
+                eprintln!(
+                    "[DEBUG] Checking if {} is contained by any other dependency",
+                    dep.to_string()
+                );
                 for other in &undeclared_deps_vec {
                     if other != dep {
-                        eprintln!("[DEBUG]   {} contains_for_dedup {}: {}", other.to_string(), dep.to_string(), other.contains_for_dedup(dep));
+                        eprintln!(
+                            "[DEBUG]   {} contains_for_dedup {}: {}",
+                            other.to_string(),
+                            dep.to_string(),
+                            other.contains_for_dedup(dep)
+                        );
                     }
                 }
                 if !is_contained {
                     filtered_deps.push(dep);
                 }
             }
-            let undeclared = filtered_deps.into_iter().map(|dep| Name::from(*dep)).collect::<Vec<_>>();
+            let undeclared =
+                filtered_deps.into_iter().map(|dep| Name::from(*dep)).collect::<Vec<_>>();
             eprintln!(
                 "[DEBUG] Reporting missing dependencies: {:?}",
                 undeclared.iter().map(|n| n.to_string()).collect::<Vec<_>>()
