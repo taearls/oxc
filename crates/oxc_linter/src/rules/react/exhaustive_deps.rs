@@ -105,6 +105,46 @@ fn missing_dependency_diagnostic(hook_name: &str, deps: &[Name<'_>], span: Span)
     .with_error_code_scope(SCOPE)
 }
 
+// fn missing_dependency_diagnostic(
+//     hook_name: &str,
+//     deps: &[Name<'_>],
+//     _dependency_array_span: Span,
+// ) -> OxcDiagnostic {
+//     // Sort dependencies by name for deterministic output
+//     let mut deps_sorted = deps.to_vec();
+//     deps_sorted.sort_by(|a, b| a.name.cmp(&b.name));
+//     let single = deps_sorted.len() == 1;
+//     let deps_pretty = if single {
+//         format!("'{}'", deps_sorted[0])
+//     } else {
+//         let mut iter = deps_sorted.iter();
+//         let all_but_last = iter
+//             .by_ref()
+//             .take(deps_sorted.len() - 1)
+//             .map(|s| format!("'{}'", s))
+//             .collect::<Vec<_>>()
+//             .join(", ");
+//         let last = iter.next().unwrap();
+//         format!("{all_but_last}, and '{last}'")
+//     };
+
+//     let main_label_span = deps_sorted[0].span;
+//     let labels: Vec<_> = if single {
+//         vec![]
+//     } else {
+//         deps_sorted.iter().skip(1).map(|dep| dep.span.label("")).collect()
+//     };
+
+//     OxcDiagnostic::warn(format!(
+//         "React Hook {hook_name} has {}missing dependenc{}: {deps_pretty}",
+//         if single { "a " } else { "" },
+//         if single { "y" } else { "ies" }
+//     ))
+//     .with_help("Either include it or remove the dependency array.")
+//     .with_labels(labels)
+//     .with_error_code_scope(SCOPE)
+// }
+
 fn unnecessary_dependency_diagnostic(hook_name: &str, dep_name: &str, span: Span) -> OxcDiagnostic {
     OxcDiagnostic::warn(format!("React Hook {hook_name} has unnecessary dependency: {dep_name}"))
         .with_label(span)
@@ -751,8 +791,11 @@ impl Rule for ExhaustiveDeps {
 
         // Check for unnecessary dependencies for all hooks
         {
-            let unnecessary_deps: Vec<_> =
+            let mut unnecessary_deps: Vec<_> =
                 declared_dependencies.difference(&found_dependencies).collect();
+            unnecessary_deps.sort_by(|a, b| a.name.cmp(&b.name));
+            
+            eprintln!("[DEBUG] unnecessary_deps: {:?}", unnecessary_deps.iter().map(|d| d.to_string()).collect::<Vec<_>>());
 
             // Check for redundant dependencies within the same array
             // useEffect allows overspecification, but other hooks should flag redundant dependencies
@@ -809,12 +852,16 @@ impl Rule for ExhaustiveDeps {
                 CallbackNode::ArrowFunction(arrow) => arrow.body.statements.is_empty(),
             };
 
-            // Check for unnecessary dependencies in empty callbacks
-            // For useEffect, allow simple overspecification but flag complex unused dependencies
-            // For other hooks, flag any unused dependency in empty callbacks
-            if is_empty_callback {
-                if hook_name == "useEffect" {
-                    for dep in unnecessary_deps {
+            eprintln!("[DEBUG] is_empty_callback: {}", is_empty_callback);
+            eprintln!("[DEBUG] hook_name: {}", hook_name);
+            
+            // Check for unnecessary dependencies 
+            // For useEffect, only check in empty callbacks to allow overspecification
+            // For other hooks, check in all callbacks
+            if hook_name == "useEffect" {
+                // For useEffect, only flag unnecessary dependencies in empty callbacks
+                if is_empty_callback {
+                    for dep in &unnecessary_deps {
                         // For useEffect, allow simple local variable overspecification
                         // but still flag complex unused dependencies
                         let is_simple_local = dep.chain.is_empty() && {
@@ -838,17 +885,18 @@ impl Rule for ExhaustiveDeps {
                             dependencies_node.span,
                         ));
                     }
-                } else {
-                    for dep in unnecessary_deps {
-                        if found_dependencies.iter().any(|found_dep| dep.contains(found_dep)) {
-                            continue;
-                        }
-                        ctx.diagnostic(unnecessary_dependency_diagnostic(
-                            hook_name,
-                            &dep.to_string(),
-                            dependencies_node.span,
-                        ));
+                }
+            } else {
+                // For other hooks (useMemo, useCallback, etc.), flag unnecessary dependencies in all callbacks
+                for dep in &unnecessary_deps {
+                    if found_dependencies.iter().any(|found_dep| dep.contains(found_dep)) {
+                        continue;
                     }
+                    ctx.diagnostic(unnecessary_dependency_diagnostic(
+                        hook_name,
+                        &dep.to_string(),
+                        dependencies_node.span,
+                    ));
                 }
             }
         }
