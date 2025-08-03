@@ -803,18 +803,38 @@ impl Rule for ExhaustiveDeps {
             true
         });
 
-        let undeclared_count = undeclared_deps.clone().count();
+        let undeclared_deps_vec = undeclared_deps.collect::<Vec<_>>();
+        let undeclared_count = undeclared_deps_vec.len();
         eprintln!("[DEBUG] undeclared_deps count: {}", undeclared_count);
         if undeclared_count > 0 {
-            let undeclared = undeclared_deps.map(Name::from).collect::<Vec<_>>();
+            // Deduplicate undeclared dependencies: remove any dependency that is contained by another
+            let mut filtered_deps = Vec::new();
+            for dep in &undeclared_deps_vec {
+                let is_contained = undeclared_deps_vec.iter().any(|other| {
+                    other != dep && other.contains_for_dedup(dep)
+                });
+                eprintln!("[DEBUG] Dependency {:?} is_contained: {}", dep, is_contained);
+                eprintln!("[DEBUG] Checking if {} is contained by any other dependency", dep.to_string());
+                for other in &undeclared_deps_vec {
+                    if other != dep {
+                        eprintln!("[DEBUG]   {} contains_for_dedup {}: {}", other.to_string(), dep.to_string(), other.contains_for_dedup(dep));
+                    }
+                }
+                if !is_contained {
+                    filtered_deps.push(dep);
+                }
+            }
+            let undeclared = filtered_deps.into_iter().map(|dep| Name::from(*dep)).collect::<Vec<_>>();
             eprintln!(
                 "[DEBUG] Reporting missing dependencies: {:?}",
                 undeclared.iter().map(|n| n.to_string()).collect::<Vec<_>>()
             );
-            ctx.diagnostic_with_dangerous_suggestion(
-                missing_dependency_diagnostic(hook_name, &undeclared, dependencies_node.span()),
-                |fixer| fix::append_dependencies(fixer, &undeclared, dependencies_node),
-            );
+            if !undeclared.is_empty() {
+                ctx.diagnostic_with_dangerous_suggestion(
+                    missing_dependency_diagnostic(hook_name, &undeclared, dependencies_node.span()),
+                    |fixer| fix::append_dependencies(fixer, &undeclared, dependencies_node),
+                );
+            }
         }
 
         // Check for unnecessary dependencies for all hooks
@@ -1166,6 +1186,16 @@ impl Dependency<'_> {
         chain_contains(&self.chain, &other.chain)
     }
 
+    /// Check if this dependency (broader) contains another dependency (narrower) for deduplication
+    fn contains_for_dedup(&self, other: &Self) -> bool {
+        if self.name != other.name {
+            return false;
+        }
+        // For deduplication: self contains other if self's chain is a prefix of other's chain
+        // (self is broader than or equal to other)
+        other.chain.starts_with(&self.chain)
+    }
+
     fn is_redundant_with(&self, other: &Self) -> bool {
         if self.name != other.name {
             return false;
@@ -1207,10 +1237,10 @@ fn chain_contains(declared_chain: &[Atom<'_>], found_chain: &[Atom<'_>]) -> bool
         return found_chain.len() >= declared_chain.len();
     }
 
-    // Also check if found_chain is a prefix of declared_chain
-    // This means a more specific declared dependency satisfies a broader found usage
-    // (e.g., declaring `props.foo.bar` satisfies usage of `props.foo`)
-    if declared_chain.starts_with(found_chain) {
+    // Only allow a more specific declared dependency to satisfy a broader found usage
+    // if the found usage is not the base identifier itself
+    // (e.g., declaring `props.foo.bar` satisfies usage of `props.foo`, but NOT usage of just `props`)
+    if declared_chain.starts_with(found_chain) && !found_chain.is_empty() {
         return true;
     }
 
@@ -3723,6 +3753,7 @@ fn test() {
             console.log(foo);
           }, [props.bar]);
         }",
+        // TODO: this test also seems suspect. it's not included in the eslint-plugin-react-hooks test suite for this rule.
         r"function MyComponent(props) {
           const foo = props.foo;
           useEffect(() => {
