@@ -671,14 +671,20 @@ impl Rule for ExhaustiveDeps {
                 match_expression!(ArrayExpressionElement) => {
                     let elem = elem.to_expression().get_inner_expression();
 
-                    if let Ok(dep) = analyze_property_chain(elem, ctx, true) {
-                        dep
-                    } else {
-                        ctx.diagnostic(complex_expression_in_dependency_array_diagnostic(
-                            hook_name.as_str(),
-                            elem.span(),
-                        ));
-                        None
+                    eprintln!("[DEBUG] Analyzing dependency array element: {:?}", std::mem::discriminant(elem));
+                    match analyze_property_chain(elem, ctx, true) {
+                        Ok(dep) => {
+                            eprintln!("[DEBUG] Successfully parsed dependency: {:?}", dep.as_ref().map(|d| d.to_string()));
+                            dep
+                        }
+                        Err(()) => {
+                            eprintln!("[DEBUG] Failed to parse dependency - emitting complex expression diagnostic");
+                            ctx.diagnostic(complex_expression_in_dependency_array_diagnostic(
+                                hook_name.as_str(),
+                                elem.span(),
+                            ));
+                            None
+                        }
                     }
                 }
             });
@@ -749,7 +755,29 @@ impl Rule for ExhaustiveDeps {
             );
 
             // Check if any declared dependency contains/satisfies this found dependency
-            if declared_dependencies.iter().any(|decl_dep| decl_dep.contains(dep)) {
+            if declared_dependencies.iter().any(|decl_dep| {
+                if hook_name == "useEffect" {
+                    // useEffect allows overspecification, so use the lenient contains logic
+                    decl_dep.contains(dep)
+                } else {
+                    // Other hooks require exact matches or broader dependencies only
+                    // They don't allow overspecification (more specific declared deps)
+                    if decl_dep.name != dep.name {
+                        return false;
+                    }
+                    // For same-name dependencies, only allow exact matches or broader declared deps
+                    if decl_dep.chain.is_empty() {
+                        // Broader declared dependency (e.g., `props` satisfies `props.foo`)
+                        true
+                    } else if dep.chain.is_empty() {
+                        // Found dependency is broader than declared (e.g., declared `props.foo` but found `props`)
+                        false
+                    } else {
+                        // Both have chains, check if declared is prefix of found (broader or equal)
+                        dep.chain.starts_with(&decl_dep.chain)
+                    }
+                }
+            }) {
                 eprintln!(
                     "[DEBUG] [{}] Dependency {} is contained by a declared dependency",
                     hook_name, dep.name
@@ -791,31 +819,48 @@ impl Rule for ExhaustiveDeps {
 
         // Check for unnecessary dependencies for all hooks
         {
-            let mut unnecessary_deps: Vec<_> =
-                declared_dependencies.difference(&found_dependencies).collect();
-            unnecessary_deps.sort_by(|a, b| a.name.cmp(&b.name));
-            
-            eprintln!("[DEBUG] unnecessary_deps: {:?}", unnecessary_deps.iter().map(|d| d.to_string()).collect::<Vec<_>>());
+            // FIRST: Check for redundant dependencies within the same array
+            // All hooks should flag redundant dependencies (when one declared dependency contains another)
+            eprintln!("[DEBUG] Checking redundant dependencies among: {:?}", 
+                     declared_dependencies.iter().map(|d| d.to_string()).collect::<Vec<_>>());
+            declared_dependencies.iter().tuple_combinations().for_each(|(a, b)| {
+                eprintln!("[DEBUG] Comparing {} vs {}", a.to_string(), b.to_string());
+                eprintln!("[DEBUG] a.is_redundant_with(b): {}, b.is_redundant_with(a): {}", a.is_redundant_with(b), b.is_redundant_with(a));
+                if a.is_redundant_with(b) {
+                    eprintln!("[DEBUG] {} is broader than {}, reporting {} as unnecessary", a.to_string(), b.to_string(), b.to_string());
+                    ctx.diagnostic(unnecessary_dependency_diagnostic(
+                        hook_name,
+                        &b.to_string(), // Report the more specific dependency as unnecessary
+                        dependencies_node.span,
+                    ));
+                } else if b.is_redundant_with(a) {
+                    eprintln!("[DEBUG] {} is broader than {}, reporting {} as unnecessary", b.to_string(), a.to_string(), a.to_string());
+                    ctx.diagnostic(unnecessary_dependency_diagnostic(
+                        hook_name,
+                        &a.to_string(), // Report the more specific dependency as unnecessary
+                        dependencies_node.span,
+                    ));
+                }
+            });
 
-            // Check for redundant dependencies within the same array
-            // useEffect allows overspecification, but other hooks should flag redundant dependencies
-            if hook_name != "useEffect" {
-                declared_dependencies.iter().tuple_combinations().for_each(|(a, b)| {
-                    if a.contains(b) {
-                        ctx.diagnostic(unnecessary_dependency_diagnostic(
-                            hook_name,
-                            &b.to_string(), // Report the more specific dependency as unnecessary
-                            dependencies_node.span,
-                        ));
-                    } else if b.contains(a) {
-                        ctx.diagnostic(unnecessary_dependency_diagnostic(
-                            hook_name,
-                            &a.to_string(), // Report the more specific dependency as unnecessary
-                            dependencies_node.span,
-                        ));
-                    }
-                });
-            }
+            // SECOND: Check for truly unnecessary dependencies (declared but never used)
+            // But exclude dependencies that are made redundant by other declared dependencies
+            let mut unnecessary_deps: Vec<_> = declared_dependencies
+                .difference(&found_dependencies)
+                .filter(|dep| {
+                    // Don't report a dependency as unnecessary if it contains other declared dependencies
+                    // (i.e., it's the broader dependency in a redundant pair)
+                    !declared_dependencies.iter().any(|other_dep| {
+                        other_dep != *dep && dep.contains(other_dep)
+                    })
+                })
+                .collect();
+            unnecessary_deps.sort_by(|a, b| a.name.cmp(&b.name));
+
+            eprintln!(
+                "[DEBUG] unnecessary_deps (after filtering redundant): {:?}",
+                unnecessary_deps.iter().map(|d| d.to_string()).collect::<Vec<_>>()
+            );
 
             // Check for overly specific dependencies (declared dependency is more specific than what's actually used)
             // useEffect allows overspecification, but other hooks should flag overly specific dependencies
@@ -854,8 +899,8 @@ impl Rule for ExhaustiveDeps {
 
             eprintln!("[DEBUG] is_empty_callback: {}", is_empty_callback);
             eprintln!("[DEBUG] hook_name: {}", hook_name);
-            
-            // Check for unnecessary dependencies 
+
+            // Check for unnecessary dependencies
             // For useEffect, only check in empty callbacks to allow overspecification
             // For other hooks, check in all callbacks
             if hook_name == "useEffect" {
@@ -1101,6 +1146,27 @@ impl Dependency<'_> {
         }
         chain_contains(&self.chain, &other.chain)
     }
+    
+    fn is_redundant_with(&self, other: &Self) -> bool {
+        if self.name != other.name {
+            return false;
+        }
+        // For redundant dependency checking, self is redundant with other if:
+        // self (broader) contains other (narrower) in a unidirectional way
+        redundant_chain_contains(&self.chain, &other.chain)
+    }
+}
+
+fn redundant_chain_contains(self_chain: &[Atom<'_>], other_chain: &[Atom<'_>]) -> bool {
+    // For redundant dependency checking, self should contain other if:
+    // 1. self_chain is empty (e.g., `props` contains `props.foo`)
+    // 2. other_chain starts with self_chain and is longer or equal (e.g., `props.foo` contains `props.foo.bar`)
+    if self_chain.is_empty() {
+        return true;
+    }
+    // Check if self_chain is a prefix of other_chain  
+    // This means self (broader) contains other (narrower)
+    other_chain.starts_with(self_chain) && other_chain.len() >= self_chain.len()
 }
 
 fn chain_contains(declared_chain: &[Atom<'_>], found_chain: &[Atom<'_>]) -> bool {
@@ -1164,7 +1230,7 @@ fn analyze_property_chain<'a, 'b>(
                     );
                     // For optional calls like props.foo?.toString()
                     // We need to analyze the callee, but stop at optional boundaries
-                    analyze_optional_call_chain(&call_expr.callee, semantic)
+                    analyze_optional_call_chain(&call_expr.callee, semantic, strict_mode)
                 }
                 ChainElement::ComputedMemberExpression(expr) => {
                     // For computed member access like props.foo?.[bar]
@@ -1249,8 +1315,16 @@ fn analyze_optional_static_member<'a, 'b>(
 fn analyze_optional_call_chain<'a, 'b>(
     expr: &'b Expression<'a>,
     semantic: &'b Semantic<'a>,
+    strict_mode: bool,
 ) -> Result<Option<Dependency<'a>>, ()> {
-    eprintln!("[DEBUG] analyze_optional_call_chain called with expr: {:?}", expr);
+    eprintln!("[DEBUG] analyze_optional_call_chain called with expr: {:?}, strict_mode: {}", expr, strict_mode);
+    
+    if strict_mode {
+        // In strict mode (dependency arrays), optional method calls should be rejected as complex expressions
+        eprintln!("[DEBUG] analyze_optional_call_chain: Rejecting due to strict mode");
+        return Err(());
+    }
+    
     // For optional method calls like props.foo?.toString(), we want to extract
     // the dependency from the object being called on (props.foo), not the full chain
     if let Expression::StaticMemberExpression(member_expr) = expr {
@@ -1259,13 +1333,13 @@ fn analyze_optional_call_chain<'a, 'b>(
             member_expr.object
         );
         // Extract dependency from the object part: props.foo?.toString() -> props.foo
-        let result = analyze_property_chain(&member_expr.object, semantic, false);
+        let result = analyze_property_chain(&member_expr.object, semantic, strict_mode);
         eprintln!("[DEBUG] analyze_optional_call_chain: result = {:?}", result);
         result
     } else {
         eprintln!("[DEBUG] analyze_optional_call_chain: Other expression case");
         // For other call expressions, analyze the callee
-        analyze_property_chain(expr, semantic, false)
+        analyze_property_chain(expr, semantic, strict_mode)
     }
 }
 
@@ -1864,8 +1938,32 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                 matches!(init.get_inner_expression(), Expression::CallExpression(_));
 
             if is_object_destructure && is_function_call {
-                // For destructuring from function calls, visit normally but don't track destructuring chains
-                self.visit_expression(init);
+                // For destructuring from function calls like `const { bar } = foo()`,
+                // we need to extract the destructured properties and add them to the dependency chain
+                if let BindingPatternKind::ObjectPattern(obj_pattern) = &decl.id.kind {
+                    // First visit the call expression to get the base dependency (e.g., `foo`)
+                    self.visit_expression(init);
+                    
+                    // Then for each destructured property, add it as a dependency with the property chain
+                    for prop in &obj_pattern.properties {
+                        if let oxc_ast::ast::PropertyKey::StaticIdentifier(key) = &prop.key {
+                            // If we can extract dependencies from the call expression, add the property to the chain
+                            if let Expression::CallExpression(call_expr) = init.get_inner_expression() {
+                                if let Some(dep) = analyze_property_chain(&call_expr.callee, self.semantic, false).ok().flatten() {
+                                    let mut extended_dep = dep;
+                                    extended_dep.chain.push(key.name.clone());
+                                    extended_dep.span = prop.span;
+                                    
+                                    eprintln!("[DEBUG] Adding destructured dependency: {}", extended_dep.to_string());
+                                    self.found_dependencies.insert(extended_dep);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // For non-object destructuring from function calls, visit normally
+                    self.visit_expression(init);
+                }
             } else {
                 // For other cases, use the normal logic that tracks destructuring chains
                 self.perform_variable_declarator_visit(decl, init);
