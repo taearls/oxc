@@ -217,7 +217,6 @@ fn is_var_declarator_or_test_block<'a>(
                 return true;
             }
         }
-        /*TODO: AstKind::Argument(_) |*/
         AstKind::ArrayExpression(_) | AstKind::ObjectExpression(_) => {
             let mut current = node;
             loop {
@@ -231,9 +230,6 @@ fn is_var_declarator_or_test_block<'a>(
                             ctx,
                         );
                     }
-                    // TODO: Fix argument handling here
-                    /*AstKind::Argument(_)
-                    | */
                     AstKind::ArrayExpression(_) | AstKind::ObjectExpression(_) => {
                         current = parent;
                     }
