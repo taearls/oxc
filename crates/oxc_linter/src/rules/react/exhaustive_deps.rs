@@ -329,8 +329,6 @@ impl Rule for ExhaustiveDeps {
             return;
         };
 
-        eprintln!("[DEBUG] Hook name: {}", hook_name);
-        eprintln!("[DEBUG] Hook kind: {:?}", call_expr);
         let callback_node = call_expr.arguments.get(callback_index);
         let dependencies_node = call_expr.arguments.get(callback_index + 1);
 
@@ -343,32 +341,18 @@ impl Rule for ExhaustiveDeps {
 
         if dependencies_node.is_none() {
             if HOOKS_USELESS_WITHOUT_DEPENDENCIES.contains(&hook_name.as_str()) {
-                eprintln!(
-                    "[DEBUG] [{}] No dependency node and hook requires dependencies - emitting diagnostic",
-                    hook_name
-                );
                 ctx.diagnostic_with_fix(
                     dependency_array_required_diagnostic(hook_name.as_str(), call_expr.span()),
                     |fixer| fixer.insert_text_after(callback_node, ", []"),
                 );
                 return;
             } else if !is_hook {
-                eprintln!(
-                    "[DEBUG] [{}] No dependency node and not effect - returning early",
-                    hook_name
-                );
                 return;
             }
         }
 
-        eprintln!("[DEBUG] [{}] Has dependency node or is effect - continuing", hook_name);
-
         let callback_node = match callback_node {
             Argument::SpreadElement(_) => {
-                eprintln!(
-                    "[DEBUG] [{}] Callback node is spread element - returning None",
-                    hook_name
-                );
                 ctx.diagnostic(unknown_dependencies_diagnostic(
                     hook_name.as_str(),
                     call_expr.callee.span(),
@@ -376,7 +360,6 @@ impl Rule for ExhaustiveDeps {
                 None
             }
             match_expression!(Argument) => {
-                eprintln!("[DEBUG] [{}] Callback node is expression - processing", hook_name);
                 match callback_node.to_expression().get_inner_expression() {
                     Expression::ArrowFunctionExpression(arrow_function_expression) => {
                         Some(CallbackNode::ArrowFunction(arrow_function_expression))
@@ -466,13 +449,7 @@ impl Rule for ExhaustiveDeps {
             }
         };
 
-        eprintln!(
-            "[DEBUG] [{}] Callback node processing result: {:?}",
-            hook_name,
-            callback_node.is_some()
-        );
         let Some(callback_node) = callback_node else {
-            eprintln!("[DEBUG] [{}] Callback node is None - returning early", hook_name);
             // either handled or we couldn't find the callback
             return;
         };
@@ -481,11 +458,6 @@ impl Rule for ExhaustiveDeps {
             ctx.diagnostic(async_effect_diagnostic(callback_node.span()));
         }
 
-        eprintln!(
-            "[DEBUG] [{}] Processing dependencies node: {:?}",
-            hook_name,
-            dependencies_node.is_some()
-        );
         let dependencies_node = dependencies_node.and_then(|node| match node {
             Argument::SpreadElement(_) => {
                 ctx.diagnostic(dependency_array_not_array_literal_diagnostic(
@@ -515,11 +487,6 @@ impl Rule for ExhaustiveDeps {
             }
         });
 
-        eprintln!(
-            "[DEBUG] [{}] Dependencies node after processing: {:?}",
-            hook_name,
-            dependencies_node.is_some()
-        );
         let (found_dependencies, refs_inside_cleanups) = {
             let mut found_dependencies = ExhaustiveDepsVisitor::new(ctx.semantic(), is_hook);
             found_dependencies.current_hook_name = Some(hook_name.to_string());
@@ -534,12 +501,7 @@ impl Rule for ExhaustiveDeps {
         };
 
         if is_hook {
-            eprintln!("[DEBUG] Checking refs_inside_cleanups: {:?}", refs_inside_cleanups);
             for (span, reference_id) in refs_inside_cleanups {
-                eprintln!(
-                    "[DEBUG] Processing ref access in cleanup: span={:?}, reference_id={:?}",
-                    span, reference_id
-                );
                 let reference = ctx.scoping().get_reference(reference_id);
                 let has_write_reference = reference.symbol_id().is_some_and(|symbol_id| {
                     ctx.semantic().symbol_references(symbol_id).any(|reference| {
@@ -572,40 +534,22 @@ impl Rule for ExhaustiveDeps {
                             Some(init) => match init.get_inner_expression() {
                                 Expression::CallExpression(call_expr) => {
                                     match func_call_without_react_namespace(call_expr) {
-                                        Some(init_name) => {
-                                            eprintln!("[DEBUG] Found useRef call: {}", init_name);
-                                            init_name == "useRef"
-                                        }
-                                        None => {
-                                            eprintln!(
-                                                "[DEBUG] No func_call_without_react_namespace found"
-                                            );
-                                            false
-                                        }
+                                        Some(init_name) => init_name == "useRef",
+                                        None => false,
                                     }
                                 }
-                                _ => {
-                                    eprintln!("[DEBUG] Not a CallExpression");
-                                    false
-                                }
+                                _ => false,
                             },
-                            None => {
-                                eprintln!("[DEBUG] No init found");
-                                false
-                            }
+                            None => false,
                         }
                     }
                     AstKind::FormalParameter(_) => {
                         // Parameters can be refs if they're passed as props
                         // Since we're already in the context of accessing .current,
                         // this parameter is being used as a ref
-                        eprintln!("[DEBUG] Found FormalParameter");
                         true
                     }
-                    _ => {
-                        eprintln!("[DEBUG] Not a VariableDeclarator or FormalParameter");
-                        false
-                    }
+                    _ => false,
                 };
 
                 if !is_reactive {
@@ -614,15 +558,8 @@ impl Rule for ExhaustiveDeps {
 
                 ctx.diagnostic(ref_accessed_directly_in_effect_cleanup_diagnostic(span));
             }
-
-            eprintln!("[DEBUG] [{}] About to check dependencies node", hook_name);
         }
 
-        eprintln!(
-            "[DEBUG] [{}] Starting main dependency analysis, dependencies_node: {:?}",
-            hook_name,
-            dependencies_node.is_some()
-        );
         let Some(dependencies_node) = dependencies_node else {
             if is_hook {
                 let contains_set_state_call = {
@@ -645,9 +582,7 @@ impl Rule for ExhaustiveDeps {
                     finder.set_state_call
                 };
 
-                eprintln!("[DEBUG] contains_set_state_call: {}", contains_set_state_call);
                 if contains_set_state_call {
-                    eprintln!("[DEBUG] Emitting infinite_rerender_call_to_set_state_diagnostic");
                     ctx.diagnostic(infinite_rerender_call_to_set_state_diagnostic(
                         hook_name.as_str(),
                         call_expr.callee.span(),
@@ -671,20 +606,14 @@ impl Rule for ExhaustiveDeps {
                 match_expression!(ArrayExpressionElement) => {
                     let elem = elem.to_expression().get_inner_expression();
 
-                    eprintln!("[DEBUG] Analyzing dependency array element: {:?}", std::mem::discriminant(elem));
-                    match analyze_property_chain(elem, ctx, true) {
-                        Ok(dep) => {
-                            eprintln!("[DEBUG] Successfully parsed dependency: {:?}", dep.as_ref().map(|d| d.to_string()));
-                            dep
-                        }
-                        Err(()) => {
-                            eprintln!("[DEBUG] Failed to parse dependency - emitting complex expression diagnostic");
-                            ctx.diagnostic(complex_expression_in_dependency_array_diagnostic(
-                                hook_name.as_str(),
-                                elem.span(),
-                            ));
-                            None
-                        }
+                    if let Ok(dep) = analyze_property_chain(elem, ctx, true) {
+                        dep
+                    } else {
+                        ctx.diagnostic(complex_expression_in_dependency_array_diagnostic(
+                            hook_name.as_str(),
+                            elem.span(),
+                        ));
+                        None
                     }
                 }
             });
@@ -723,37 +652,9 @@ impl Rule for ExhaustiveDeps {
             ));
         }
 
-        eprintln!(
-            "[DEBUG] Found dependencies: {:?}",
-            found_dependencies
-                .iter()
-                .map(|d| format!("{} (chain: {:?})", d.name, d.chain))
-                .collect::<Vec<_>>()
-        );
-        eprintln!(
-            "[DEBUG] Declared dependencies: {:?}",
-            declared_dependencies
-                .iter()
-                .map(|d| format!("{} (chain: {:?})", d.name, d.chain))
-                .collect::<Vec<_>>()
-        );
-        eprintln!("[DEBUG] All found_dependencies (raw): {:#?}", found_dependencies);
-        eprintln!("[DEBUG] Hook name: {}", hook_name);
-        eprintln!("[DEBUG] Hook kind: {:?}", node.kind());
-        eprintln!("[DEBUG] Dependencies span: {:?}", dependencies_node.span());
-        eprintln!("[DEBUG] Dependencies node elements count: {}", dependencies_node.elements.len());
-        if dependencies_node.elements.is_empty() {
-            eprintln!("[DEBUG] *** EMPTY DEPENDENCY ARRAY DETECTED ***");
-        }
-
         // Instead of using .difference(&declared_dependencies),
         // iterate over all found_dependencies and only consider a dependency missing if no declared dependency contains it.
         let undeclared_deps = found_dependencies.iter().filter(|dep| {
-            eprintln!(
-                "[DEBUG] [{}] [filter] Checking dependency: {} (chain: {:?})",
-                hook_name, dep.name, dep.chain
-            );
-
             // Check if any declared dependency contains/satisfies this found dependency
             if declared_dependencies.iter().any(|decl_dep| {
                 if hook_name == "useEffect" {
@@ -778,10 +679,6 @@ impl Rule for ExhaustiveDeps {
                     }
                 }
             }) {
-                eprintln!(
-                    "[DEBUG] [{}] Dependency {} is contained by a declared dependency",
-                    hook_name, dep.name
-                );
                 return false;
             }
 
@@ -793,19 +690,15 @@ impl Rule for ExhaustiveDeps {
                 component_scope_id,
             );
 
-            eprintln!("[DEBUG] is_identifier_a_dependency for {}: {}", dep.name, is_dep);
-
             if !is_dep {
                 return false;
             }
 
-            eprintln!("[DEBUG] Dependency {} is undeclared", dep.name);
             true
         });
 
         let undeclared_deps_vec = undeclared_deps.collect::<Vec<_>>();
         let undeclared_count = undeclared_deps_vec.len();
-        eprintln!("[DEBUG] undeclared_deps count: {}", undeclared_count);
         if undeclared_count > 0 {
             // Deduplicate undeclared dependencies: remove any dependency that is contained by another
             let mut filtered_deps = Vec::new();
@@ -813,31 +706,12 @@ impl Rule for ExhaustiveDeps {
                 let is_contained = undeclared_deps_vec
                     .iter()
                     .any(|other| other != dep && other.contains_for_dedup(dep));
-                eprintln!("[DEBUG] Dependency {:?} is_contained: {}", dep, is_contained);
-                eprintln!(
-                    "[DEBUG] Checking if {} is contained by any other dependency",
-                    dep.to_string()
-                );
-                for other in &undeclared_deps_vec {
-                    if other != dep {
-                        eprintln!(
-                            "[DEBUG]   {} contains_for_dedup {}: {}",
-                            other.to_string(),
-                            dep.to_string(),
-                            other.contains_for_dedup(dep)
-                        );
-                    }
-                }
                 if !is_contained {
                     filtered_deps.push(dep);
                 }
             }
             let undeclared =
                 filtered_deps.into_iter().map(|dep| Name::from(*dep)).collect::<Vec<_>>();
-            eprintln!(
-                "[DEBUG] Reporting missing dependencies: {:?}",
-                undeclared.iter().map(|n| n.to_string()).collect::<Vec<_>>()
-            );
             if !undeclared.is_empty() {
                 ctx.diagnostic_with_dangerous_suggestion(
                     missing_dependency_diagnostic(hook_name, &undeclared, dependencies_node.span()),
@@ -850,38 +724,16 @@ impl Rule for ExhaustiveDeps {
         {
             // FIRST: Check for redundant dependencies within the same array
             // All hooks should flag redundant dependencies (when one declared dependency contains another)
-            eprintln!(
-                "[DEBUG] Checking redundant dependencies among: {:?}",
-                declared_dependencies.iter().map(|d| d.to_string()).collect::<Vec<_>>()
-            );
 
-            if (hook_name != "useEffect") {
+            if hook_name != "useEffect" {
                 declared_dependencies.iter().tuple_combinations().for_each(|(a, b)| {
-                    eprintln!("[DEBUG] Comparing {} vs {}", a.to_string(), b.to_string());
-                    eprintln!(
-                        "[DEBUG] a.is_redundant_with(b): {}, b.is_redundant_with(a): {}",
-                        a.is_redundant_with(b),
-                        b.is_redundant_with(a)
-                    );
                     if a.is_redundant_with(b) {
-                        eprintln!(
-                            "[DEBUG] {} is broader than {}, reporting {} as unnecessary",
-                            a.to_string(),
-                            b.to_string(),
-                            b.to_string()
-                        );
                         ctx.diagnostic(unnecessary_dependency_diagnostic(
                             hook_name,
                             &b.to_string(), // Report the more specific dependency as unnecessary
                             dependencies_node.span,
                         ));
                     } else if b.is_redundant_with(a) {
-                        eprintln!(
-                            "[DEBUG] {} is broader than {}, reporting {} as unnecessary",
-                            b.to_string(),
-                            a.to_string(),
-                            a.to_string()
-                        );
                         ctx.diagnostic(unnecessary_dependency_diagnostic(
                             hook_name,
                             &a.to_string(), // Report the more specific dependency as unnecessary
@@ -904,11 +756,6 @@ impl Rule for ExhaustiveDeps {
                 })
                 .collect();
             unnecessary_deps.sort_by(|a, b| a.name.cmp(&b.name));
-
-            eprintln!(
-                "[DEBUG] unnecessary_deps (after filtering redundant): {:?}",
-                unnecessary_deps.iter().map(|d| d.to_string()).collect::<Vec<_>>()
-            );
 
             // Check for overly specific dependencies (declared dependency is more specific than what's actually used)
             // useEffect allows overspecification, but other hooks should flag overly specific dependencies
@@ -940,13 +787,10 @@ impl Rule for ExhaustiveDeps {
             // and the dependency is a simple local variable (not a complex prop chain)
             let is_empty_callback = match callback_node {
                 CallbackNode::Function(func) => {
-                    func.body.as_ref().map_or(true, |body| body.statements.is_empty())
+                    func.body.as_ref().is_none_or(|body| body.statements.is_empty())
                 }
                 CallbackNode::ArrowFunction(arrow) => arrow.body.statements.is_empty(),
             };
-
-            eprintln!("[DEBUG] is_empty_callback: {}", is_empty_callback);
-            eprintln!("[DEBUG] hook_name: {}", hook_name);
 
             // Check for unnecessary dependencies
             // For useEffect, only check in empty callbacks to allow overspecification
@@ -1283,9 +1127,6 @@ fn analyze_property_chain<'a, 'b>(
                     analyze_optional_static_member(expr, semantic, strict_mode)
                 }
                 ChainElement::CallExpression(call_expr) => {
-                    eprintln!(
-                        "[DEBUG] ChainElement::CallExpression case - calling analyze_optional_call_chain"
-                    );
                     // For optional calls like props.foo?.toString()
                     // We need to analyze the callee, but stop at optional boundaries
                     analyze_optional_call_chain(&call_expr.callee, semantic, strict_mode)
@@ -1375,30 +1216,17 @@ fn analyze_optional_call_chain<'a, 'b>(
     semantic: &'b Semantic<'a>,
     strict_mode: bool,
 ) -> Result<Option<Dependency<'a>>, ()> {
-    eprintln!(
-        "[DEBUG] analyze_optional_call_chain called with expr: {:?}, strict_mode: {}",
-        expr, strict_mode
-    );
-
     if strict_mode {
         // In strict mode (dependency arrays), optional method calls should be rejected as complex expressions
-        eprintln!("[DEBUG] analyze_optional_call_chain: Rejecting due to strict mode");
         return Err(());
     }
 
     // For optional method calls like props.foo?.toString(), we want to extract
     // the dependency from the object being called on (props.foo), not the full chain
     if let Expression::StaticMemberExpression(member_expr) = expr {
-        eprintln!(
-            "[DEBUG] analyze_optional_call_chain: StaticMemberExpression case, object: {:?}",
-            member_expr.object
-        );
         // Extract dependency from the object part: props.foo?.toString() -> props.foo
-        let result = analyze_property_chain(&member_expr.object, semantic, strict_mode);
-        eprintln!("[DEBUG] analyze_optional_call_chain: result = {:?}", result);
-        result
+        analyze_property_chain(&member_expr.object, semantic, strict_mode)
     } else {
-        eprintln!("[DEBUG] analyze_optional_call_chain: Other expression case");
         // For other call expressions, analyze the callee
         analyze_property_chain(expr, semantic, strict_mode)
     }
@@ -1435,27 +1263,16 @@ fn is_identifier_a_dependency_impl<'a>(
     }
 
     let Some(declaration) = get_declaration_from_reference_id(ident_reference_id, ctx) else {
-        // eprintln!("[DEBUG] {}: declaration not found", ident_name);
         return false;
     };
 
-    // eprintln!("[DEBUG] {}: declaration kind = {:?}", ident_name, declaration.kind());
     // If the declaration is a function parameter, only treat as dependency if it's from the component scope
     if matches!(declaration.kind(), AstKind::FormalParameter(_)) {
         // Check if the parameter belongs to the component scope or a parent scope
         if declaration.scope_id() == component_scope_id {
-            eprintln!(
-                "[DEBUG] {}: declaration is FormalParameter from component scope, returning true",
-                ident_name
-            );
             return true;
-        } else {
-            eprintln!(
-                "[DEBUG] {}: declaration is FormalParameter from outer scope, returning false",
-                ident_name
-            );
-            return false;
         }
+        return false;
     }
 
     let semantic = ctx.semantic();
@@ -1512,7 +1329,6 @@ fn is_identifier_a_dependency_impl<'a>(
         component_scope_id,
         visited,
     ) {
-        eprintln!("[DEBUG] {} is stable value, returning false", ident_name);
         return false;
     }
 
@@ -1524,7 +1340,6 @@ fn is_identifier_a_dependency_impl<'a>(
     // }
     // ```
     if declaration.span().contains_inclusive(ident_span) {
-        eprintln!("[DEBUG] {} is used recursively, returning false", ident_name);
         return false;
     }
 
@@ -1666,26 +1481,11 @@ fn is_function_stable<'a, 'b>(
 ) -> bool {
     let deps = {
         let mut collector = ExhaustiveDepsVisitor::new(ctx.semantic(), true);
-        eprintln!("[DEBUG] is_function_stable: About to visit function body");
         collector.visit_function_body(function_body);
-        eprintln!(
-            "[DEBUG] is_function_stable: After visiting function body, found {} dependencies",
-            collector.found_dependencies.len()
-        );
-        for dep in &collector.found_dependencies {
-            eprintln!("[DEBUG] is_function_stable: Raw dependency found: {}", dep.name);
-        }
         collector.found_dependencies
     };
 
-    eprintln!(
-        "[DEBUG] is_function_stable: found {} dependencies: {:?}",
-        deps.len(),
-        deps.iter().map(|d| &d.name).collect::<Vec<_>>()
-    );
-
-    let result = deps.iter().all(|dep| {
-        eprintln!("[DEBUG] is_function_stable: Processing dependency {}", dep.name);
+    deps.iter().all(|dep| {
         // Skip function parameters of the current function being analyzed - they don't make a function unstable
         // But parameters from outer scopes (like component props) should be considered reactive
         if let Some(symbol_id) = dep.symbol_id {
@@ -1694,9 +1494,7 @@ fn is_function_stable<'a, 'b>(
                 // If this parameter is from the component scope, it's a reactive prop
                 // If it's from a different scope, it's likely a parameter of the current function being analyzed
                 if declaration.scope_id() == component_scope_id {
-                    eprintln!("[DEBUG] is_function_stable: {} is component parameter (reactive), continuing analysis", dep.name);
                 } else {
-                    eprintln!("[DEBUG] is_function_stable: {} is function parameter (stable), returning true", dep.name);
                     return true; // Function parameters are stable
                 }
             }
@@ -1711,12 +1509,8 @@ fn is_function_stable<'a, 'b>(
             component_scope_id,
             visited,
         );
-        let is_dep = recursive_check && dep_check;
-        eprintln!("[DEBUG] is_function_stable: dependency {} recursive_check={} dep_check={} is_stable={}", dep.name, recursive_check, dep_check, is_dep);
-        is_dep
-    });
-    eprintln!("[DEBUG] is_function_stable: overall result={}", result);
-    result
+        recursive_check && dep_check
+    })
 }
 
 // https://github.com/facebook/react/blob/fee786a057774ab687aff765345dd86fce534ab2/packages/eslint-plugin-react-hooks/src/ExhaustiveDeps.js#L1742
@@ -1843,7 +1637,7 @@ impl<'a, 'b> ExhaustiveDepsVisitor<'a, 'b> {
         walk_function_body(self, function_body);
     }
 
-    fn is_react_hook_call(&self, callee: &Expression<'a>) -> bool {
+    fn is_react_hook_call(callee: &Expression<'a>) -> bool {
         if let Some(name) = get_node_name_without_react_namespace(callee) {
             // Check if it's a built-in React hook
             matches!(
@@ -1873,17 +1667,12 @@ impl<'a, 'b> ExhaustiveDepsVisitor<'a, 'b> {
         // Check if we're inside a nested function by looking at the stack
         // We're inside a nested function if we have ArrowFunctionExpression or Function in the stack
         // and we're not at the top level of the effect
-        let mut has_nested_function = false;
         let mut function_count = 0;
-
-        eprintln!("[DEBUG] Stack contents: {:?}", self.stack);
 
         for node_type in &self.stack {
             match node_type {
                 AstType::ArrowFunctionExpression | AstType::Function => {
                     function_count += 1;
-                    has_nested_function = true;
-                    eprintln!("[DEBUG] Found function in stack, count: {}", function_count);
                 }
                 _ => {}
             }
@@ -1891,12 +1680,7 @@ impl<'a, 'b> ExhaustiveDepsVisitor<'a, 'b> {
 
         // We're inside a nested function if we have more than one function in the stack
         // (the main effect function + at least one nested function)
-        let result = function_count > 1;
-        eprintln!(
-            "[DEBUG] is_inside_nested_function result: {} (function_count={})",
-            result, function_count
-        );
-        result
+        function_count > 1
     }
 
     fn iter_destructure_bindings<F>(&self, mut cb: F) -> Option<bool>
@@ -1950,8 +1734,7 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
             let is_effect_hook = self
                 .current_hook_name
                 .as_ref()
-                .map(|name| name == "useEffect" || name == "useLayoutEffect")
-                .unwrap_or(false);
+                .is_some_and(|name| name == "useEffect" || name == "useLayoutEffect");
             if !self.in_top_level_cleanup && self.in_react_hook_context && is_effect_hook {
                 self.in_top_level_cleanup = true;
                 match argument.get_inner_expression() {
@@ -1960,7 +1743,7 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                         // We call the base visitor directly to avoid our custom function visitor logic
                         <Self as oxc_ast_visit::Visit>::visit_function(
                             self,
-                            &func,
+                            func,
                             ScopeFlags::empty(),
                         );
                     }
@@ -1968,7 +1751,7 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                         // The returned arrow function IS the cleanup function, not a nested function
                         // We call the base visitor directly to avoid our custom arrow function visitor logic
                         <Self as oxc_ast_visit::Visit>::visit_arrow_function_expression(
-                            self, &arrow,
+                            self, arrow,
                         );
                     }
                     _ => {
@@ -2018,13 +1801,9 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                                         .flatten()
                                 {
                                     let mut extended_dep = dep;
-                                    extended_dep.chain.push(key.name.clone());
+                                    extended_dep.chain.push(key.name);
                                     extended_dep.span = prop.span;
 
-                                    eprintln!(
-                                        "[DEBUG] Adding destructured dependency: {}",
-                                        extended_dep.to_string()
-                                    );
                                     self.found_dependencies.insert(extended_dep);
                                 }
                             }
@@ -2060,26 +1839,11 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
         match &it.callee {
             Expression::StaticMemberExpression(member_expr) => {
                 // Check if this is a ref access in a cleanup function
-                eprintln!(
-                    "[DEBUG] visit_call_expression: property={:?}, inside_cleanup_function={}, in_nested_function_in_cleanup={}",
-                    member_expr.property.name,
-                    self.in_top_level_cleanup,
-                    self.in_nested_function_in_cleanup
-                );
                 if self.in_top_level_cleanup && !self.in_nested_function_in_cleanup {
                     // Check if the object chain contains "current"
                     let chain_dep = concat_members(member_expr, self.semantic, false);
                     if let Ok(Some(source)) = chain_dep {
-                        eprintln!(
-                            "[DEBUG] Checking chain for ref access: {:?}, contains current: {}",
-                            source.chain,
-                            source.chain.contains(&Atom::from("current"))
-                        );
                         if source.chain.contains(&Atom::from("current")) {
-                            eprintln!(
-                                "[DEBUG] Found ref access in cleanup function via call expression: {}",
-                                source.name
-                            );
                             self.refs_inside_cleanups.push((member_expr.span, source.reference_id));
                         }
                     } else {
@@ -2090,10 +1854,6 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                                 if let Expression::Identifier(ident) =
                                     obj_member.object.get_inner_expression()
                                 {
-                                    eprintln!(
-                                        "[DEBUG] Found ref access in cleanup function via fallback: {}",
-                                        ident.name
-                                    );
                                     self.refs_inside_cleanups
                                         .push((member_expr.span, ident.reference_id()));
                                 }
@@ -2108,9 +1868,6 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                 let chain_dep = concat_members(member_expr, self.semantic, false);
                 if let Ok(Some(source)) = chain_dep {
                     if self.skip_reporting_dependency {
-                        eprintln!(
-                            "[DEBUG] Skipping dependency collection due to skip_reporting_dependency"
-                        );
                     } else {
                         // For method calls, we want to depend on the object, not the method
                         // So we create a dependency with just the object chain
@@ -2121,10 +1878,6 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                             chain: source.chain[..source.chain.len().saturating_sub(1)].to_vec(),
                             symbol_id: source.symbol_id,
                         };
-                        eprintln!(
-                            "[DEBUG] Inserting method call object dependency: {} (chain: {:?})",
-                            obj_dep.name, obj_dep.chain
-                        );
                         self.found_dependencies.insert(obj_dep);
                     }
                 } else {
@@ -2153,7 +1906,7 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                                 // Only suppress warnings if we're NOT in a cleanup function context
                                 // In cleanup functions, we want to flag all ref accesses regardless of setTimeout
                                 if !self.in_top_level_cleanup
-                                    && !self.is_react_hook_call(&it.callee)
+                                    && !Self::is_react_hook_call(&it.callee)
                                 {
                                     self.in_nested_function_in_cleanup = true;
                                 }
@@ -2169,7 +1922,7 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                                 // Only suppress warnings if we're NOT in a cleanup function context
                                 // In cleanup functions, we want to flag all ref accesses regardless of setTimeout
                                 if !self.in_top_level_cleanup
-                                    && !self.is_react_hook_call(&it.callee)
+                                    && !Self::is_react_hook_call(&it.callee)
                                 {
                                     self.in_nested_function_in_cleanup = true;
                                 }
@@ -2227,49 +1980,24 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
     }
 
     fn visit_static_member_expression(&mut self, it: &StaticMemberExpression<'a>) {
-        eprintln!(
-            "[DEBUG] visit_static_member_expression: property={:?}, span={:?}, inside_cleanup_function={}",
-            it.property.name, it.span, self.in_top_level_cleanup
-        );
         if it.property.name == "current"
             && self.in_top_level_cleanup
             && !self.in_nested_function_in_cleanup
         {
-            eprintln!(
-                "[DEBUG] Found ref access in cleanup function: {} (inside_cleanup_function = {})",
-                it.property.name, self.in_top_level_cleanup
-            );
             if let Expression::Identifier(ident) = it.object.get_inner_expression() {
-                eprintln!("[DEBUG] Adding ref to refs_inside_cleanups: {}", ident.name);
                 self.refs_inside_cleanups.push((it.span, ident.reference_id()));
             }
         }
         let full_chain_dep = concat_members(it, self.semantic, false);
         if let Ok(Some(source)) = full_chain_dep {
             if self.skip_reporting_dependency {
-                eprintln!(
-                    "[DEBUG] Skipping dependency collection due to skip_reporting_dependency"
-                );
             } else {
-                eprintln!(
-                    "[DEBUG] Inserting dependency: {} (chain: {:?})",
-                    source.name, source.chain
-                );
                 self.found_dependencies.insert(source);
             }
-        } else {
-            eprintln!("[DEBUG] concat_members returned None or Err for {:?}", it.property.name);
         }
     }
 
     fn visit_identifier_reference(&mut self, ident: &IdentifierReference<'a>) {
-        eprintln!(
-            "[DEBUG] visit_identifier_reference: {} (skip_reporting={}, stack_last={:?})",
-            ident.name,
-            self.skip_reporting_dependency,
-            self.stack.last()
-        );
-
         // Check if this is a setState function being passed as a callback
         if (ident.name == "setState" || (ident.name.starts_with("set") && ident.name.len() > 3))
             && !self.is_inside_nested_function()
@@ -2278,11 +2006,9 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
         }
 
         if self.skip_reporting_dependency {
-            eprintln!("[DEBUG] Skipping {} due to skip_reporting_dependency", ident.name);
             return;
         }
         if matches!(self.stack.last(), Some(AstType::StaticMemberExpression)) {
-            eprintln!("[DEBUG] Skipping {} due to StaticMemberExpression", ident.name);
             return;
         }
         let reference_id = ident.reference_id();
@@ -2350,10 +2076,6 @@ impl<'a> ExhaustiveDepsVisitor<'a, '_> {
     fn visit_function_expression(&mut self, it: &oxc_ast::ast::Function<'a>) {
         let was_nested = self.in_nested_function_in_cleanup;
         let was_nested_any = self.in_nested_function;
-        eprintln!(
-            "[DEBUG] visit_function_expression: in_nested_function={} -> true",
-            self.in_nested_function
-        );
         // If we're in a cleanup context, this is a nested function
         if self.in_top_level_cleanup {
             self.in_nested_function_in_cleanup = true;
@@ -2363,10 +2085,6 @@ impl<'a> ExhaustiveDepsVisitor<'a, '_> {
         <Self as oxc_ast_visit::Visit>::visit_function(self, it, ScopeFlags::empty());
         self.in_nested_function_in_cleanup = was_nested;
         self.in_nested_function = was_nested_any;
-        eprintln!(
-            "[DEBUG] visit_function_expression: restored in_nested_function={}",
-            self.in_nested_function
-        );
     }
 
     fn visit_arrow_function_expression(&mut self, it: &oxc_ast::ast::ArrowFunctionExpression<'a>) {
