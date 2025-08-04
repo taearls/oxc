@@ -235,7 +235,7 @@ fn get_prototype_property_accessed<'a>(
                 // Return the MemberExpression
                 parent
             };
-            
+
             // Check if the result is wrapped in parentheses
             let great_grandparent_node = ctx.nodes().parent_node(result_node.id());
             if let AstKind::ParenthesizedExpression(_) = great_grandparent_node.kind() {

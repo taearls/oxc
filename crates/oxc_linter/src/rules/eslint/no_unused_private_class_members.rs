@@ -232,14 +232,12 @@ fn is_value_context(kind: &AstNode, semantic: &Semantic<'_>) -> bool {
 fn is_compound_assignment_read(parent_id: NodeId, semantic: &Semantic) -> bool {
     // Use tuple_windows like the main is_read function to check for value contexts
     // We want to check if any ancestor is a value context
-    semantic
-        .nodes()
-        .ancestors(parent_id)
-        .tuple_windows::<(&AstNode<'_>, &AstNode<'_>)>()
-        .any(|(child, _parent)| {
+    semantic.nodes().ancestors(parent_id).tuple_windows::<(&AstNode<'_>, &AstNode<'_>)>().any(
+        |(child, _parent)| {
             // Check if the child node represents a value context
             is_value_context(child, semantic)
-        })
+        },
+    )
 }
 
 #[test]
