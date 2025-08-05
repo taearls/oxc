@@ -14,7 +14,7 @@ use oxc_syntax::operator::{AssignmentOperator, BinaryOperator, LogicalOperator, 
 use crate::{LintContext, utils::get_function_nearest_jsdoc_node};
 
 /// Utilities for detecting argument context (replacement for removed AstKind::Argument)
-/// 
+///
 /// After the removal of AstKind::Argument, we need alternative ways to detect when
 /// expressions or nodes are within function call arguments.
 
@@ -37,7 +37,7 @@ pub fn is_in_new_arguments(span: Span, new_expr: &NewExpression) -> bool {
 /// Check if a node is in argument context by examining its ancestors
 pub fn is_node_in_argument_context<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>) -> bool {
     let node_span = node.kind().span();
-    
+
     // Walk up the AST to find call/new expressions
     for ancestor in ctx.nodes().ancestors(node.id()).skip(1) {
         match ancestor.kind() {
@@ -64,7 +64,7 @@ pub fn is_node_in_argument_context<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>
 /// Check if a node is specifically the nth argument (0-indexed) of a call expression
 pub fn is_nth_call_argument<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>, n: usize) -> bool {
     let node_span = node.kind().span();
-    
+
     if let Some(parent) = ctx.nodes().parent_node(node.id()) {
         if let AstKind::CallExpression(call) = parent.kind() {
             if let Some(arg) = call.arguments.get(n) {
@@ -78,7 +78,7 @@ pub fn is_nth_call_argument<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>, n: us
 /// Check if a node is specifically the nth argument (0-indexed) of a new expression
 pub fn is_nth_new_argument<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>, n: usize) -> bool {
     let node_span = node.kind().span();
-    
+
     if let Some(parent) = ctx.nodes().parent_node(node.id()) {
         if let AstKind::NewExpression(new_expr) = parent.kind() {
             if let Some(arg) = new_expr.arguments.get(n) {
@@ -100,9 +100,12 @@ pub fn is_any_argument<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>) -> bool {
 }
 
 /// Check if a node is in argument context using only Semantic (for cases where LintContext is not available)
-pub fn is_node_in_argument_context_semantic<'a>(node: &AstNode<'a>, semantic: &Semantic<'a>) -> bool {
+pub fn is_node_in_argument_context_semantic<'a>(
+    node: &AstNode<'a>,
+    semantic: &Semantic<'a>,
+) -> bool {
     let node_span = node.kind().span();
-    
+
     // Walk up the AST to find call/new expressions using semantic
     for ancestor in semantic.nodes().ancestors(node.id()).skip(1) {
         match ancestor.kind() {

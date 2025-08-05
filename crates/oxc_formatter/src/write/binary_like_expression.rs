@@ -40,7 +40,7 @@ fn is_in_argument_context_recursive(span: oxc_span::Span, node: &AstNodes<'_>) -
     if is_in_argument_context(span, node) {
         return true;
     }
-    
+
     // Then check if we're nested within arguments through other containers
     match node {
         AstNodes::ConditionalExpression(conditional) => {

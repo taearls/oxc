@@ -203,50 +203,50 @@ pub fn is_function_in_test_call_context(formal_params: &AstNode<FormalParameters
     // The formal parameters' parent should be a Function
     let function_node = formal_params.parent;
     let function_span = function_node.span();
-    
+
     // Check immediate parent contexts for call expressions
     let parent = function_node.parent();
     if let AstNodes::CallExpression(call) = parent {
-            // Check if our function span is within any of the call's arguments
-            let is_in_args = call.arguments.iter().any(|arg| {
-                let arg_span = arg.span();
-                function_span.start >= arg_span.start && function_span.end <= arg_span.end
-            });
-            
-            return is_in_args && is_test_call_expression(call);
+        // Check if our function span is within any of the call's arguments
+        let is_in_args = call.arguments.iter().any(|arg| {
+            let arg_span = arg.span();
+            function_span.start >= arg_span.start && function_span.end <= arg_span.end
+        });
+
+        return is_in_args && is_test_call_expression(call);
     }
-    
+
     // Check grandparent for nested cases - but only if not a dummy node
     match parent {
         AstNodes::Program(_) => return false, // Don't traverse beyond program
         _ => {}
     }
-    
+
     let grandparent = parent.parent();
     if let AstNodes::CallExpression(call) = grandparent {
         let is_in_args = call.arguments.iter().any(|arg| {
             let arg_span = arg.span();
             function_span.start >= arg_span.start && function_span.end <= arg_span.end
         });
-        
+
         return is_in_args && is_test_call_expression(call);
     }
-    
+
     // Check great-grandparent for deeply nested cases - but only if not a dummy node
     match grandparent {
         AstNodes::Program(_) => return false, // Don't traverse beyond program
         _ => {}
     }
-    
+
     let great_grandparent = grandparent.parent();
     if let AstNodes::CallExpression(call) = great_grandparent {
         let is_in_args = call.arguments.iter().any(|arg| {
             let arg_span = arg.span();
             function_span.start >= arg_span.start && function_span.end <= arg_span.end
         });
-        
+
         return is_in_args && is_test_call_expression(call);
     }
-    
+
     false
 }

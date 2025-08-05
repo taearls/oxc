@@ -272,26 +272,22 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Function<'a>> {
             return false;
         }
         let parent = self.parent;
-        
+
         // Check if this function is an argument in a call/new expression
         // If so, it doesn't need parentheses
         match parent {
             AstNodes::CallExpression(call) => {
                 // Check if this function is in the arguments array
-                !call.arguments.iter().any(|arg| {
-                    match arg {
-                        Argument::FunctionExpression(func) => func.span() == self.span(),
-                        _ => false,
-                    }
+                !call.arguments.iter().any(|arg| match arg {
+                    Argument::FunctionExpression(func) => func.span() == self.span(),
+                    _ => false,
                 })
             }
             AstNodes::NewExpression(new_expr) => {
                 // Check if this function is in the arguments array
-                !new_expr.arguments.iter().any(|arg| {
-                    match arg {
-                        Argument::FunctionExpression(func) => func.span() == self.span(),
-                        _ => false,
-                    }
+                !new_expr.arguments.iter().any(|arg| match arg {
+                    Argument::FunctionExpression(func) => func.span() == self.span(),
+                    _ => false,
                 })
             }
             AstNodes::TemplateLiteral(_) => true,
@@ -299,7 +295,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Function<'a>> {
                 self.span,
                 parent,
                 FirstInStatementMode::ExpressionOrExportDefault,
-            )
+            ),
         }
     }
 }
@@ -594,24 +590,24 @@ fn update_or_lower_expression_needs_parens(span: Span, parent: &AstNodes<'_>) ->
         | AstNodes::StaticMemberExpression(_)
         | AstNodes::TemplateLiteral(_)
         | AstNodes::TaggedTemplateExpression(_) => return true,
-        
+
         // For call expressions, only add parentheses if this expression is the callee, not an argument
         AstNodes::CallExpression(call) => {
             return call.callee.span() == span;
         }
-        
+
         // For new expressions, only add parentheses if this expression is the callee, not an argument
         AstNodes::NewExpression(new_expr) => {
             return new_expr.callee.span() == span;
         }
-        
+
         AstNodes::ComputedMemberExpression(computed_member_expr) => {
             return computed_member_expr.object.span() == span;
         }
-        
+
         _ => {}
     }
-    
+
     if is_class_extends(parent, span) {
         return true;
     }

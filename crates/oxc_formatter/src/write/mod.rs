@@ -44,8 +44,11 @@ use crate::{
     options::{FormatTrailingCommas, QuoteProperties, TrailingSeparator},
     parentheses::NeedsParentheses,
     utils::{
-        assignment_like::AssignmentLike, call_expression::{is_test_call_expression, is_function_in_test_call_context},
-        conditional::ConditionalLike, member_chain::MemberChain, write_arguments_multi_line,
+        assignment_like::AssignmentLike,
+        call_expression::{is_function_in_test_call_context, is_test_call_expression},
+        conditional::ConditionalLike,
+        member_chain::MemberChain,
+        write_arguments_multi_line,
     },
     write,
     write::parameter_list::{can_avoid_parentheses, should_hug_function_parameters},
