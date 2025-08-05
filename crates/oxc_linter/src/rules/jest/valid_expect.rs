@@ -297,8 +297,7 @@ fn get_parent_with_ignore<'a, 'b>(
     let mut node = node;
     loop {
         let parent = ctx.nodes().parent_node(node.id());
-        if true {
-            //TODO: !matches!(parent.kind(), AstKind::Argument(_)) {
+        if !crate::ast_util::is_any_argument(node, ctx) {
             // we don't want to report `Promise.all([invalidExpectCall_1, invalidExpectCall_2])` twice.
             // so we need mark whether the node is the first item of an array.
             // if it not the first item, we ignore it in `find_promise_call_expression_node`.

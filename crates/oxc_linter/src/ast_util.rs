@@ -13,6 +13,119 @@ use oxc_syntax::operator::{AssignmentOperator, BinaryOperator, LogicalOperator, 
 
 use crate::{LintContext, utils::get_function_nearest_jsdoc_node};
 
+/// Utilities for detecting argument context (replacement for removed AstKind::Argument)
+/// 
+/// After the removal of AstKind::Argument, we need alternative ways to detect when
+/// expressions or nodes are within function call arguments.
+
+/// Check if a given span is within any argument of a CallExpression
+pub fn is_in_call_arguments(span: Span, call: &CallExpression) -> bool {
+    call.arguments.iter().any(|arg| {
+        let arg_span = arg.span();
+        span.start >= arg_span.start && span.end <= arg_span.end
+    })
+}
+
+/// Check if a given span is within any argument of a NewExpression  
+pub fn is_in_new_arguments(span: Span, new_expr: &NewExpression) -> bool {
+    new_expr.arguments.iter().any(|arg| {
+        let arg_span = arg.span();
+        span.start >= arg_span.start && span.end <= arg_span.end
+    })
+}
+
+/// Check if a node is in argument context by examining its ancestors
+pub fn is_node_in_argument_context<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>) -> bool {
+    let node_span = node.kind().span();
+    
+    // Walk up the AST to find call/new expressions
+    for ancestor in ctx.nodes().ancestors(node.id()).skip(1) {
+        match ancestor.kind() {
+            AstKind::CallExpression(call) => {
+                if is_in_call_arguments(node_span, call) {
+                    return true;
+                }
+            }
+            AstKind::NewExpression(new_expr) => {
+                if is_in_new_arguments(node_span, new_expr) {
+                    return true;
+                }
+            }
+            // Stop searching if we hit certain boundaries
+            AstKind::Function(_) | AstKind::ArrowFunctionExpression(_) | AstKind::Program(_) => {
+                break;
+            }
+            _ => continue,
+        }
+    }
+    false
+}
+
+/// Check if a node is specifically the nth argument (0-indexed) of a call expression
+pub fn is_nth_call_argument<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>, n: usize) -> bool {
+    let node_span = node.kind().span();
+    
+    if let Some(parent) = ctx.nodes().parent_node(node.id()) {
+        if let AstKind::CallExpression(call) = parent.kind() {
+            if let Some(arg) = call.arguments.get(n) {
+                return arg.span() == node_span;
+            }
+        }
+    }
+    false
+}
+
+/// Check if a node is specifically the nth argument (0-indexed) of a new expression
+pub fn is_nth_new_argument<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>, n: usize) -> bool {
+    let node_span = node.kind().span();
+    
+    if let Some(parent) = ctx.nodes().parent_node(node.id()) {
+        if let AstKind::NewExpression(new_expr) = parent.kind() {
+            if let Some(arg) = new_expr.arguments.get(n) {
+                return arg.span() == node_span;
+            }
+        }
+    }
+    false
+}
+
+/// Check if a node is the first argument of any call/new expression
+pub fn is_first_argument<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>) -> bool {
+    is_nth_call_argument(node, ctx, 0) || is_nth_new_argument(node, ctx, 0)
+}
+
+/// Check if a node is an argument (any position) of any call/new expression
+pub fn is_any_argument<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>) -> bool {
+    is_node_in_argument_context(node, ctx)
+}
+
+/// Check if a node is in argument context using only Semantic (for cases where LintContext is not available)
+pub fn is_node_in_argument_context_semantic<'a>(node: &AstNode<'a>, semantic: &Semantic<'a>) -> bool {
+    let node_span = node.kind().span();
+    
+    // Walk up the AST to find call/new expressions using semantic
+    for ancestor in semantic.nodes().ancestors(node.id()).skip(1) {
+        match ancestor.kind() {
+            AstKind::CallExpression(call) => {
+                if is_in_call_arguments(node_span, call) {
+                    return true;
+                }
+            }
+            AstKind::NewExpression(new_expr) => {
+                if is_in_new_arguments(node_span, new_expr) {
+                    return true;
+                }
+            }
+            // Stop searching if we hit certain boundaries
+            AstKind::Function(_) | AstKind::ArrowFunctionExpression(_) | AstKind::Program(_) => {
+                break;
+            }
+            _ => continue,
+        }
+    }
+    false
+}
+
 /// Test if an AST node is a boolean value that never changes. Specifically we
 /// test for:
 /// 1. Literal booleans (`true` or `false`)

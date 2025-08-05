@@ -233,6 +233,9 @@ fn is_var_declarator_or_test_block<'a>(
                     AstKind::ArrayExpression(_) | AstKind::ObjectExpression(_) => {
                         current = parent;
                     }
+                    AstKind::CallExpression(_) | AstKind::NewExpression(_) if crate::ast_util::is_any_argument(current, ctx) => {
+                        current = parent;
+                    }
                     _ => break,
                 }
             }

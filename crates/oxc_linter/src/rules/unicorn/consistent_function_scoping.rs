@@ -261,8 +261,8 @@ impl Rule for ConsistentFunctionScoping {
 
         if matches!(
             outermost_paren_parent(node, ctx).map(AstNode::kind),
-            Some(AstKind::ReturnStatement(_)) // TODO: | AstKind::Argument(_))
-        ) {
+            Some(AstKind::ReturnStatement(_))
+        ) || crate::ast_util::is_any_argument(node, ctx) {
             return;
         }
 

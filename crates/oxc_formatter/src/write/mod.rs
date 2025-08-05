@@ -44,7 +44,7 @@ use crate::{
     options::{FormatTrailingCommas, QuoteProperties, TrailingSeparator},
     parentheses::NeedsParentheses,
     utils::{
-        assignment_like::AssignmentLike, call_expression::is_test_call_expression,
+        assignment_like::AssignmentLike, call_expression::{is_test_call_expression, is_function_in_test_call_context},
         conditional::ConditionalLike, member_chain::MemberChain, write_arguments_multi_line,
     },
     write,
@@ -1068,14 +1068,10 @@ impl<'a> FormatWrite<'a> for AstNode<'a, FormalParameters<'a>> {
         let layout = if !self.has_parameter() {
             ParameterLayout::NoParameters
         } else if can_hug || {
-            // `self.parent`: Function
-            // `self.parent.parent()`: Argument
-            // `self.parent.parent().parent()` CallExpression
-            if let AstNodes::CallExpression(call) = self.parent.parent().parent() {
-                is_test_call_expression(call)
-            } else {
-                false
-            }
+            // Check if this function is within a test call expression argument
+            // Previously: `self.parent`: Function -> `Argument` -> `CallExpression`
+            // Now: Check if the function is in argument context and find the call
+            is_function_in_test_call_context(self)
         } {
             ParameterLayout::Hug
         } else {

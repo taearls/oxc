@@ -144,10 +144,10 @@ impl Rule for MaxNestedCallbacks {
 
 fn is_callback<'a>(node: &AstNode<'a>, semantic: &Semantic<'a>) -> bool {
     is_function_node(node)
-        && matches!(
+        && (matches!(
             iter_outer_expressions(semantic.nodes(), node.id()).next(),
             Some(AstKind::CallExpression(_))
-        )
+        ) || crate::ast_util::is_node_in_argument_context_semantic(node, semantic))
 }
 
 #[test]

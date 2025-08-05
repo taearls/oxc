@@ -136,6 +136,22 @@ impl Rule for NoUnsafeOptionalChaining {
                     }
                 }
             }
+            AstKind::CallExpression(call) => {
+                // Check spread elements in call arguments
+                for arg in &call.arguments {
+                    if let Argument::SpreadElement(spread_exp) = arg {
+                        Self::check_unsafe_usage(&spread_exp.argument, ctx);
+                    }
+                }
+            }
+            AstKind::NewExpression(new_expr) => {
+                // Check spread elements in new expression arguments
+                for arg in &new_expr.arguments {
+                    if let Argument::SpreadElement(spread_exp) = arg {
+                        Self::check_unsafe_usage(&spread_exp.argument, ctx);
+                    }
+                }
+            }
             _ => {}
         }
     }

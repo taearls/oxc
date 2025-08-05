@@ -152,7 +152,7 @@ impl Rule for PreferObjectSpread {
                         | AstKind::CallExpression(_)
                         | AstKind::ObjectProperty(_)
                         | AstKind::AssignmentExpression(_)
-                );
+                ) && !crate::ast_util::is_any_argument(node, ctx);
 
                 let Some(callee_left_paren_span) = find_char_span(ctx, call_expr, b'(') else {
                     return fixer.noop();

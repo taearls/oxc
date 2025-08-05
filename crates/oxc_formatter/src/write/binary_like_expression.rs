@@ -13,6 +13,52 @@ use crate::{
 
 use crate::{format_args, formatter::prelude::*, write};
 
+/// Helper function to detect if a span is within a function call argument context
+fn is_in_argument_context(span: oxc_span::Span, parent: &AstNodes<'_>) -> bool {
+    match parent {
+        AstNodes::CallExpression(call) => {
+            // Check if the span falls within any of the call's arguments
+            call.arguments.iter().any(|arg| {
+                let arg_span = arg.span();
+                span.start >= arg_span.start && span.end <= arg_span.end
+            })
+        }
+        AstNodes::NewExpression(new_expr) => {
+            // Check if the span falls within any of the new expression's arguments
+            new_expr.arguments.iter().any(|arg| {
+                let arg_span = arg.span();
+                span.start >= arg_span.start && span.end <= arg_span.end
+            })
+        }
+        _ => false,
+    }
+}
+
+/// More comprehensive argument context detection for nested cases
+fn is_in_argument_context_recursive(span: oxc_span::Span, node: &AstNodes<'_>) -> bool {
+    // First check direct parent
+    if is_in_argument_context(span, node) {
+        return true;
+    }
+    
+    // Then check if we're nested within arguments through other containers
+    match node {
+        AstNodes::ConditionalExpression(conditional) => {
+            let parent = conditional.parent.parent();
+            is_in_argument_context_recursive(span, parent)
+        }
+        AstNodes::BinaryExpression(binary) => {
+            let parent = binary.parent.parent();
+            is_in_argument_context_recursive(span, parent)
+        }
+        AstNodes::LogicalExpression(logical) => {
+            let parent = logical.parent.parent();
+            is_in_argument_context_recursive(span, parent)
+        }
+        _ => false,
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum BinaryLikeOperator {
     BinaryOperator(BinaryOperator),
@@ -162,7 +208,7 @@ impl<'a, 'b> BinaryLikeExpression<'a, 'b> {
                         | AstNodes::CallExpression(_)
                         | AstNodes::ImportExpression(_)
                         | AstNodes::MetaProperty(_)
-                )
+                ) || is_in_argument_context_recursive(self.span(), parent.parent())
             }
             _ => false,
         }

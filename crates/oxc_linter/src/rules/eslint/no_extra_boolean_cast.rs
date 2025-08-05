@@ -210,7 +210,11 @@ fn is_unary_negation(node: &AstNode) -> bool {
 
 fn get_real_parent<'a, 'b>(node: &AstNode, ctx: &'a LintContext<'b>) -> Option<&'a AstNode<'b>> {
     ctx.nodes().ancestors(node.id()).find(|parent| {
-        !matches!(parent.kind(), AstKind::ParenthesizedExpression(_) | AstKind::ChainExpression(_))
+        !matches!(
+            parent.kind(), 
+            AstKind::ParenthesizedExpression(_) 
+            | AstKind::ChainExpression(_)
+        ) && !crate::ast_util::is_any_argument(parent, ctx)
     })
 }
 
