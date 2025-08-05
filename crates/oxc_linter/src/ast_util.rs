@@ -13,11 +13,6 @@ use oxc_syntax::operator::{AssignmentOperator, BinaryOperator, LogicalOperator, 
 
 use crate::{LintContext, utils::get_function_nearest_jsdoc_node};
 
-/// Utilities for detecting argument context (replacement for removed AstKind::Argument)
-///
-/// After the removal of AstKind::Argument, we need alternative ways to detect when
-/// expressions or nodes are within function call arguments.
-
 /// Check if a given span is within any argument of a CallExpression
 pub fn is_in_call_arguments(span: Span, call: &CallExpression) -> bool {
     call.arguments.iter().any(|arg| {
@@ -26,7 +21,7 @@ pub fn is_in_call_arguments(span: Span, call: &CallExpression) -> bool {
     })
 }
 
-/// Check if a given span is within any argument of a NewExpression  
+/// Check if a given span is within any argument of a NewExpression
 pub fn is_in_new_arguments(span: Span, new_expr: &NewExpression) -> bool {
     new_expr.arguments.iter().any(|arg| {
         let arg_span = arg.span();
@@ -55,41 +50,47 @@ pub fn is_node_in_argument_context<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>
             AstKind::Function(_) | AstKind::ArrowFunctionExpression(_) | AstKind::Program(_) => {
                 break;
             }
-            _ => continue,
+            _ => {}
         }
     }
     false
 }
 
+// TODO: leverage this function in Solution 1 from `2025-08-04-this-session-is-being-continued-from-a-previous-co.txt`.
 /// Check if a node is specifically the nth argument (0-indexed) of a call expression
 pub fn is_nth_call_argument<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>, n: usize) -> bool {
     let node_span = node.kind().span();
 
-    if let Some(parent) = ctx.nodes().parent_node(node.id()) {
-        if let AstKind::CallExpression(call) = parent.kind() {
-            if let Some(arg) = call.arguments.get(n) {
-                return arg.span() == node_span;
-            }
+    let parent = ctx.nodes().parent_node(node.id());
+    if let AstKind::CallExpression(call) = parent.kind() {
+        if let Some(arg) = call.arguments.get(n) {
+            return arg.span() == node_span;
         }
     }
+
     false
 }
 
+// TODO: leverage this function in Solution 1 from `2025-08-04-this-session-is-being-continued-from-a-previous-co.txt`.
 /// Check if a node is specifically the nth argument (0-indexed) of a new expression
 pub fn is_nth_new_argument<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>, n: usize) -> bool {
     let node_span = node.kind().span();
 
-    if let Some(parent) = ctx.nodes().parent_node(node.id()) {
-        if let AstKind::NewExpression(new_expr) = parent.kind() {
-            if let Some(arg) = new_expr.arguments.get(n) {
-                return arg.span() == node_span;
-            }
+    let parent = ctx.nodes().parent_node(node.id());
+    if let AstKind::NewExpression(new_expr) = parent.kind() {
+        if let Some(arg) = new_expr.arguments.get(n) {
+            return arg.span() == node_span;
         }
     }
+
     false
 }
 
+// TODO: leverage this function in Solution 1 from `2025-08-04-this-session-is-being-continued-from-a-previous-co.txt`.
+/// then remove expect(dead_code)
+///
 /// Check if a node is the first argument of any call/new expression
+#[expect(dead_code)]
 pub fn is_first_argument<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>) -> bool {
     is_nth_call_argument(node, ctx, 0) || is_nth_new_argument(node, ctx, 0)
 }
@@ -123,7 +124,7 @@ pub fn is_node_in_argument_context_semantic<'a>(
             AstKind::Function(_) | AstKind::ArrowFunctionExpression(_) | AstKind::Program(_) => {
                 break;
             }
-            _ => continue,
+            _ => {}
         }
     }
     false

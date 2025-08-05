@@ -222,20 +222,20 @@ fn is_var_declarator_or_test_block<'a>(
             loop {
                 let parent = ctx.nodes().parent_node(current.id());
                 match parent.kind() {
-                    AstKind::CallExpression(_) | AstKind::VariableDeclarator(_) => {
-                        return is_var_declarator_or_test_block(
-                            parent,
-                            additional_test_block_functions,
-                            id_nodes_mapping,
-                            ctx,
-                        );
-                    }
-                    AstKind::ArrayExpression(_) | AstKind::ObjectExpression(_) => {
-                        current = parent;
-                    }
+                    // AstKind::CallExpression(_) | AstKind::VariableDeclarator(_) => {
+                    //     return is_var_declarator_or_test_block(
+                    //         parent,
+                    //         additional_test_block_functions,
+                    //         id_nodes_mapping,
+                    //         ctx,
+                    //     );
+                    // }
                     AstKind::CallExpression(_) | AstKind::NewExpression(_)
                         if crate::ast_util::is_any_argument(current, ctx) =>
                     {
+                        current = parent;
+                    }
+                    AstKind::ArrayExpression(_) | AstKind::ObjectExpression(_) => {
                         current = parent;
                     }
                     _ => break,

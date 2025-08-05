@@ -217,9 +217,8 @@ pub fn is_function_in_test_call_context(formal_params: &AstNode<FormalParameters
     }
 
     // Check grandparent for nested cases - but only if not a dummy node
-    match parent {
-        AstNodes::Program(_) => return false, // Don't traverse beyond program
-        _ => {}
+    if let AstNodes::Program(_) = parent {
+        return false; // Don't traverse beyond program
     }
 
     let grandparent = parent.parent();
@@ -233,9 +232,8 @@ pub fn is_function_in_test_call_context(formal_params: &AstNode<FormalParameters
     }
 
     // Check great-grandparent for deeply nested cases - but only if not a dummy node
-    match grandparent {
-        AstNodes::Program(_) => return false, // Don't traverse beyond program
-        _ => {}
+    if let AstNodes::Program(_) = grandparent {
+        return false; // Don't traverse beyond program
     }
 
     let great_grandparent = grandparent.parent();

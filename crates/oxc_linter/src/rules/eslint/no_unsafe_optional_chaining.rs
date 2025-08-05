@@ -1,6 +1,9 @@
 use oxc_ast::{
     AstKind,
-    ast::{ArrayExpressionElement, AssignmentTarget, Expression, match_assignment_target_pattern},
+    ast::{
+        Argument, ArrayExpressionElement, AssignmentTarget, Expression,
+        match_assignment_target_pattern,
+    },
 };
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_macros::declare_oxc_lint;
@@ -83,8 +86,13 @@ impl Rule for NoUnsafeOptionalChaining {
             AstKind::TaggedTemplateExpression(expr) => {
                 Self::check_unsafe_usage(&expr.tag, ctx);
             }
-            AstKind::NewExpression(expr) => {
-                Self::check_unsafe_usage(&expr.callee, ctx);
+            AstKind::NewExpression(new_expr) => {
+                // Check spread elements in new expression arguments
+                for arg in &new_expr.arguments {
+                    if let Argument::SpreadElement(spread_exp) = arg {
+                        Self::check_unsafe_usage(&spread_exp.argument, ctx);
+                    }
+                }
             }
             AstKind::AssignmentExpression(expr) => {
                 if matches!(expr.left, match_assignment_target_pattern!(AssignmentTarget)) {
@@ -139,14 +147,6 @@ impl Rule for NoUnsafeOptionalChaining {
             AstKind::CallExpression(call) => {
                 // Check spread elements in call arguments
                 for arg in &call.arguments {
-                    if let Argument::SpreadElement(spread_exp) = arg {
-                        Self::check_unsafe_usage(&spread_exp.argument, ctx);
-                    }
-                }
-            }
-            AstKind::NewExpression(new_expr) => {
-                // Check spread elements in new expression arguments
-                for arg in &new_expr.arguments {
                     if let Argument::SpreadElement(spread_exp) = arg {
                         Self::check_unsafe_usage(&spread_exp.argument, ctx);
                     }
