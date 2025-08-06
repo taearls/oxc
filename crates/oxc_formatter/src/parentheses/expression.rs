@@ -337,6 +337,8 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, AssignmentExpression<'a>> {
                 }
             }
             AstNodes::AssignmentExpression(_) | AstNodes::ComputedMemberExpression(_) => false,
+            // Assignment expressions in sequence expressions (like for loop init) don't need parentheses
+            AstNodes::SequenceExpression(_) => false,
             _ => true,
         }
     }
@@ -363,8 +365,14 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, AwaitExpression<'a>> {
 impl<'a> NeedsParentheses<'a> for AstNode<'a, ChainExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
         match self.parent {
-            AstNodes::CallExpression(call) => true,
-            AstNodes::NewExpression(new) => true,
+            AstNodes::CallExpression(call) => {
+                // Only need parentheses if this chain expression is the callee, not an argument
+                call.callee.span() == self.span()
+            },
+            AstNodes::NewExpression(new) => {
+                // Only need parentheses if this chain expression is the callee, not an argument  
+                new.callee.span() == self.span()
+            },
             AstNodes::StaticMemberExpression(member) => true,
             AstNodes::ComputedMemberExpression(member) => member.object.span() == self.span(),
             _ => false,
@@ -379,9 +387,15 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Class<'a>> {
         }
         let parent = self.parent;
         match parent {
-            AstNodes::CallExpression(_)
-            | AstNodes::NewExpression(_)
-            | AstNodes::ExportDefaultDeclaration(_) => true,
+            AstNodes::CallExpression(call) => {
+                // Only need parentheses if this class expression is the callee, not an argument
+                call.callee.span() == self.span()
+            },
+            AstNodes::NewExpression(new) => {
+                // Only need parentheses if this class expression is the callee, not an argument
+                new.callee.span() == self.span()
+            },
+            AstNodes::ExportDefaultDeclaration(_) => true,
             parent if is_class_extends(parent, self.span()) => true,
             _ => is_first_in_statement(
                 self.span,
