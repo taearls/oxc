@@ -402,7 +402,6 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Class<'a>> {
                 new.callee.span() == self.span()
             },
             AstNodes::ExportDefaultDeclaration(_) => true,
-            parent if is_class_extends(parent, self.span()) => true,
             _ => is_first_in_statement(
                 self.span,
                 parent,
@@ -540,6 +539,8 @@ fn binary_like_needs_parens(binary_like: BinaryLikeExpression<'_, '_>) -> bool {
         | AstNodes::NewExpression(_)
         | AstNodes::StaticMemberExpression(_)
         | AstNodes::TaggedTemplateExpression(_) => return true,
+        // Check if this expression is in a class extends position
+        parent if is_class_extends(parent, binary_like.span()) => return true,
         AstNodes::BinaryExpression(binary) => BinaryLikeExpression::BinaryExpression(binary),
         AstNodes::LogicalExpression(logical) => BinaryLikeExpression::LogicalExpression(logical),
         _ => return false,
