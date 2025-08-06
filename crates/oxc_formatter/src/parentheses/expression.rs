@@ -113,6 +113,13 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ArrayExpression<'a>> {
 impl<'a> NeedsParentheses<'a> for AstNode<'a, ObjectExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
         let parent = self.parent;
+        
+        // If this object is a direct function argument, it had AstNodes::Argument as parent before
+        // In that context, it didn't need parentheses, so preserve that behavior
+        if is_direct_function_argument(self.span(), parent) {
+            return false;
+        }
+        
         is_class_extends(parent, self.span())
             || is_first_in_statement(
                 self.span,
@@ -217,6 +224,13 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, UnaryExpression<'a>> {
 
 impl<'a> NeedsParentheses<'a> for AstNode<'a, BinaryExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
+        // If this binary expression is a direct function argument, apply special logic
+        if is_direct_function_argument(self.span(), self.parent) {
+            // In the original code with AstNodes::Argument parent, many binary expressions 
+            // in arguments didn't need parentheses. We need to be more permissive here.
+            return binary_like_needs_parens_for_argument(BinaryLikeExpression::BinaryExpression(self));
+        }
+        
         binary_like_needs_parens(BinaryLikeExpression::BinaryExpression(self))
     }
 }
@@ -237,6 +251,11 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, LogicalExpression<'a>> {
         {
             true
         } else {
+            // If this logical expression is a direct function argument, apply special logic
+            if is_direct_function_argument(self.span(), parent) {
+                return binary_like_needs_parens_for_argument(BinaryLikeExpression::LogicalExpression(self));
+            }
+            
             binary_like_needs_parens(BinaryLikeExpression::LogicalExpression(self))
         }
     }
@@ -746,3 +765,54 @@ fn is_class_extends(parent: &AstNodes<'_>, span: Span) -> bool {
     }
     false
 }
+
+/// More permissive binary expression parentheses logic for function arguments
+/// This compensates for the missing AstNodes::Argument parent context  
+fn binary_like_needs_parens_for_argument(binary_like: BinaryLikeExpression<'_, '_>) -> bool {
+    // For function arguments, we only add parentheses in very specific cases
+    // Most of the time, expressions in arguments don't need extra parentheses
+    // This matches the behavior when AstNodes::Argument was the parent
+    
+    let parent = binary_like.parent();
+    
+    // Still need parens in these contexts even for arguments
+    match parent {
+        AstNodes::TSAsExpression(_)
+        | AstNodes::TSSatisfiesExpression(_) 
+        | AstNodes::TSTypeAssertion(_)
+        | AstNodes::UnaryExpression(_)
+        | AstNodes::AwaitExpression(_)
+        | AstNodes::TSNonNullExpression(_) => return true,
+        _ => {}
+    }
+    
+    // For most other contexts in function arguments, don't add parentheses
+    false
+}
+
+/// Check if an expression is a direct argument in a call/new expression
+/// This compensates for the missing AstNodes::Argument parent context
+fn is_direct_function_argument(span: Span, parent: &AstNodes<'_>) -> bool {
+    match parent {
+        AstNodes::CallExpression(call) => {
+            call.arguments.iter().any(|arg| match arg {
+                Argument::SpreadElement(spread) => spread.span() == span,
+                it @ match_expression!(Argument) => {
+                    let expr = it.to_expression();
+                    expr.span() == span
+                }
+            })
+        }
+        AstNodes::NewExpression(new_expr) => {
+            new_expr.arguments.iter().any(|arg| match arg {
+                Argument::SpreadElement(spread) => spread.span() == span,
+                it @ match_expression!(Argument) => {
+                    let expr = it.to_expression();
+                    expr.span() == span
+                }
+            })
+        }
+        _ => false,
+    }
+}
+
