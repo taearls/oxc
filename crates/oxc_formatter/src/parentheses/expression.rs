@@ -161,8 +161,12 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, PrivateFieldExpression<'a>> {
 
 impl<'a> NeedsParentheses<'a> for AstNode<'a, CallExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
-        matches!(self.parent, AstNodes::NewExpression(_))
-            || matches!(self.parent, AstNodes::ExportDefaultDeclaration(_)) && {
+        match self.parent {
+            AstNodes::NewExpression(new) => {
+                // Only need parentheses if this call expression is the callee, not an argument
+                new.callee.span() == self.span()
+            },
+            AstNodes::ExportDefaultDeclaration(_) => {
                 let callee = &self.callee;
                 let callee_span = callee.span();
                 let leftmost = ExpressionLeftSide::leftmost(callee);
@@ -175,7 +179,9 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, CallExpression<'a>> {
                             Expression::ClassExpression(_) | Expression::FunctionExpression(_)
                         )
                     )
-            }
+            },
+            _ => false,
+        }
     }
 }
 
