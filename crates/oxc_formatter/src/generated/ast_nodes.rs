@@ -4228,7 +4228,7 @@ impl<'a> AstNode<'a, StaticMemberExpression<'a>> {
 
     #[inline]
     pub fn property(&self) -> &AstNode<'a, IdentifierName<'a>> {
-        let following_node = self.following_node;
+        let following_node = None;
         self.allocator.alloc(AstNode {
             inner: &self.inner.property,
             allocator: self.allocator,
@@ -5954,7 +5954,7 @@ impl<'a> AstNode<'a, VariableDeclaration<'a>> {
 
     #[inline]
     pub fn declarations(&self) -> &AstNode<'a, Vec<'a, VariableDeclarator<'a>>> {
-        let following_node = self.following_node;
+        let following_node = None;
         self.allocator.alloc(AstNode {
             inner: &self.inner.declarations,
             allocator: self.allocator,
@@ -6115,8 +6115,7 @@ impl<'a> AstNode<'a, IfStatement<'a>> {
 
     #[inline]
     pub fn consequent(&self) -> &AstNode<'a, Statement<'a>> {
-        let following_node =
-            self.inner.alternate.as_ref().map(SiblingNode::from).or(self.following_node);
+        let following_node = self.inner.alternate.as_ref().map(SiblingNode::from);
         self.allocator.alloc(AstNode {
             inner: &self.inner.consequent,
             allocator: self.allocator,
@@ -6669,14 +6668,7 @@ impl<'a> GetSpan for AstNode<'a, WithStatement<'a>> {
 impl<'a> AstNode<'a, SwitchStatement<'a>> {
     #[inline]
     pub fn discriminant(&self) -> &AstNode<'a, Expression<'a>> {
-        let following_node = self
-            .inner
-            .cases
-            .first()
-            .as_ref()
-            .copied()
-            .map(SiblingNode::from)
-            .or(self.following_node);
+        let following_node = self.inner.cases.first().as_ref().copied().map(SiblingNode::from);
         self.allocator.alloc(AstNode {
             inner: &self.inner.discriminant,
             allocator: self.allocator,
@@ -6855,8 +6847,7 @@ impl<'a> AstNode<'a, TryStatement<'a>> {
             .handler
             .as_deref()
             .map(SiblingNode::from)
-            .or_else(|| self.inner.finalizer.as_deref().map(SiblingNode::from))
-            .or(self.following_node);
+            .or_else(|| self.inner.finalizer.as_deref().map(SiblingNode::from));
         self.allocator.alloc(AstNode {
             inner: self.inner.block.as_ref(),
             allocator: self.allocator,
@@ -6867,8 +6858,7 @@ impl<'a> AstNode<'a, TryStatement<'a>> {
 
     #[inline]
     pub fn handler(&self) -> Option<&AstNode<'a, CatchClause<'a>>> {
-        let following_node =
-            self.inner.finalizer.as_deref().map(SiblingNode::from).or(self.following_node);
+        let following_node = self.inner.finalizer.as_deref().map(SiblingNode::from);
         self.allocator
             .alloc(self.inner.handler.as_ref().map(|inner| AstNode {
                 inner: inner.as_ref(),
@@ -7494,8 +7484,7 @@ impl<'a> AstNode<'a, FormalParameters<'a>> {
 
     #[inline]
     pub fn items(&self) -> &AstNode<'a, Vec<'a, FormalParameter<'a>>> {
-        let following_node =
-            self.inner.rest.as_deref().map(SiblingNode::from).or(self.following_node);
+        let following_node = self.inner.rest.as_deref().map(SiblingNode::from);
         self.allocator.alloc(AstNode {
             inner: &self.inner.items,
             allocator: self.allocator,
@@ -8544,8 +8533,7 @@ impl<'a> AstNode<'a, ImportDeclaration<'a>> {
 
     #[inline]
     pub fn source(&self) -> &AstNode<'a, StringLiteral<'a>> {
-        let following_node =
-            self.inner.with_clause.as_deref().map(SiblingNode::from).or(self.following_node);
+        let following_node = self.inner.with_clause.as_deref().map(SiblingNode::from);
         self.allocator.alloc(AstNode {
             inner: &self.inner.source,
             allocator: self.allocator,
@@ -8561,7 +8549,7 @@ impl<'a> AstNode<'a, ImportDeclaration<'a>> {
 
     #[inline]
     pub fn with_clause(&self) -> Option<&AstNode<'a, WithClause<'a>>> {
-        let following_node = self.following_node;
+        let following_node = None;
         self.allocator
             .alloc(self.inner.with_clause.as_ref().map(|inner| AstNode {
                 inner: inner.as_ref(),
@@ -8880,8 +8868,7 @@ impl<'a> AstNode<'a, ExportNamedDeclaration<'a>> {
             .copied()
             .map(SiblingNode::from)
             .or_else(|| self.inner.source.as_ref().map(SiblingNode::from))
-            .or_else(|| self.inner.with_clause.as_deref().map(SiblingNode::from))
-            .or(self.following_node);
+            .or_else(|| self.inner.with_clause.as_deref().map(SiblingNode::from));
         self.allocator
             .alloc(self.inner.declaration.as_ref().map(|inner| AstNode {
                 inner,
@@ -8900,8 +8887,7 @@ impl<'a> AstNode<'a, ExportNamedDeclaration<'a>> {
             .source
             .as_ref()
             .map(SiblingNode::from)
-            .or_else(|| self.inner.with_clause.as_deref().map(SiblingNode::from))
-            .or(self.following_node);
+            .or_else(|| self.inner.with_clause.as_deref().map(SiblingNode::from));
         self.allocator.alloc(AstNode {
             inner: &self.inner.specifiers,
             allocator: self.allocator,
@@ -8912,8 +8898,7 @@ impl<'a> AstNode<'a, ExportNamedDeclaration<'a>> {
 
     #[inline]
     pub fn source(&self) -> Option<&AstNode<'a, StringLiteral<'a>>> {
-        let following_node =
-            self.inner.with_clause.as_deref().map(SiblingNode::from).or(self.following_node);
+        let following_node = self.inner.with_clause.as_deref().map(SiblingNode::from);
         self.allocator
             .alloc(self.inner.source.as_ref().map(|inner| AstNode {
                 inner,
@@ -8932,7 +8917,7 @@ impl<'a> AstNode<'a, ExportNamedDeclaration<'a>> {
 
     #[inline]
     pub fn with_clause(&self) -> Option<&AstNode<'a, WithClause<'a>>> {
-        let following_node = self.following_node;
+        let following_node = None;
         self.allocator
             .alloc(self.inner.with_clause.as_ref().map(|inner| AstNode {
                 inner: inner.as_ref(),
@@ -8968,7 +8953,7 @@ impl<'a> GetSpan for AstNode<'a, ExportNamedDeclaration<'a>> {
 impl<'a> AstNode<'a, ExportDefaultDeclaration<'a>> {
     #[inline]
     pub fn declaration(&self) -> &AstNode<'a, ExportDefaultDeclarationKind<'a>> {
-        let following_node = self.following_node;
+        let following_node = None;
         self.allocator.alloc(AstNode {
             inner: &self.inner.declaration,
             allocator: self.allocator,
@@ -9014,8 +8999,7 @@ impl<'a> AstNode<'a, ExportAllDeclaration<'a>> {
 
     #[inline]
     pub fn source(&self) -> &AstNode<'a, StringLiteral<'a>> {
-        let following_node =
-            self.inner.with_clause.as_deref().map(SiblingNode::from).or(self.following_node);
+        let following_node = self.inner.with_clause.as_deref().map(SiblingNode::from);
         self.allocator.alloc(AstNode {
             inner: &self.inner.source,
             allocator: self.allocator,
@@ -9026,7 +9010,7 @@ impl<'a> AstNode<'a, ExportAllDeclaration<'a>> {
 
     #[inline]
     pub fn with_clause(&self) -> Option<&AstNode<'a, WithClause<'a>>> {
-        let following_node = self.following_node;
+        let following_node = None;
         self.allocator
             .alloc(self.inner.with_clause.as_ref().map(|inner| AstNode {
                 inner: inner.as_ref(),
@@ -10388,7 +10372,7 @@ impl<'a> AstNode<'a, TSEnumDeclaration<'a>> {
 
     #[inline]
     pub fn body(&self) -> &AstNode<'a, TSEnumBody<'a>> {
-        let following_node = self.following_node;
+        let following_node = None;
         self.allocator.alloc(AstNode {
             inner: &self.inner.body,
             allocator: self.allocator,
@@ -12059,7 +12043,7 @@ impl<'a> AstNode<'a, TSTypeAliasDeclaration<'a>> {
 
     #[inline]
     pub fn type_annotation(&self) -> &AstNode<'a, TSType<'a>> {
-        let following_node = self.following_node;
+        let following_node = None;
         self.allocator.alloc(AstNode {
             inner: &self.inner.type_annotation,
             allocator: self.allocator,
@@ -12193,7 +12177,7 @@ impl<'a> AstNode<'a, TSInterfaceDeclaration<'a>> {
 
     #[inline]
     pub fn body(&self) -> &AstNode<'a, TSInterfaceBody<'a>> {
-        let following_node = self.following_node;
+        let following_node = None;
         self.allocator.alloc(AstNode {
             inner: self.inner.body.as_ref(),
             allocator: self.allocator,
@@ -12877,8 +12861,7 @@ impl<'a> GetSpan for AstNode<'a, TSTypePredicateName<'a>> {
 impl<'a> AstNode<'a, TSModuleDeclaration<'a>> {
     #[inline]
     pub fn id(&self) -> &AstNode<'a, TSModuleDeclarationName<'a>> {
-        let following_node =
-            self.inner.body.as_ref().map(SiblingNode::from).or(self.following_node);
+        let following_node = self.inner.body.as_ref().map(SiblingNode::from);
         self.allocator.alloc(AstNode {
             inner: &self.inner.id,
             allocator: self.allocator,
@@ -12889,7 +12872,7 @@ impl<'a> AstNode<'a, TSModuleDeclaration<'a>> {
 
     #[inline]
     pub fn body(&self) -> Option<&AstNode<'a, TSModuleDeclarationBody<'a>>> {
-        let following_node = self.following_node;
+        let following_node = None;
         self.allocator
             .alloc(self.inner.body.as_ref().map(|inner| AstNode {
                 inner,
@@ -13770,7 +13753,7 @@ impl<'a> AstNode<'a, TSImportEqualsDeclaration<'a>> {
 
     #[inline]
     pub fn module_reference(&self) -> &AstNode<'a, TSModuleReference<'a>> {
-        let following_node = self.following_node;
+        let following_node = None;
         self.allocator.alloc(AstNode {
             inner: &self.inner.module_reference,
             allocator: self.allocator,
@@ -13943,7 +13926,7 @@ impl<'a> GetSpan for AstNode<'a, Decorator<'a>> {
 impl<'a> AstNode<'a, TSExportAssignment<'a>> {
     #[inline]
     pub fn expression(&self) -> &AstNode<'a, Expression<'a>> {
-        let following_node = self.following_node;
+        let following_node = None;
         self.allocator.alloc(AstNode {
             inner: &self.inner.expression,
             allocator: self.allocator,
@@ -13976,7 +13959,7 @@ impl<'a> GetSpan for AstNode<'a, TSExportAssignment<'a>> {
 impl<'a> AstNode<'a, TSNamespaceExportDeclaration<'a>> {
     #[inline]
     pub fn id(&self) -> &AstNode<'a, IdentifierName<'a>> {
-        let following_node = self.following_node;
+        let following_node = None;
         self.allocator.alloc(AstNode {
             inner: &self.inner.id,
             allocator: self.allocator,

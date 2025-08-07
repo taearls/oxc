@@ -1,4 +1,4 @@
-js compatibility: 501/699 (71.67%)
+js compatibility: 503/699 (71.96%)
 
 # Failed
 
@@ -35,7 +35,6 @@ js compatibility: 501/699 (71.67%)
 | js/comments/16398.js | 💥💥 | 80.00% |
 | js/comments/binary-expressions-parens.js | 💥💥 | 77.78% |
 | js/comments/blank.js | 💥💥 | 95.24% |
-| js/comments/call_comment.js | 💥💥 | 90.91% |
 | js/comments/dangling_array.js | 💥✨ | 40.00% |
 | js/comments/dynamic_imports.js | 💥💥 | 71.43% |
 | js/comments/empty-statements.js | 💥💥 | 90.91% |
@@ -48,7 +47,6 @@ js compatibility: 501/699 (71.67%)
 | js/comments/jsdoc.js | 💥💥 | 47.83% |
 | js/comments/jsx.js | 💥💥 | 41.63% |
 | js/comments/last-arg.js | 💥💥 | 80.65% |
-| js/comments/multi-comments.js | 💥✨ | 44.74% |
 | js/comments/return-statement.js | 💥💥 | 89.35% |
 | js/comments/tagged-template-literal.js | 💥💥 | 69.23% |
 | js/comments/template-literal.js | 💥💥 | 30.43% |
