@@ -1,4 +1,4 @@
-js compatibility: 489/699 (69.96%)
+js compatibility: 492/699 (70.39%)
 
 # Failed
 
@@ -11,9 +11,6 @@ js compatibility: 489/699 (69.96%)
 | js/assignment/issue-10218.js | 💥 | 52.63% |
 | js/assignment/issue-7572.js | 💥 | 72.73% |
 | js/assignment/sequence.js | 💥 | 71.43% |
-| js/assignment-comments/function.js | 💥 | 92.73% |
-| js/async/await-parse.js | 💥 | 87.50% |
-| js/async/conditional-expression.js | 💥 | 91.67% |
 | js/async/inline-await.js | 💥 | 25.00% |
 | js/async/nested.js | 💥 | 16.67% |
 | js/async/nested2.js | 💥 | 71.43% |
@@ -32,9 +29,6 @@ js compatibility: 489/699 (69.96%)
 | js/class-static-block/class-static-block.js | 💥 | 57.14% |
 | js/class-static-block/with-line-breaks.js | 💥 | 50.00% |
 | js/classes/assignment.js | 💥 | 81.25% |
-| js/classes/call.js | 💥 | 0.00% |
-| js/classes/method.js | 💥 | 71.43% |
-| js/classes/new.js | 💥 | 50.00% |
 | js/classes/property.js | 💥 | 62.86% |
 | js/classes-private-fields/with_comments.js | 💥💥 | 30.77% |
 | js/comments/15661.js | 💥💥 | 53.63% |
@@ -48,7 +42,7 @@ js compatibility: 489/699 (69.96%)
 | js/comments/empty-statements.js | 💥💥 | 90.91% |
 | js/comments/export-and-import.js | 💥💥 | 85.71% |
 | js/comments/export.js | 💥💥 | 84.93% |
-| js/comments/function-declaration.js | 💥💥 | 68.29% |
+| js/comments/function-declaration.js | 💥💥 | 91.06% |
 | js/comments/issue-3532.js | 💥💥 | 79.73% |
 | js/comments/issues.js | 💥💥 | 94.89% |
 | js/comments/jsdoc-nestled-dangling.js | 💥💥 | 93.02% |
@@ -64,7 +58,6 @@ js compatibility: 489/699 (69.96%)
 | js/comments/try.js | 💥💥 | 71.43% |
 | js/comments/variable_declarator.js | 💥✨ | 49.31% |
 | js/comments/flow-types/inline.js | 💥 | 62.50% |
-| js/comments/function/between-parentheses-and-function-body.js | 💥 | 55.17% |
 | js/comments/html-like/comment.js | 💥 | 0.00% |
 | js/comments-closure-typecast/binary-expr.js | 💥 | 0.00% |
 | js/comments-closure-typecast/closure-compiler-type-cast.js | 💥 | 66.13% |
