@@ -106,11 +106,8 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
         }
 
         if let Some(group_layout) = arguments_grouped_layout(self, f) {
-            eprintln!("ARGS_DEBUG: Using grouped layout: {:?}", group_layout);
             write_grouped_arguments(self, group_layout, f)
         } else if call_expression.is_some_and(|call| is_long_curried_call(call)) {
-            eprintln!("ARGS_DEBUG: Using long curried call");
-
             write!(
                 f,
                 [
@@ -126,7 +123,6 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
                 ]
             )
         } else {
-            eprintln!("ARGS_DEBUG: Using format_all_args_broken_out(false)");
             format_all_args_broken_out(self, false, f)
         }
     }
@@ -141,7 +137,6 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
 /// ```
 pub fn is_function_composition_args(args: &[Argument<'_>]) -> bool {
     if args.len() <= 1 {
-        eprintln!("FUNC_COMP_DEBUG: args.len() <= 1, returning false");
         return false;
     }
 
@@ -152,16 +147,10 @@ pub fn is_function_composition_args(args: &[Argument<'_>]) -> bool {
         })
     };
 
-    eprintln!("FUNC_COMP_DEBUG: Checking {} args for function composition", args.len());
     for (i, arg) in args.iter().enumerate() {
         match arg {
             Argument::FunctionExpression(_) | Argument::ArrowFunctionExpression(_) => {
-                eprintln!(
-                    "FUNC_COMP_DEBUG: arg[{}] is function/arrow, has_seen_function_like={}",
-                    i, has_seen_function_like
-                );
                 if has_seen_function_like {
-                    eprintln!("FUNC_COMP_DEBUG: Found multiple functions, returning TRUE");
                     return true;
                 }
                 has_seen_function_like = true;
@@ -172,21 +161,18 @@ pub fn is_function_composition_args(args: &[Argument<'_>]) -> bool {
                 } else {
                     false
                 };
-                eprintln!("FUNC_COMP_DEBUG: arg[{}] is ChainExpression, returning {}", i, result);
+
                 return result;
             }
             Argument::CallExpression(call) => {
                 let result = is_call_expression_with_arrow_or_function(call);
-                eprintln!("FUNC_COMP_DEBUG: arg[{}] is CallExpression, returning {}", i, result);
+
                 return result;
             }
-            _ => {
-                eprintln!("FUNC_COMP_DEBUG: arg[{}] is other type", i);
-            }
+            _ => {}
         }
     }
 
-    eprintln!("FUNC_COMP_DEBUG: No composition found, returning false");
     false
 }
 

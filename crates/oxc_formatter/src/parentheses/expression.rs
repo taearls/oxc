@@ -575,43 +575,23 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, BindingIdentifier<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
         // Add parentheses around 'async' identifier in regular for-of loops
         if self.name == "async" {
-            eprintln!(
-                "ASYNC_DEBUG: Found 'async' BindingIdentifier, parent = {:?}",
-                std::any::type_name_of_val(&self.parent)
-            );
-
             // Check if we're in a for-of loop context
             let mut current_parent = Some(self.parent);
             let mut depth = 0;
             while let Some(parent) = current_parent
                 && depth < 5
             {
-                eprintln!(
-                    "ASYNC_DEBUG: Level {}: {:?}",
-                    depth,
-                    std::any::type_name_of_val(&parent)
-                );
                 match parent {
                     AstNodes::ForOfStatement(for_of) if !for_of.r#await => {
-                        eprintln!("ASYNC_DEBUG: Found regular for-of statement at depth {}", depth);
-                        eprintln!(
-                            "ASYNC_DEBUG: for_of.left.span() = {:?}, self.span() = {:?}",
-                            for_of.left.span(),
-                            self.span()
-                        );
                         // Only add parentheses if this identifier is part of the left side
                         let left_span = for_of.left.span();
                         let self_span = self.span();
                         let is_left_side =
                             self_span.start >= left_span.start && self_span.end <= left_span.end;
-                        eprintln!("ASYNC_DEBUG: is_left_side = {}", is_left_side);
                         return is_left_side;
                     }
-                    AstNodes::ForOfStatement(for_of) if for_of.r#await => {
-                        eprintln!(
-                            "ASYNC_DEBUG: Found for-await-of statement at depth {}, no parentheses needed",
-                            depth
-                        );
+                    AstNodes::ForOfStatement(_) => {
+                        // for-await-of doesn't need parentheses
                         return false;
                     }
                     _ => {
@@ -625,11 +605,8 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, BindingIdentifier<'a>> {
                     }
                 }
             }
-            eprintln!("ASYNC_DEBUG: No for-of statement found in hierarchy");
-            false
-        } else {
-            false
         }
+        false
     }
 }
 
