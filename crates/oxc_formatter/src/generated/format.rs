@@ -36,7 +36,14 @@ impl<'a> Format<'a> for AstNode<'a, IdentifierName<'a>> {
 impl<'a> Format<'a> for AstNode<'a, IdentifierReference<'a>> {
     fn fmt(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
         self.format_leading_comments(f)?;
+        let needs_parentheses = self.needs_parentheses(f);
+        if needs_parentheses {
+            "(".fmt(f)?;
+        }
         let result = self.write(f);
+        if needs_parentheses {
+            ")".fmt(f)?;
+        }
         self.format_trailing_comments(f)?;
         result
     }
@@ -45,7 +52,14 @@ impl<'a> Format<'a> for AstNode<'a, IdentifierReference<'a>> {
 impl<'a> Format<'a> for AstNode<'a, BindingIdentifier<'a>> {
     fn fmt(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
         self.format_leading_comments(f)?;
+        let needs_parentheses = self.needs_parentheses(f);
+        if needs_parentheses {
+            "(".fmt(f)?;
+        }
         let result = self.write(f);
+        if needs_parentheses {
+            ")".fmt(f)?;
+        }
         self.format_trailing_comments(f)?;
         result
     }

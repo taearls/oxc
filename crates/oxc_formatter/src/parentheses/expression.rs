@@ -27,6 +27,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Expression<'a>> {
             AstNodes::StringLiteral(it) => it.needs_parentheses(f),
             // AstNodes::TemplateLiteral(it) => it.needs_parentheses(f),
             // AstNodes::Identifier(it) => it.needs_parentheses(f),
+            AstNodes::IdentifierReference(it) => it.needs_parentheses(f),
             // AstNodes::MetaProperty(it) => it.needs_parentheses(f),
             // AstNodes::Super(it) => it.needs_parentheses(f),
             AstNodes::ArrayExpression(it) => it.needs_parentheses(f),
@@ -527,6 +528,108 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, TSInstantiationExpression<'a>> {
         };
 
         self.span == expr.span()
+    }
+}
+
+impl<'a> NeedsParentheses<'a> for AstNode<'a, IdentifierReference<'a>> {
+    fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
+        // Add parentheses around 'async' identifier in regular for-of loops
+        if self.name == "async" {
+            // Check if we're in a for-of loop context
+            let mut current_parent = Some(self.parent);
+            let mut depth = 0;
+            while let Some(parent) = current_parent
+                && depth < 5
+            {
+                match parent {
+                    AstNodes::ForOfStatement(for_of) if !for_of.r#await => {
+                        // Only add parentheses if this identifier is part of the left side
+                        let left_span = for_of.left.span();
+                        let self_span = self.span();
+                        let is_left_side =
+                            self_span.start >= left_span.start && self_span.end <= left_span.end;
+                        return is_left_side;
+                    }
+                    AstNodes::ForOfStatement(for_of) if for_of.r#await => {
+                        return false;
+                    }
+                    _ => {
+                        // Try to get the parent of this parent, but stop at dummy nodes
+                        let next_parent = parent.parent();
+                        if matches!(next_parent, AstNodes::Dummy()) {
+                            break;
+                        }
+                        current_parent = Some(next_parent);
+                        depth += 1;
+                    }
+                }
+            }
+            false
+        } else {
+            false
+        }
+    }
+}
+
+impl<'a> NeedsParentheses<'a> for AstNode<'a, BindingIdentifier<'a>> {
+    fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
+        // Add parentheses around 'async' identifier in regular for-of loops
+        if self.name == "async" {
+            eprintln!(
+                "ASYNC_DEBUG: Found 'async' BindingIdentifier, parent = {:?}",
+                std::any::type_name_of_val(&self.parent)
+            );
+
+            // Check if we're in a for-of loop context
+            let mut current_parent = Some(self.parent);
+            let mut depth = 0;
+            while let Some(parent) = current_parent
+                && depth < 5
+            {
+                eprintln!(
+                    "ASYNC_DEBUG: Level {}: {:?}",
+                    depth,
+                    std::any::type_name_of_val(&parent)
+                );
+                match parent {
+                    AstNodes::ForOfStatement(for_of) if !for_of.r#await => {
+                        eprintln!("ASYNC_DEBUG: Found regular for-of statement at depth {}", depth);
+                        eprintln!(
+                            "ASYNC_DEBUG: for_of.left.span() = {:?}, self.span() = {:?}",
+                            for_of.left.span(),
+                            self.span()
+                        );
+                        // Only add parentheses if this identifier is part of the left side
+                        let left_span = for_of.left.span();
+                        let self_span = self.span();
+                        let is_left_side =
+                            self_span.start >= left_span.start && self_span.end <= left_span.end;
+                        eprintln!("ASYNC_DEBUG: is_left_side = {}", is_left_side);
+                        return is_left_side;
+                    }
+                    AstNodes::ForOfStatement(for_of) if for_of.r#await => {
+                        eprintln!(
+                            "ASYNC_DEBUG: Found for-await-of statement at depth {}, no parentheses needed",
+                            depth
+                        );
+                        return false;
+                    }
+                    _ => {
+                        // Try to get the parent of this parent, but stop at dummy nodes
+                        let next_parent = parent.parent();
+                        if matches!(next_parent, AstNodes::Dummy()) {
+                            break;
+                        }
+                        current_parent = Some(next_parent);
+                        depth += 1;
+                    }
+                }
+            }
+            eprintln!("ASYNC_DEBUG: No for-of statement found in hierarchy");
+            false
+        } else {
+            false
+        }
     }
 }
 

@@ -324,6 +324,7 @@ impl<'a, 'b> ArrowFunctionLayout<'a, 'b> {
                     }
                 }
             }
+
             break match head {
                 None => ArrowFunctionLayout::Single(current),
                 Some(head) => ArrowFunctionLayout::Chain(ArrowChain {
@@ -357,13 +358,18 @@ impl<'a, 'b> ArrowFunctionLayout<'a, 'b> {
         // This matches Prettier, which allows type annotations when
         // grouping arrow expressions, but disallows them when grouping
         // normal function expressions.
-        if !has_only_simple_parameters(parameters, true) {
+        let has_simple_params = has_only_simple_parameters(parameters, true);
+        if !has_simple_params {
             return true;
         }
 
         let has_parameters = parameters.items.is_empty();
         let has_type_and_parameters = arrow.return_type.is_some() && has_parameters;
-        has_type_and_parameters || has_rest_object_or_array_parameter(parameters)
+        let has_rest_obj_array = has_rest_object_or_array_parameter(parameters);
+
+        let should_break = has_type_and_parameters || has_rest_obj_array;
+
+        should_break
     }
 }
 
@@ -449,6 +455,10 @@ impl<'a> Format<'a> for ArrowChain<'a, '_> {
         let is_callee =
             matches!(head_parent, AstNodes::CallExpression(_) | AstNodes::NewExpression(_));
 
+        // Check if this arrow function is a call argument (after AstKind::Argument removal)
+        // Use a simpler approach based on call_arg_layout context
+        let is_call_argument = is_grouped_call_arg_layout;
+
         // With arrays, objects, sequence expressions, and block function bodies,
         // the opening brace gives a convenient boundary to insert a line break,
         // allowing that token to live immediately after the last arrow token
@@ -465,14 +475,17 @@ impl<'a> Format<'a> for ArrowChain<'a, '_> {
         // soft line break before the body so that it prints on a separate line
         // in its entirety.
         let body_on_separate_line = !tail.get_expression().is_none_or(|expression| {
-            matches!(
+            let keep_inline = matches!(
                 expression,
                 Expression::ObjectExpression(_)
                     | Expression::ArrayExpression(_)
                     | Expression::SequenceExpression(_)
                     | Expression::JSXElement(_)
                     | Expression::JSXFragment(_)
-            )
+                    | Expression::ConditionalExpression(_)
+            );
+
+            keep_inline
         });
 
         // If the arrow chain will break onto multiple lines, either because
@@ -484,7 +497,7 @@ impl<'a> Format<'a> for ArrowChain<'a, '_> {
                 Some(AssignmentLikeLayout::ChainTailArrowFunction)
             );
 
-        // Arrow chains as callees or as the right side of an assignment
+        // Arrow chains as callees, call arguments, or as the right side of an assignment
         // indent the entire signature chain a single level and do _not_
         // indent a second level for additional signatures after the first:
         //   const foo =
@@ -495,7 +508,7 @@ impl<'a> Format<'a> for ArrowChain<'a, '_> {
         // This tracks that state and is used to prevent the insertion of
         // additional indents under `format_arrow_signatures`, then also to
         // add the outer indent under `format_inner`.
-        let has_initial_indent = is_callee || is_assignment_rhs;
+        let has_initial_indent = is_callee || is_assignment_rhs || is_call_argument;
 
         let format_arrow_signatures = format_with(|f| {
             let join_signatures = format_with(|f| {

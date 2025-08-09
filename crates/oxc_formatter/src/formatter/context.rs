@@ -25,6 +25,10 @@ pub struct FormatContext<'ast> {
 
     cached_elements: FxHashMap<Span, FormatElement<'ast>>,
 
+    /// Flag to track if we're currently formatting call arguments
+    /// Used to prevent double indentation in arrow function parameters
+    in_call_arguments: RefCell<bool>,
+
     allocator: &'ast Allocator,
 }
 
@@ -53,6 +57,7 @@ impl<'ast> FormatContext<'ast> {
             comments: Comments::new(program.source_text, &program.comments),
             allocator,
             cached_elements: FxHashMap::default(),
+            in_call_arguments: RefCell::new(false),
         }
     }
 
@@ -97,5 +102,15 @@ impl<'ast> FormatContext<'ast> {
 
     pub fn allocator(&self) -> &'ast Allocator {
         self.allocator
+    }
+
+    /// Check if we're currently formatting call arguments
+    pub(crate) fn is_in_call_arguments(&self) -> bool {
+        *self.in_call_arguments.borrow()
+    }
+
+    /// Set the call arguments formatting flag
+    pub(crate) fn set_in_call_arguments(&self, value: bool) {
+        *self.in_call_arguments.borrow_mut() = value;
     }
 }

@@ -55,21 +55,12 @@ pub fn is_long_curried_call(call: &AstNode<'_, CallExpression<'_>>) -> bool {
         let is_true_curried = parent_call.callee.span() == this_call_span;
 
         if is_true_curried {
-            let result = call.arguments().len() > parent_call.arguments().len()
+            return call.arguments().len() > parent_call.arguments().len()
                 && !parent_call.arguments().is_empty();
-            eprintln!(
-                "CURRIED_DEBUG: TRUE CURRIED - call args={}, parent args={}, result={}",
-                call.arguments().len(),
-                parent_call.arguments().len(),
-                result
-            );
-            return result;
         } else {
-            eprintln!("CURRIED_DEBUG: NOT TRUE CURRIED - call is argument, not callee");
             return false;
         }
     }
 
-    eprintln!("CURRIED_DEBUG: No CallExpression parent, returning false");
     false
 }
