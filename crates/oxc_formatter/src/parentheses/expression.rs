@@ -605,8 +605,10 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, BindingIdentifier<'a>> {
                     }
                 }
             }
+            false
+        } else {
+            false
         }
-        false
     }
 }
 

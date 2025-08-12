@@ -17,8 +17,10 @@ const FORMATTER_CRATE_PATH: &str = "crates/oxc_formatter";
 const AST_NODE_WITHOUT_PRINTING_COMMENTS_LIST: &[&str] = &["FormalParameters"];
 
 const NEEDS_PARENTHESES: &[&str] = &[
+    "BindingIdentifier",
     "Class",
     "Function",
+    "IdentifierReference",
     "NumericLiteral",
     "SimpleAssignmentTarget",
     "StringLiteral",
