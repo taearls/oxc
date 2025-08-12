@@ -251,7 +251,7 @@ impl AstKind<'_> {
     ///
     /// Note that this method does not exist in release builds. Do not include
     /// usage of this method within your code.
-    pub fn debug_name(&self) -> std::borrow::Cow<str> {
+    pub fn debug_name(&self) -> std::borrow::Cow<'_, str> {
         use std::borrow::Cow;
 
         const COMPUTED: Cow<'static, str> = Cow::Borrowed("<computed>");
@@ -501,6 +501,7 @@ impl AstKind<'_> {
                 "AssignmentTargetPropertyIdentifier".into()
             }
             Self::AssignmentTargetPropertyProperty(_) => "AssignmentTargetPropertyProperty".into(),
+            Self::TSImportTypeQualifiedName(_) => "TSImportTypeQualifiedName".into(),
         }
     }
 }

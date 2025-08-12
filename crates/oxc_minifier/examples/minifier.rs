@@ -51,7 +51,7 @@ fn main() -> std::io::Result<()> {
     let mut allocator = Allocator::default();
     let ret = minify(&allocator, &source_text, source_type, source_map_path, mangle, nospace);
     let printed = ret.code;
-    println!("{printed}");
+    // println!("{printed}");
 
     if let Some(source_map) = ret.map {
         let result = source_map.to_json_string();
@@ -89,7 +89,7 @@ fn minify(
         mangle: mangle.then(MangleOptions::default),
         compress: Some(CompressOptions::smallest()),
     };
-    let ret = Minifier::new(options).build(allocator, &mut program);
+    let ret = Minifier::new(options).minify(allocator, &mut program);
     Codegen::new()
         .with_options(CodegenOptions {
             source_map_path,

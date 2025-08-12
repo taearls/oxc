@@ -231,16 +231,48 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, UnaryExpression<'a>> {
 
 impl<'a> NeedsParentheses<'a> for AstNode<'a, BinaryExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
-        // If this binary expression is a direct function argument, apply special logic
-        if is_direct_function_argument(self.span(), self.parent) {
-            // In the original code with AstNodes::Argument parent, many binary expressions
-            // in arguments didn't need parentheses. We need to be more permissive here.
-            return binary_like_needs_parens_for_argument(BinaryLikeExpression::BinaryExpression(
-                self,
-            ));
-        }
+        (self.operator.is_in() && is_in_for_initializer(self))
+            || binary_like_needs_parens(BinaryLikeExpression::BinaryExpression(self))
+    }
+}
 
-        binary_like_needs_parens(BinaryLikeExpression::BinaryExpression(self))
+/// Add parentheses if the `in` is inside of a `for` initializer (see tests).
+fn is_in_for_initializer(expr: &AstNode<'_, BinaryExpression<'_>>) -> bool {
+    let mut parent = expr.parent;
+    loop {
+        match parent {
+            AstNodes::ExpressionStatement(stmt) => {
+                let grand_parent = parent.parent();
+
+                if matches!(grand_parent, AstNodes::FunctionBody(_)) {
+                    let grand_grand_parent = grand_parent.parent();
+                    if matches!(
+                        grand_grand_parent,
+                        AstNodes::ArrowFunctionExpression(arrow) if arrow.expression()
+                    ) {
+                        parent = grand_grand_parent;
+                        continue;
+                    }
+                }
+
+                return false;
+            }
+            AstNodes::ForStatement(stmt) => {
+                return stmt
+                    .init
+                    .as_ref()
+                    .is_some_and(|init| init.span().contains_inclusive(expr.span));
+            }
+            AstNodes::ForInStatement(stmt) => {
+                return stmt.left.span().contains_inclusive(expr.span);
+            }
+            AstNodes::Program(_) => {
+                return false;
+            }
+            _ => {
+                parent = parent.parent();
+            }
+        }
     }
 }
 
@@ -348,8 +380,11 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, AssignmentExpression<'a>> {
                 }
             }
             AstNodes::AssignmentExpression(_) | AstNodes::ComputedMemberExpression(_) => false,
-            // Assignment expressions in sequence expressions (like for loop init) don't need parentheses
-            AstNodes::SequenceExpression(_) => false,
+            AstNodes::ForStatement(stmt)
+                if stmt.init.as_ref().is_some_and(|init| init.span() == self.span()) =>
+            {
+                false
+            }
             _ => true,
         }
     }
@@ -398,15 +433,9 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Class<'a>> {
         }
         let parent = self.parent;
         match parent {
-            AstNodes::CallExpression(call) => {
-                // Only need parentheses if this class expression is the callee, not an argument
-                call.callee.span() == self.span()
-            }
-            AstNodes::NewExpression(new) => {
-                // Only need parentheses if this class expression is the callee, not an argument
-                new.callee.span() == self.span()
-            }
-            AstNodes::ExportDefaultDeclaration(_) => true,
+            AstNodes::CallExpression(_)
+            | AstNodes::NewExpression(_)
+            | AstNodes::ExportDefaultDeclaration(_) => true,
             _ => is_first_in_statement(
                 self.span,
                 parent,
@@ -625,8 +654,11 @@ fn binary_like_needs_parens(binary_like: BinaryLikeExpression<'_, '_>) -> bool {
         | AstNodes::NewExpression(_)
         | AstNodes::StaticMemberExpression(_)
         | AstNodes::TaggedTemplateExpression(_) => return true,
-        // Check if this expression is in a class extends position
-        parent if is_class_extends(parent, binary_like.span()) => return true,
+        AstNodes::Class(class) => {
+            return class.super_class.as_ref().is_some_and(|super_class| {
+                super_class.span().contains_inclusive(binary_like.span())
+            });
+        }
         AstNodes::BinaryExpression(binary) => BinaryLikeExpression::BinaryExpression(binary),
         AstNodes::LogicalExpression(logical) => BinaryLikeExpression::LogicalExpression(logical),
         _ => return false,

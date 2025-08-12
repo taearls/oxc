@@ -9,7 +9,10 @@ use oxc_ecmascript::{
 };
 use oxc_semantic::{IsGlobalReference, Scoping, SymbolId};
 use oxc_span::format_atom;
-use oxc_syntax::reference::ReferenceId;
+use oxc_syntax::{
+    identifier::{is_identifier_part, is_identifier_start},
+    reference::ReferenceId,
+};
 
 use crate::{options::CompressOptions, state::MinifierState, symbol_value::SymbolValue};
 
@@ -23,24 +26,23 @@ impl<'a, 'b> Ctx<'a, 'b> {
     }
 }
 
-impl<'a, 'b> Deref for Ctx<'a, 'b> {
-    type Target = &'b mut TraverseCtx<'a>;
+impl<'a> Deref for Ctx<'a, '_> {
+    type Target = TraverseCtx<'a>;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        self.0
     }
 }
 
-#[expect(clippy::mut_mut)]
-impl<'a, 'b> DerefMut for Ctx<'a, 'b> {
-    fn deref_mut(&mut self) -> &mut &'b mut TraverseCtx<'a> {
-        &mut self.0
+impl<'a> DerefMut for Ctx<'a, '_> {
+    fn deref_mut(&mut self) -> &mut TraverseCtx<'a> {
+        self.0
     }
 }
 
-impl<'a> oxc_ecmascript::is_global_reference::IsGlobalReference<'a> for Ctx<'a, '_> {
-    fn is_global_reference(&self, ident: &IdentifierReference<'_>) -> Option<bool> {
-        Some(ident.is_global_reference(self.0.scoping()))
+impl<'a> oxc_ecmascript::GlobalContext<'a> for Ctx<'a, '_> {
+    fn is_global_reference(&self, ident: &IdentifierReference<'_>) -> bool {
+        ident.is_global_reference(self.0.scoping())
     }
 
     fn get_constant_value_for_reference_id(
@@ -240,5 +242,15 @@ impl<'a> Ctx<'a, '_> {
             })?;
         }
         Some(f64::from(int_value))
+    }
+
+    /// `is_identifier_name` patched with KATAKANA MIDDLE DOT and HALFWIDTH KATAKANA MIDDLE DOT
+    /// Otherwise `({ 'x・': 0 })` gets converted to `({ x・: 0 })`, which breaks in Unicode 4.1 to
+    /// 15.
+    /// <https://github.com/oxc-project/unicode-id-start/pull/3>
+    pub fn is_identifier_name_patched(s: &str) -> bool {
+        let mut chars = s.chars();
+        chars.next().is_some_and(is_identifier_start)
+            && chars.all(|c| is_identifier_part(c) && c != '・' && c != '･')
     }
 }

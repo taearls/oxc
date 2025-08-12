@@ -1493,11 +1493,7 @@ impl<'a> Dummy<'a> for ExportDefaultDeclaration<'a> {
     ///
     /// Has cost of making 1 allocation (8 bytes).
     fn dummy(allocator: &'a Allocator) -> Self {
-        Self {
-            span: Dummy::dummy(allocator),
-            exported: Dummy::dummy(allocator),
-            declaration: Dummy::dummy(allocator),
-        }
+        Self { span: Dummy::dummy(allocator), declaration: Dummy::dummy(allocator) }
     }
 }
 
@@ -2633,6 +2629,28 @@ impl<'a> Dummy<'a> for TSImportType<'a> {
             options: Dummy::dummy(allocator),
             qualifier: Dummy::dummy(allocator),
             type_arguments: Dummy::dummy(allocator),
+        }
+    }
+}
+
+impl<'a> Dummy<'a> for TSImportTypeQualifier<'a> {
+    /// Create a dummy [`TSImportTypeQualifier`].
+    ///
+    /// Has cost of making 1 allocation (24 bytes).
+    fn dummy(allocator: &'a Allocator) -> Self {
+        Self::Identifier(Dummy::dummy(allocator))
+    }
+}
+
+impl<'a> Dummy<'a> for TSImportTypeQualifiedName<'a> {
+    /// Create a dummy [`TSImportTypeQualifiedName`].
+    ///
+    /// Has cost of making 1 allocation (24 bytes).
+    fn dummy(allocator: &'a Allocator) -> Self {
+        Self {
+            span: Dummy::dummy(allocator),
+            left: Dummy::dummy(allocator),
+            right: Dummy::dummy(allocator),
         }
     }
 }

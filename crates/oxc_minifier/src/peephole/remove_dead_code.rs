@@ -7,7 +7,7 @@ use oxc_traverse::Ancestor;
 
 use crate::{ctx::Ctx, keep_var::KeepVar};
 
-use super::{LatePeepholeOptimizations, PeepholeOptimizations};
+use super::PeepholeOptimizations;
 
 /// Remove Dead Code from the AST.
 ///
@@ -32,28 +32,6 @@ impl<'a> PeepholeOptimizations {
         }
 
         self.try_fold_expression_stmt(stmt, ctx);
-    }
-
-    pub fn remove_dead_code_exit_expression(
-        &self,
-        expr: &mut Expression<'a>,
-
-        ctx: &mut Ctx<'a, '_>,
-    ) {
-        if let Some(folded_expr) = match expr {
-            Expression::ConditionalExpression(e) => self.try_fold_conditional_expression(e, ctx),
-            Expression::SequenceExpression(e) => self.try_fold_sequence_expression(e, ctx),
-            Expression::AssignmentExpression(_) => {
-                self.remove_unused_assignment_expression(expr, ctx);
-                None
-            }
-            Expression::CallExpression(call_expr) => self.remove_call_expression(call_expr, ctx),
-
-            _ => None,
-        } {
-            *expr = folded_expr;
-            ctx.state.changed = true;
-        }
     }
 
     /// Remove block from single line blocks
@@ -102,16 +80,13 @@ impl<'a> PeepholeOptimizations {
                     } else {
                         if_stmt.alternate = Some(new_stmt);
                     }
-                    ctx.state.changed = true;
                 }
             }
             Some(Statement::BlockStatement(s)) if s.body.is_empty() => {
                 if_stmt.alternate = None;
-                ctx.state.changed = true;
             }
             Some(Statement::EmptyStatement(_)) => {
                 if_stmt.alternate = None;
-                ctx.state.changed = true;
             }
             _ => {}
         }
@@ -154,12 +129,7 @@ impl<'a> PeepholeOptimizations {
                         if_stmt.consequent = ctx.ast.statement_empty(if_stmt.consequent.span());
                     }
                 }
-                return Some(ctx.ast.statement_if(
-                    if_stmt.span,
-                    if_stmt.test.take_in(ctx.ast),
-                    if_stmt.consequent.take_in(ctx.ast),
-                    if_stmt.alternate.as_mut().map(|alternate| alternate.take_in(ctx.ast)),
-                ));
+                return None;
             }
             return Some(if boolean {
                 if_stmt.consequent.take_in(ctx.ast)
@@ -316,78 +286,59 @@ impl<'a> PeepholeOptimizations {
     }
 
     /// Try folding conditional expression (?:) if the condition results of the condition is known.
-    fn try_fold_conditional_expression(
+    pub fn try_fold_conditional_expression(
         &self,
-        expr: &mut ConditionalExpression<'a>,
-
+        expr: &mut Expression<'a>,
         ctx: &mut Ctx<'a, '_>,
-    ) -> Option<Expression<'a>> {
-        expr.test.evaluate_value_to_boolean(ctx).map(|v| {
-            if expr.test.may_have_side_effects(ctx) {
-                // "(a, true) ? b : c" => "a, b"
-                let exprs = ctx.ast.vec_from_array([
-                    {
-                        let mut test = expr.test.take_in(ctx.ast);
-                        self.remove_unused_expression(&mut test, ctx);
-                        test
-                    },
-                    if v {
-                        expr.consequent.take_in(ctx.ast)
-                    } else {
-                        expr.alternate.take_in(ctx.ast)
-                    },
-                ]);
-                ctx.ast.expression_sequence(expr.span, exprs)
+    ) {
+        let Expression::ConditionalExpression(e) = expr else { return };
+        let Some(v) = e.test.evaluate_value_to_boolean(ctx) else { return };
+        ctx.state.changed = true;
+        *expr = if e.test.may_have_side_effects(ctx) {
+            // "(a, true) ? b : c" => "a, b"
+            let exprs = ctx.ast.vec_from_array([
+                {
+                    let mut test = e.test.take_in(ctx.ast);
+                    self.remove_unused_expression(&mut test, ctx);
+                    test
+                },
+                if v { e.consequent.take_in(ctx.ast) } else { e.alternate.take_in(ctx.ast) },
+            ]);
+            ctx.ast.expression_sequence(e.span, exprs)
+        } else {
+            let result_expr =
+                if v { e.consequent.take_in(ctx.ast) } else { e.alternate.take_in(ctx.ast) };
+            let should_keep_as_sequence_expr = Self::should_keep_indirect_access(&result_expr, ctx);
+            // "(1 ? a.b : 0)()" => "(0, a.b)()"
+            if should_keep_as_sequence_expr {
+                ctx.ast.expression_sequence(
+                    e.span,
+                    ctx.ast.vec_from_array([
+                        ctx.ast.expression_numeric_literal(e.span, 0.0, None, NumberBase::Decimal),
+                        result_expr,
+                    ]),
+                )
             } else {
-                let result_expr = if v {
-                    expr.consequent.take_in(ctx.ast)
-                } else {
-                    expr.alternate.take_in(ctx.ast)
-                };
-
-                let should_keep_as_sequence_expr =
-                    Self::should_keep_indirect_access(&result_expr, ctx);
-                // "(1 ? a.b : 0)()" => "(0, a.b)()"
-                if should_keep_as_sequence_expr {
-                    ctx.ast.expression_sequence(
-                        expr.span,
-                        ctx.ast.vec_from_array([
-                            ctx.ast.expression_numeric_literal(
-                                expr.span,
-                                0.0,
-                                None,
-                                NumberBase::Decimal,
-                            ),
-                            result_expr,
-                        ]),
-                    )
-                } else {
-                    result_expr
-                }
+                result_expr
             }
-        })
+        };
     }
 
-    fn try_fold_sequence_expression(
-        &self,
-        sequence_expr: &mut SequenceExpression<'a>,
-
-        ctx: &mut Ctx<'a, '_>,
-    ) -> Option<Expression<'a>> {
-        let should_keep_as_sequence_expr = sequence_expr
+    pub fn try_fold_sequence_expression(&self, expr: &mut Expression<'a>, ctx: &mut Ctx<'a, '_>) {
+        let Expression::SequenceExpression(e) = expr else { return };
+        let should_keep_as_sequence_expr = e
             .expressions
             .last()
             .is_some_and(|last_expr| Self::should_keep_indirect_access(last_expr, ctx));
         if should_keep_as_sequence_expr
-            && sequence_expr.expressions.len() == 2
-            && sequence_expr.expressions.first().unwrap().is_number_0()
+            && e.expressions.len() == 2
+            && e.expressions.first().unwrap().is_number_0()
         {
-            return None;
+            return;
         }
-
-        let old_len = sequence_expr.expressions.len();
+        let old_len = e.expressions.len();
         let mut i = 0;
-        sequence_expr.expressions.retain_mut(|e| {
+        e.expressions.retain_mut(|e| {
             i += 1;
             if should_keep_as_sequence_expr && i == old_len - 1 {
                 if self.remove_unused_expression(e, ctx) {
@@ -406,14 +357,13 @@ impl<'a> PeepholeOptimizations {
             }
             !self.remove_unused_expression(e, ctx)
         });
-        if sequence_expr.expressions.len() == 1 {
-            return Some(sequence_expr.expressions.pop().unwrap());
-        }
-
-        if sequence_expr.expressions.len() != old_len {
+        if e.expressions.len() != old_len {
             ctx.state.changed = true;
         }
-        None
+        if e.expressions.len() == 1 {
+            *expr = e.expressions.pop().unwrap();
+            ctx.state.changed = true;
+        }
     }
 
     pub fn keep_track_of_empty_functions(stmt: &mut Statement<'a>, ctx: &mut Ctx<'a, '_>) {
@@ -486,20 +436,23 @@ impl<'a> PeepholeOptimizations {
         }
     }
 
-    fn remove_call_expression(
+    pub fn remove_dead_code_call_expression(
         &self,
-        call_expr: &mut CallExpression<'a>,
+        expr: &mut Expression<'a>,
         ctx: &mut Ctx<'a, '_>,
-    ) -> Option<Expression<'a>> {
-        if let Expression::Identifier(ident) = &call_expr.callee {
+    ) {
+        let Expression::CallExpression(e) = expr else { return };
+        if let Expression::Identifier(ident) = &e.callee {
             if let Some(reference_id) = ident.reference_id.get() {
                 if let Some(symbol_id) = ctx.scoping().get_reference(reference_id).symbol_id() {
                     if ctx.state.empty_functions.contains(&symbol_id) {
-                        if call_expr.arguments.is_empty() {
-                            return Some(ctx.ast.void_0(call_expr.span));
+                        if e.arguments.is_empty() {
+                            *expr = ctx.ast.void_0(e.span);
+                            ctx.state.changed = true;
+                            return;
                         }
                         let mut exprs = ctx.ast.vec();
-                        for arg in call_expr.arguments.drain(..) {
+                        for arg in e.arguments.drain(..) {
                             match arg {
                                 Argument::SpreadElement(e) => {
                                     exprs.push(e.unbox().argument);
@@ -509,13 +462,13 @@ impl<'a> PeepholeOptimizations {
                                 }
                             }
                         }
-                        exprs.push(ctx.ast.void_0(call_expr.span));
-                        return Some(ctx.ast.expression_sequence(call_expr.span, exprs));
+                        exprs.push(ctx.ast.void_0(e.span));
+                        *expr = ctx.ast.expression_sequence(e.span, exprs);
+                        ctx.state.changed = true;
                     }
                 }
             }
         }
-        None
     }
 
     /// Whether the indirect access should be kept.
@@ -565,9 +518,7 @@ impl<'a> PeepholeOptimizations {
             _ => false,
         }
     }
-}
 
-impl<'a> LatePeepholeOptimizations {
     pub fn remove_dead_code_exit_class_body(body: &mut ClassBody<'a>, _ctx: &mut Ctx<'a, '_>) {
         body.body.retain(|e| !matches!(e, ClassElement::StaticBlock(s) if s.body.is_empty()));
     }

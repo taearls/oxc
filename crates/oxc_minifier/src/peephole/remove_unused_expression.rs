@@ -26,7 +26,7 @@ impl<'a> PeepholeOptimizations {
             Expression::ObjectExpression(_) => self.fold_object_expression(e, ctx),
             Expression::ConditionalExpression(_) => self.fold_conditional_expression(e, ctx),
             Expression::BinaryExpression(_) => self.fold_binary_expression(e, ctx),
-            Expression::CallExpression(_) => self.fold_call_expression(e, ctx),
+            Expression::CallExpression(_) => self.remove_unused_call_expression(e, ctx),
             Expression::AssignmentExpression(_) => self.remove_unused_assignment_expression(e, ctx),
             Expression::ClassExpression(_) => self.remove_unused_class_expression(e, ctx),
             _ => !e.may_have_side_effects(ctx),
@@ -68,10 +68,8 @@ impl<'a> PeepholeOptimizations {
 
     fn fold_logical_expression(&self, e: &mut Expression<'a>, ctx: &mut Ctx<'a, '_>) -> bool {
         let Expression::LogicalExpression(logical_expr) = e else { return false };
-        if !logical_expr.operator.is_coalesce()
-            && self.try_fold_expr_in_boolean_context(&mut logical_expr.left, ctx)
-        {
-            ctx.state.changed = true;
+        if !logical_expr.operator.is_coalesce() {
+            self.try_fold_expr_in_boolean_context(&mut logical_expr.left, ctx);
         }
         if self.remove_unused_expression(&mut logical_expr.right, ctx) {
             self.remove_unused_expression(&mut logical_expr.left, ctx);
@@ -522,7 +520,7 @@ impl<'a> PeepholeOptimizations {
         false
     }
 
-    fn fold_call_expression(&self, e: &mut Expression<'a>, ctx: &mut Ctx<'a, '_>) -> bool {
+    fn remove_unused_call_expression(&self, e: &mut Expression<'a>, ctx: &mut Ctx<'a, '_>) -> bool {
         let Expression::CallExpression(call_expr) = e else { return false };
 
         if call_expr.pure && ctx.annotations() {
@@ -674,20 +672,29 @@ impl<'a> PeepholeOptimizations {
         {
             return None;
         }
-        // Keep the entire class if non-empty static block exists.
+        // Keep the entire class if there are class level side effects.
         for e in &c.body.body {
             match e {
                 e if e.has_decorator() => return None,
                 ClassElement::TSIndexSignature(_) => return None,
-                ClassElement::StaticBlock(block) => {
-                    if !block.body.is_empty() {
-                        return None;
-                    }
+                ClassElement::StaticBlock(block) if !block.body.is_empty() => return None,
+                ClassElement::PropertyDefinition(prop)
+                    if prop.r#static
+                        && prop.value.as_ref().is_some_and(|v| v.may_have_side_effects(ctx)) =>
+                {
+                    return None;
+                }
+                ClassElement::AccessorProperty(prop)
+                    if prop.r#static
+                        && prop.value.as_ref().is_some_and(|v| v.may_have_side_effects(ctx)) =>
+                {
+                    return None;
                 }
                 _ => {}
             }
         }
 
+        // Otherwise extract the expressions.
         let mut exprs = ctx.ast.vec();
 
         if let Some(e) = &mut c.super_class {
@@ -721,9 +728,8 @@ impl<'a> PeepholeOptimizations {
                     ClassElement::PropertyDefinition(def) => def.value.take(),
                     ClassElement::AccessorProperty(def) => def.value.take(),
                 } {
-                    if init.may_have_side_effects(ctx) {
-                        exprs.push(init);
-                    }
+                    // Already checked side effects above.
+                    exprs.push(init);
                 }
             }
         }
@@ -1115,11 +1121,13 @@ mod test {
         test_options("(class { foo })", "", &options);
         test_options("(class { foo = bar })", "", &options);
         test_options("(class { foo = 1 })", "", &options);
-        test_options("(class { static foo = bar })", "bar", &options);
+        // TODO: would be nice if this is removed but the one with `this` is kept.
+        test_same_options("(class { static foo = bar })", &options);
+        test_same_options("(class { static foo = this.bar = {} })", &options);
         test_options("(class { static foo = 1 })", "", &options);
         test_options("(class { [foo] = bar })", "foo", &options);
         test_options("(class { [foo] = 1 })", "foo", &options);
-        test_options("(class { static [foo] = bar })", "foo, bar", &options);
+        test_same_options("(class { static [foo] = bar })", &options);
         test_options("(class { static [foo] = 1 })", "foo", &options);
 
         // accessor
@@ -1127,11 +1135,7 @@ mod test {
         test_options("(class { accessor [foo] = 1 })", "foo", &options);
 
         // order
-        test_options(
-            "(class extends A { static [B] = C; static [D]() {} })",
-            "A, B, C, D",
-            &options,
-        );
+        test_options("(class extends A { [B] = C; [D]() {} })", "A, B, D", &options);
 
         // decorators
         test_same_options("(class { @dec foo() {} })", &options);

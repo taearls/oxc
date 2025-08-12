@@ -1,4 +1,4 @@
-ts compatibility: 247/573 (43.11%)
+ts compatibility: 249/573 (43.46%)
 
 # Failed
 
@@ -51,9 +51,8 @@ ts compatibility: 247/573 (43.11%)
 | jsx/text-wrap/issue-16897.js | 💥 | 56.00% |
 | jsx/text-wrap/test.js | 💥 | 33.71% |
 | typescript/ambient/ambient.ts | 💥 | 88.24% |
-| typescript/angular-component-examples/15934-computed.component.ts | 💥💥 | 72.00% |
-| typescript/angular-component-examples/15934.component.ts | 💥💥 | 48.00% |
-| typescript/angular-component-examples/15969-computed.component.ts | 💥💥 | 93.33% |
+| typescript/angular-component-examples/15934-computed.component.ts | 💥💥 | 76.92% |
+| typescript/angular-component-examples/15934.component.ts | 💥💥 | 53.85% |
 | typescript/angular-component-examples/test.component.ts | 💥💥 | 41.18% |
 | typescript/argument-expansion/argument_expansion.ts | 💥 | 62.71% |
 | typescript/argument-expansion/arrow-with-return-type.ts | 💥 | 60.00% |
@@ -105,9 +104,8 @@ ts compatibility: 247/573 (43.11%)
 | typescript/comments/jsx.tsx | 💥 | 20.00% |
 | typescript/comments/location.ts | 💥 | 75.00% |
 | typescript/comments/mapped_types.ts | 💥 | 58.82% |
-| typescript/comments/method_types.ts | 💥 | 74.36% |
-| typescript/comments/methods.ts | 💥 | 97.96% |
-| typescript/comments/type-parameters.ts | 💥 | 40.00% |
+| typescript/comments/method_types.ts | 💥 | 76.92% |
+| typescript/comments/type-parameters.ts | 💥 | 36.36% |
 | typescript/comments/type_literals.ts | 💥 | 55.17% |
 | typescript/comments/union.ts | 💥 | 5.26% |
 | typescript/comments-2/dangling.ts | 💥💥 | 75.00% |
@@ -121,7 +119,7 @@ ts compatibility: 247/573 (43.11%)
 | typescript/compiler/indexSignatureWithInitializer.ts | 💥 | 75.00% |
 | typescript/compiler/mappedTypeWithCombinedTypeMappers.ts | 💥 | 59.46% |
 | typescript/compiler/privacyGloImport.ts | 💥 | 95.92% |
-| typescript/conditional-types/comments.ts | 💥✨ | 31.51% |
+| typescript/conditional-types/comments.ts | 💥💥 | 62.45% |
 | typescript/conditional-types/conditonal-types.ts | 💥💥 | 53.24% |
 | typescript/conditional-types/infer-type.ts | 💥💥 | 47.07% |
 | typescript/conditional-types/nested-in-condition.ts | 💥💥 | 58.46% |
@@ -185,7 +183,7 @@ ts compatibility: 247/573 (43.11%)
 | typescript/declare/object-type-in-declare-function.ts | 💥 | 23.08% |
 | typescript/declare/trailing-comma/function-rest-trailing-comma.ts | 💥💥💥 | 25.00% |
 | typescript/decorators/decorator-type-assertion.ts | 💥 | 60.00% |
-| typescript/decorators/decorators.ts | 💥 | 73.38% |
+| typescript/decorators/decorators.ts | 💥 | 74.29% |
 | typescript/decorators/inline-decorators.ts | 💥 | 67.31% |
 | typescript/decorators/legacy.ts | 💥 | 80.00% |
 | typescript/decorators/mobx.ts | 💥 | 70.33% |
@@ -301,7 +299,7 @@ ts compatibility: 247/573 (43.11%)
 | typescript/tsx/react.tsx | 💥 | 50.00% |
 | typescript/tsx/type-parameters.tsx | 💥 | 90.48% |
 | typescript/tsx/url.tsx | 💥 | 58.06% |
-| typescript/tuple/dangling-comments.ts | 💥💥💥 | 13.95% |
+| typescript/tuple/dangling-comments.ts | 💥💥💥 | 21.28% |
 | typescript/tuple/trailing-comma-for-empty-tuples.ts | 💥💥💥 | 16.67% |
 | typescript/tuple/trailing-comma-trailing-rest.ts | 💥💥💥 | 0.00% |
 | typescript/tuple/trailing-comma.ts | 💥💥💥 | 15.38% |

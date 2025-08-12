@@ -1360,8 +1360,7 @@ impl ContentEq for ExportNamedDeclaration<'_> {
 
 impl ContentEq for ExportDefaultDeclaration<'_> {
     fn content_eq(&self, other: &Self) -> bool {
-        ContentEq::content_eq(&self.exported, &other.exported)
-            && ContentEq::content_eq(&self.declaration, &other.declaration)
+        ContentEq::content_eq(&self.declaration, &other.declaration)
     }
 }
 
@@ -2327,6 +2326,23 @@ impl ContentEq for TSImportType<'_> {
             && ContentEq::content_eq(&self.options, &other.options)
             && ContentEq::content_eq(&self.qualifier, &other.qualifier)
             && ContentEq::content_eq(&self.type_arguments, &other.type_arguments)
+    }
+}
+
+impl ContentEq for TSImportTypeQualifier<'_> {
+    fn content_eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Identifier(a), Self::Identifier(b)) => a.content_eq(b),
+            (Self::QualifiedName(a), Self::QualifiedName(b)) => a.content_eq(b),
+            _ => false,
+        }
+    }
+}
+
+impl ContentEq for TSImportTypeQualifiedName<'_> {
+    fn content_eq(&self, other: &Self) -> bool {
+        ContentEq::content_eq(&self.left, &other.left)
+            && ContentEq::content_eq(&self.right, &other.right)
     }
 }
 

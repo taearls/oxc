@@ -210,28 +210,19 @@ ascii_byte_handler!(LIN(lexer) {
 // !
 ascii_byte_handler!(EXL(lexer) {
     lexer.consume_char();
-    if let Some(next_2_bytes) = lexer.peek_2_bytes() {
-        match next_2_bytes[0] {
-            b'=' => {
-                if next_2_bytes[1] == b'=' {
-                    lexer.consume_2_chars();
-                    Kind::Neq2
-                } else {
-                    lexer.consume_char();
-                    Kind::Neq
-                }
-            }
-            _ => Kind::Bang
-        }
-    } else {
-        // At EOF, or only 1 byte left
-        match lexer.peek_byte() {
-            Some(b'=') => {
+    // Try to peek at next byte for common case first
+    match lexer.peek_byte() {
+        Some(b'=') => {
+            lexer.consume_char();
+            // Check for !== (triple equals)
+            if lexer.peek_byte() == Some(b'=') {
                 lexer.consume_char();
+                Kind::Neq2
+            } else {
                 Kind::Neq
             }
-            _ => Kind::Bang
         }
+        _ => Kind::Bang
     }
 });
 
@@ -250,13 +241,7 @@ ascii_byte_handler!(QOS(lexer) {
 // #
 ascii_byte_handler!(HAS(lexer) {
     lexer.consume_char();
-    // HashbangComment ::
-    //     `#!` SingleLineCommentChars?
-    if lexer.token.start() == 0 && lexer.next_ascii_byte_eq(b'!') {
-        lexer.read_hashbang_comment()
-    } else {
-        lexer.private_identifier()
-    }
+    lexer.private_identifier()
 });
 
 // `A..=Z`, `a..=z` (except special cases below), `_`, `$`
@@ -428,37 +413,27 @@ ascii_byte_handler!(GTR(lexer) {
 ascii_byte_handler!(QST(lexer) {
     lexer.consume_char();
 
-    if let Some(next_2_bytes) = lexer.peek_2_bytes() {
-        match next_2_bytes[0] {
-            b'?' => {
-                if next_2_bytes[1] == b'=' {
-                    lexer.consume_2_chars();
-                    Kind::Question2Eq
-                } else {
-                    lexer.consume_char();
-                    Kind::Question2
-                }
-            }
-            // parse `?.1` as `?` `.1`
-            b'.' if !next_2_bytes[1].is_ascii_digit() => {
+    match lexer.peek_byte() {
+        Some(b'?') => {
+            lexer.consume_char();
+            // Check for ??= (nullish coalescing assignment)
+            if lexer.peek_byte() == Some(b'=') {
                 lexer.consume_char();
-                Kind::QuestionDot
-            }
-            _ => Kind::Question,
-        }
-    } else {
-        // At EOF, or only 1 byte left
-        match lexer.peek_byte() {
-            Some(b'?') => {
-                lexer.consume_char();
+                Kind::Question2Eq
+            } else {
                 Kind::Question2
             }
-            Some(b'.') => {
+        }
+        Some(b'.') => {
+            // Only consume if not followed by digit (to parse `?.1` as `?` `.1`)
+            if lexer.peek_2_bytes().is_none_or(|bytes| !bytes[1].is_ascii_digit()) {
                 lexer.consume_char();
                 Kind::QuestionDot
+            } else {
+                Kind::Question
             }
-            _ => Kind::Question,
         }
+        _ => Kind::Question,
     }
 });
 
