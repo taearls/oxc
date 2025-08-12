@@ -501,6 +501,7 @@ impl AstKind<'_> {
                 "AssignmentTargetPropertyIdentifier".into()
             }
             Self::AssignmentTargetPropertyProperty(_) => "AssignmentTargetPropertyProperty".into(),
+            Self::TSImportTypeQualifiedName(_) => "TSImportTypeQualifiedName".into(),
         }
     }
 }
