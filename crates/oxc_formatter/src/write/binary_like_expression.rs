@@ -9,6 +9,7 @@ use crate::{
     Format,
     formatter::{FormatResult, Formatter},
     generated::ast_nodes::{AstNode, AstNodes},
+    utils::is_expression_used_as_call_argument,
 };
 
 use crate::{format_args, formatter::prelude::*, write};
@@ -162,7 +163,7 @@ impl<'a, 'b> BinaryLikeExpression<'a, 'b> {
                         | AstNodes::CallExpression(_)
                         | AstNodes::ImportExpression(_)
                         | AstNodes::MetaProperty(_)
-                )
+                ) || is_expression_used_as_call_argument(conditional.span(), parent.parent())
             }
             _ => false,
         }

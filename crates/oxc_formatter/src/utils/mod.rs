@@ -5,6 +5,7 @@ pub mod member_chain;
 
 use oxc_allocator::Address;
 use oxc_ast::{AstKind, ast::CallExpression};
+use oxc_span::{GetSpan, Span};
 
 use crate::{
     Format, FormatResult, FormatTrailingCommas, format_args,
@@ -48,4 +49,18 @@ pub fn is_long_curried_call(call: &AstNode<'_, CallExpression<'_>>) -> bool {
     }
 
     false
+}
+
+/// Check if an expression is used as a call argument by examining the parent node.
+/// This replaces the missing AstKind::Argument detection capability.
+pub fn is_expression_used_as_call_argument(span: Span, parent: &AstNodes) -> bool {
+    match parent {
+        AstNodes::CallExpression(call) => {
+            call.arguments.iter().any(|arg| arg.span().contains_inclusive(span))
+        }
+        AstNodes::NewExpression(new_expr) => {
+            new_expr.arguments.iter().any(|arg| arg.span().contains_inclusive(span))
+        }
+        _ => false,
+    }
 }
