@@ -1,4 +1,4 @@
-ts compatibility: 244/573 (42.58%)
+ts compatibility: 243/573 (42.41%)
 
 # Failed
 
@@ -68,7 +68,7 @@ ts compatibility: 244/573 (42.58%)
 | typescript/as/nested-await-and-as.ts | 💥 | 16.67% |
 | typescript/as/ternary.ts | 💥 | 80.00% |
 | typescript/assert/comment.ts | 💥 | 0.00% |
-| typescript/assert/index.ts | 💥 | 60.71% |
+| typescript/assert/index.ts | 💥 | 75.00% |
 | typescript/assignment/issue-10846.ts | 💥 | 23.73% |
 | typescript/assignment/issue-10848.tsx | 💥 | 41.38% |
 | typescript/assignment/issue-10850.ts | 💥 | 50.00% |
@@ -80,8 +80,8 @@ ts compatibility: 244/573 (42.58%)
 | typescript/cast/generic-cast.ts | 💥 | 38.83% |
 | typescript/cast/hug-args.ts | 💥 | 87.50% |
 | typescript/cast/tuple-and-record.ts | 💥 | 0.00% |
-| typescript/chain-expression/call-expression.ts | 💥 | 64.06% |
-| typescript/chain-expression/member-expression.ts | 💥 | 59.70% |
+| typescript/chain-expression/call-expression.ts | 💥 | 68.75% |
+| typescript/chain-expression/member-expression.ts | 💥 | 65.67% |
 | typescript/chain-expression/test.ts | 💥 | 0.00% |
 | typescript/class/constructor.ts | 💥 | 96.15% |
 | typescript/class/empty-method-body.ts | 💥 | 80.00% |
@@ -113,7 +113,7 @@ ts compatibility: 244/573 (42.58%)
 | typescript/compiler/ClassDeclaration22.ts | 💥 | 50.00% |
 | typescript/compiler/anyIsAssignableToObject.ts | 💥 | 50.00% |
 | typescript/compiler/castOfAwait.ts | 💥 | 87.50% |
-| typescript/compiler/castTest.ts | 💥 | 90.00% |
+| typescript/compiler/castTest.ts | 💥 | 93.33% |
 | typescript/compiler/checkInfiniteExpansionTermination.ts | 💥 | 80.00% |
 | typescript/compiler/commentsInterface.ts | 💥 | 66.67% |
 | typescript/compiler/contextualSignatureInstantiation2.ts | 💥 | 88.89% |
@@ -251,6 +251,7 @@ ts compatibility: 244/573 (42.58%)
 | typescript/new/new-signature.ts | 💥 | 93.85% |
 | typescript/no-semi/no-semi.ts | 💥✨ | 45.45% |
 | typescript/no-semi/non-null.ts | 💥💥 | 66.67% |
+| typescript/non-null/braces.ts | 💥 | 88.24% |
 | typescript/non-null/optional-chain.ts | 💥 | 72.22% |
 | typescript/non-null/parens.ts | 💥 | 80.00% |
 | typescript/nosemi/index-signature.ts | 💥 | 75.00% |
