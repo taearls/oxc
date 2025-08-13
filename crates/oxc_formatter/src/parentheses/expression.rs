@@ -420,10 +420,14 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Class<'a>> {
             return false;
         }
         let parent = self.parent;
+        
+        // Class expressions don't need parentheses when used as function arguments
+        if crate::utils::is_expression_used_as_call_argument(self.span, parent) {
+            return false;
+        }
+        
         match parent {
-            AstNodes::CallExpression(_)
-            | AstNodes::NewExpression(_)
-            | AstNodes::ExportDefaultDeclaration(_) => true,
+            AstNodes::ExportDefaultDeclaration(_) => true,
             _ => is_first_in_statement(
                 self.span,
                 parent,
