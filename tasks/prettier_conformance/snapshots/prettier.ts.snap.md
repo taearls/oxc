@@ -1,4 +1,4 @@
-ts compatibility: 243/573 (42.41%)
+ts compatibility: 246/573 (42.93%)
 
 # Failed
 
@@ -74,7 +74,6 @@ ts compatibility: 243/573 (42.41%)
 | typescript/assignment/issue-10850.ts | 💥 | 50.00% |
 | typescript/assignment/issue-12413.ts | 💥 | 3.03% |
 | typescript/assignment/issue-2485.ts | 💥 | 44.44% |
-| typescript/assignment/issue-3122.ts | 💥 | 92.86% |
 | typescript/call-signature/call-signature.ts | 💥 | 79.66% |
 | typescript/cast/as-const.ts | 💥 | 60.00% |
 | typescript/cast/generic-cast.ts | 💥 | 38.83% |
@@ -237,7 +236,6 @@ ts compatibility: 243/573 (42.41%)
 | typescript/keywords/keywords-2.ts | 💥 | 79.41% |
 | typescript/keywords/keywords.ts | 💥 | 83.33% |
 | typescript/last-argument-expansion/decorated-function.tsx | 💥 | 23.64% |
-| typescript/last-argument-expansion/edge_case.ts | 💥 | 80.00% |
 | typescript/mapped-type/intersection.ts | 💥 | 0.00% |
 | typescript/mapped-type/issue-11098.ts | 💥 | 60.00% |
 | typescript/mapped-type/break-mode/break-mode.ts | 💥 | 40.00% |
@@ -251,7 +249,6 @@ ts compatibility: 243/573 (42.41%)
 | typescript/new/new-signature.ts | 💥 | 93.85% |
 | typescript/no-semi/no-semi.ts | 💥✨ | 45.45% |
 | typescript/no-semi/non-null.ts | 💥💥 | 66.67% |
-| typescript/non-null/braces.ts | 💥 | 88.24% |
 | typescript/non-null/optional-chain.ts | 💥 | 72.22% |
 | typescript/non-null/parens.ts | 💥 | 80.00% |
 | typescript/nosemi/index-signature.ts | 💥 | 75.00% |

@@ -113,6 +113,12 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ArrayExpression<'a>> {
 impl<'a> NeedsParentheses<'a> for AstNode<'a, ObjectExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
         let parent = self.parent;
+        
+        // Object expressions don't need parentheses when used as function arguments
+        if crate::utils::is_expression_used_as_call_argument(self.span, parent) {
+            return false;
+        }
+        
         is_class_extends(parent, self.span())
             || is_first_in_statement(
                 self.span,
