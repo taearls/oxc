@@ -1,4 +1,4 @@
-js compatibility: 490/699 (70.10%)
+js compatibility: 493/699 (70.53%)
 
 # Failed
 
@@ -27,8 +27,6 @@ js compatibility: 490/699 (70.10%)
 | js/class-static-block/class-static-block.js | 💥 | 57.14% |
 | js/class-static-block/with-line-breaks.js | 💥 | 50.00% |
 | js/classes/assignment.js | 💥 | 81.25% |
-| js/classes/call.js | 💥 | 0.00% |
-| js/classes/new.js | 💥 | 50.00% |
 | js/classes/property.js | 💥 | 62.86% |
 | js/classes-private-fields/with_comments.js | 💥💥 | 30.77% |
 | js/comments/15661.js | 💥💥 | 53.63% |
@@ -79,7 +77,6 @@ js compatibility: 490/699 (70.10%)
 | js/decorators/multiline.js | 💥 | 44.44% |
 | js/decorators/multiple.js | 💥 | 61.54% |
 | js/decorators/parens.js | 💥 | 75.00% |
-| js/decorators/class-expression/arguments.js | 💥💥 | 50.00% |
 | js/decorators/class-expression/class-expression.js | 💥💥 | 55.56% |
 | js/decorators/class-expression/member-expression.js | 💥💥 | 0.00% |
 | js/decorators/class-expression/super-class.js | 💥💥 | 14.29% |
