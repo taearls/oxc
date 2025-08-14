@@ -58,6 +58,27 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
 
         let call_expression =
             if let AstNodes::CallExpression(call) = self.parent { Some(call) } else { None };
+        
+        // Special case: Angular test wrappers with a single arrow function should not break
+        if let Some(call) = call_expression {
+            if should_not_break_angular_wrapper(call, self) {
+                return write!(
+                    f,
+                    [
+                        l_paren_token,
+                        format_with(|f| {
+                            f.join_with(space())
+                                .entries(
+                                    FormatSeparatedIter::new(self.iter(), ",")
+                                        .with_trailing_separator(TrailingSeparator::Omit),
+                                )
+                                .finish()
+                        }),
+                        r_paren_token
+                    ]
+                );
+            }
+        }
 
         let (is_commonjs_or_amd_call, is_test_call) = if let Some(call) = call_expression {
             (is_commonjs_or_amd_call(self, call), is_test_call_expression(call))
@@ -125,6 +146,32 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
         } else {
             format_all_args_broken_out(self, false, f)
         }
+    }
+}
+
+/// Check if this is an Angular test wrapper that should not break its arguments
+fn should_not_break_angular_wrapper(call: &AstNode<'_, CallExpression<'_>>, arguments: &[Argument<'_>]) -> bool {
+    // Check if it's an angular test wrapper function
+    let is_angular_wrapper = matches!(
+        &call.callee,
+        Expression::Identifier(ident) if matches!(
+            ident.name.as_str(),
+            "async" | "inject" | "fakeAsync" | "waitForAsync"
+        )
+    );
+    
+    if !is_angular_wrapper {
+        return false;
+    }
+    
+    // Check if it has exactly one argument that is an arrow function or function expression
+    if arguments.len() == 1 {
+        matches!(
+            arguments.first(),
+            Some(Argument::ArrowFunctionExpression(_) | Argument::FunctionExpression(_))
+        )
+    } else {
+        false
     }
 }
 
