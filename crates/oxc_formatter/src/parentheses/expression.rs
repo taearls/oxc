@@ -160,27 +160,43 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, PrivateFieldExpression<'a>> {
 
 impl<'a> NeedsParentheses<'a> for AstNode<'a, CallExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
-        matches!(self.parent, AstNodes::NewExpression(_))
-            || matches!(self.parent, AstNodes::ExportDefaultDeclaration(_)) && {
-                let callee = &self.callee;
-                let callee_span = callee.span();
-                let leftmost = ExpressionLeftSide::leftmost(callee);
-                // require parens for iife and
-                // when the leftmost expression is not a class expression or a function expression
-                callee_span != leftmost.span()
-                    && matches!(
-                        leftmost,
-                        ExpressionLeftSide::Expression(
-                            Expression::ClassExpression(_) | Expression::FunctionExpression(_)
-                        )
+        // Only need parens when used as the callee of a new expression, not as an argument
+        if let AstNodes::NewExpression(new_expr) = self.parent {
+            return new_expr.callee.span() == self.span();
+        }
+        
+        matches!(self.parent, AstNodes::ExportDefaultDeclaration(_)) && {
+            let callee = &self.callee;
+            let callee_span = callee.span();
+            let leftmost = ExpressionLeftSide::leftmost(callee);
+            // require parens for iife and
+            // when the leftmost expression is not a class expression or a function expression
+            callee_span != leftmost.span()
+                && matches!(
+                    leftmost,
+                    ExpressionLeftSide::Expression(
+                        Expression::ClassExpression(_) | Expression::FunctionExpression(_)
                     )
-            }
+                )
+        }
     }
 }
 
 impl<'a> NeedsParentheses<'a> for AstNode<'a, NewExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
-        is_class_extends(self.parent, self.span())
+        let parent = self.parent;
+        
+        // New expressions with call expressions as callees need parentheses when being called
+        if let AstNodes::CallExpression(call) = parent {
+            if call.callee.span() == self.span() {
+                // Only need parens if the new expression's callee is a call expression
+                if let Expression::CallExpression(_) = &(**self).callee {
+                    return true;
+                }
+            }
+        }
+        
+        is_class_extends(parent, self.span())
     }
 }
 
