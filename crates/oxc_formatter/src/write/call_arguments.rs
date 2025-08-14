@@ -107,7 +107,7 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
 
         if let Some(group_layout) = arguments_grouped_layout(self, f) {
             write_grouped_arguments(self, group_layout, f)
-        } else if call_expression.is_some_and(|call| is_long_curried_call(call)) {
+        } else if call_expression.is_some_and(|call| should_use_long_curried_formatting(call, self)) {
             write!(
                 f,
                 [
@@ -126,6 +126,43 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
             format_all_args_broken_out(self, false, f)
         }
     }
+}
+
+/// Check if we should use long curried formatting for a call expression
+fn should_use_long_curried_formatting(call: &AstNode<'_, CallExpression<'_>>, arguments: &[Argument<'_>]) -> bool {
+    // First check if it's a long curried call pattern
+    if !is_long_curried_call(call) {
+        return false;
+    }
+    
+    // Special case: Don't use long curried formatting for path.join in require
+    // when it has complex arguments (like conditionals)
+    if let Expression::StaticMemberExpression(member) = &call.callee {
+        if member.property.name == "join" {
+            if let Expression::Identifier(id) = &member.object {
+                if id.name == "path" {
+                    // Check if parent is require
+                    if let AstNodes::CallExpression(parent_call) = call.parent {
+                        if let Expression::Identifier(parent_id) = &parent_call.callee {
+                            if parent_id.name == "require" {
+                                // Check if any argument is complex (not a simple literal or identifier)
+                                for arg in arguments {
+                                    match arg {
+                                        Argument::ConditionalExpression(_) => return false,
+                                        Argument::BinaryExpression(_) => return false,
+                                        Argument::LogicalExpression(_) => return false,
+                                        _ => {}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    true
 }
 
 /// Tests if a call has multiple anonymous function like (arrow or function expression) arguments.
