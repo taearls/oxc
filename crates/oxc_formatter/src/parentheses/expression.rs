@@ -16,6 +16,36 @@ use crate::{
 
 use super::NeedsParentheses;
 
+// Helper function to check if a MemberExpression has a CallExpression in its object chain
+fn member_has_call_object(member: &MemberExpression) -> bool {
+    match member {
+        MemberExpression::ComputedMemberExpression(m) => {
+            expression_is_or_contains_call(&m.object)
+        }
+        MemberExpression::StaticMemberExpression(m) => {
+            expression_is_or_contains_call(&m.object)
+        }
+        MemberExpression::PrivateFieldExpression(m) => {
+            expression_is_or_contains_call(&m.object)
+        }
+    }
+}
+
+// Helper function to check if an Expression is or contains a CallExpression
+fn expression_is_or_contains_call(expr: &Expression) -> bool {
+    match expr {
+        Expression::CallExpression(_) => true,
+        Expression::TaggedTemplateExpression(t) => {
+            // Tagged templates like x()`` where the tag is a call expression
+            expression_is_or_contains_call(&t.tag)
+        }
+        Expression::ComputedMemberExpression(m) => expression_is_or_contains_call(&m.object),
+        Expression::StaticMemberExpression(m) => expression_is_or_contains_call(&m.object),
+        Expression::PrivateFieldExpression(m) => expression_is_or_contains_call(&m.object),
+        _ => false,
+    }
+}
+
 impl<'a> NeedsParentheses<'a> for AstNode<'a, Expression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
         match self.as_ast_nodes() {
@@ -136,18 +166,42 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, TaggedTemplateExpression<'a>> {
 
 impl<'a> NeedsParentheses<'a> for AstNode<'a, MemberExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
+        // Member expressions with call expression or another member expression with call as object
+        // need parentheses when used as the callee of a new expression: new (a().b)()
+        if let AstNodes::NewExpression(new_expr) = self.parent {
+            if new_expr.callee.span() == self.span() {
+                // Check if the object of this member expression needs parens
+                return member_has_call_object(&**self);
+            }
+        }
         false
     }
 }
 
 impl<'a> NeedsParentheses<'a> for AstNode<'a, ComputedMemberExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
+        // Computed member expressions with call expression objects need parentheses
+        // when used as the callee of a new expression: new (a()[0])()
+        if let AstNodes::NewExpression(new_expr) = self.parent {
+            if new_expr.callee.span() == self.span() {
+                // Check if the object is or contains a call expression
+                return expression_is_or_contains_call(&self.object);
+            }
+        }
         false
     }
 }
 
 impl<'a> NeedsParentheses<'a> for AstNode<'a, StaticMemberExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
+        // Static member expressions with call expression objects need parentheses
+        // when used as the callee of a new expression: new (a().b)()
+        if let AstNodes::NewExpression(new_expr) = self.parent {
+            if new_expr.callee.span() == self.span() {
+                // Check if the object is or contains a call expression
+                return expression_is_or_contains_call(&self.object);
+            }
+        }
         false
     }
 }
@@ -160,7 +214,8 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, PrivateFieldExpression<'a>> {
 
 impl<'a> NeedsParentheses<'a> for AstNode<'a, CallExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
-        // Only need parens when used as the callee of a new expression, not as an argument
+        // Call expressions used directly as the callee of a new expression need parentheses
+        // Example: new (factory())()
         if let AstNodes::NewExpression(new_expr) = self.parent {
             return new_expr.callee.span() == self.span();
         }
@@ -455,6 +510,9 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Class<'a>> {
 
 impl<'a> NeedsParentheses<'a> for AstNode<'a, ParenthesizedExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
+        // ParenthesizedExpression nodes are only created when preserve_parens is true,
+        // which is not the case in our conformance tests. This implementation is kept
+        // for when preserve_parens is enabled.
         false
     }
 }
