@@ -529,20 +529,44 @@ fn get_array_minimum_length(arr: &ArrayExpression) -> usize {
 impl<'a> MayHaveSideEffects<'a> for CallExpression<'a> {
     fn may_have_side_effects(&self, ctx: &impl MayHaveSideEffectsContext<'a>) -> bool {
         if (self.pure && ctx.annotations()) || ctx.manual_pure_functions(&self.callee) {
-            self.arguments.iter().any(|e| e.may_have_side_effects(ctx))
-        } else {
-            true
+            return self.arguments.iter().any(|e| e.may_have_side_effects(ctx));
         }
+        true
     }
 }
 
 impl<'a> MayHaveSideEffects<'a> for NewExpression<'a> {
     fn may_have_side_effects(&self, ctx: &impl MayHaveSideEffectsContext<'a>) -> bool {
         if (self.pure && ctx.annotations()) || ctx.manual_pure_functions(&self.callee) {
-            self.arguments.iter().any(|e| e.may_have_side_effects(ctx))
-        } else {
-            true
+            return self.arguments.iter().any(|e| e.may_have_side_effects(ctx));
         }
+        if let Expression::Identifier(ident) = &self.callee
+            && ctx.is_global_reference(ident)
+            && matches!(
+                ident.name.as_str(),
+                "Set"
+                    | "Map"
+                    | "WeakSet"
+                    | "WeakMap"
+                    | "ArrayBuffer"
+                    | "Date"
+                    | "Boolean"
+                    | "Error"
+                    | "EvalError"
+                    | "RangeError"
+                    | "ReferenceError"
+                    | "RegExp"
+                    | "SyntaxError"
+                    | "TypeError"
+                    | "URIError"
+                    | "Number"
+                    | "Object"
+                    | "String"
+            )
+        {
+            return self.arguments.iter().any(|e| e.may_have_side_effects(ctx));
+        }
+        true
     }
 }
 
