@@ -293,8 +293,16 @@ impl ConfigStore {
         }
     }
 
-    pub fn number_of_rules(&self) -> Option<usize> {
-        self.nested_configs.is_empty().then_some(self.base.base.rules.len())
+    pub fn number_of_rules(&self, type_aware_enabled: bool) -> Option<usize> {
+        if !self.nested_configs.is_empty() {
+            return None;
+        }
+        let count = if type_aware_enabled {
+            self.base.base.rules.len()
+        } else {
+            self.base.base.rules.iter().filter(|(rule, _)| !rule.is_tsgolint_rule()).count()
+        };
+        Some(count)
     }
 
     pub fn rules(&self) -> &Arc<[(RuleEnum, AllowWarnDeny)]> {

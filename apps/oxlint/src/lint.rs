@@ -13,7 +13,6 @@ use ignore::{gitignore::Gitignore, overrides::OverrideBuilder};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 
-use oxc_allocator::AllocatorPool;
 use oxc_diagnostics::{DiagnosticSender, DiagnosticService, GraphicalReportHandler, OxcDiagnostic};
 use oxc_linter::{
     AllowWarnDeny, Config, ConfigStore, ConfigStoreBuilder, ExternalLinter, ExternalPluginStore,
@@ -304,13 +303,13 @@ impl LintRunner {
 
         // Run type-aware linting through tsgolint
         // TODO: Add a warning message if `tsgolint` cannot be found, but type-aware rules are enabled
-        if let Some(ret) = self
-            .options
-            .type_aware
-            .then(|| TsGoLintState::new(config_store.clone(), &paths, &options))
-            .and_then(|s| s.lint(tx_error.clone(), stdout))
-        {
-            return ret;
+        if self.options.type_aware {
+            if let Err(err) =
+                TsGoLintState::new(config_store.clone(), &paths, &options).lint(tx_error.clone())
+            {
+                print_and_flush_stdout(stdout, &err);
+                return CliRunResult::TsGoLintError;
+            }
         }
 
         let linter = Linter::new(LintOptions::default(), config_store, self.external_linter)
@@ -336,13 +335,11 @@ impl LintRunner {
             }
         }
 
-        let number_of_rules = linter.number_of_rules();
-
-        let allocator_pool = AllocatorPool::new(rayon::current_num_threads());
+        let number_of_rules = linter.number_of_rules(self.options.type_aware);
 
         // Spawn linting in another thread so diagnostics can be printed immediately from diagnostic_service.run.
         rayon::spawn(move || {
-            let mut lint_service = LintService::new(linter, allocator_pool, options);
+            let mut lint_service = LintService::new(linter, options);
             lint_service.with_paths(paths);
 
             // Use `RawTransferFileSystem` if `oxlint2` feature is enabled.
@@ -1218,14 +1215,16 @@ mod test {
     #[test]
     #[cfg(not(target_endian = "big"))]
     fn test_tsgolint() {
-        let args = &["--type-aware"];
+        // TODO: test with other rules as well once diagnostics are more stable
+        let args = &["--type-aware", "no-floating-promises"];
         Tester::new().with_cwd("fixtures/tsgolint".into()).test_and_snapshot(args);
     }
 
     #[test]
     #[cfg(not(target_endian = "big"))]
     fn test_tsgolint_config() {
-        let args = &["--type-aware", "-c", "config-test.json"];
+        // TODO: test with other rules as well once diagnostics are more stable
+        let args = &["--type-aware", "no-floating-promises", "-c", "config-test.json"];
         Tester::new().with_cwd("fixtures/tsgolint".into()).test_and_snapshot(args);
     }
 }

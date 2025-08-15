@@ -174,11 +174,13 @@ impl RuntimeFileSystem for OsFileSystem {
 }
 
 impl Runtime {
-    pub(super) fn new(
-        linter: Linter,
-        allocator_pool: AllocatorPool,
-        options: LintServiceOptions,
-    ) -> Self {
+    pub(super) fn new(linter: Linter, options: LintServiceOptions) -> Self {
+        // Initialize global Rayon thread pool if not already done
+        let _ = rayon::ThreadPoolBuilder::new().build_global();
+
+        let thread_count = rayon::current_num_threads();
+        let allocator_pool = AllocatorPool::new(thread_count);
+
         let resolver = options.cross_module.then(|| {
             Self::get_resolver(options.tsconfig.or_else(|| Some(options.cwd.join("tsconfig.json"))))
         });
