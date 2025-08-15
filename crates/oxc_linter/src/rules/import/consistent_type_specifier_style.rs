@@ -218,6 +218,46 @@ fn test() {
             ",
             Some(json!(["prefer-inline"])),
         ),
+        (
+            "import { type Foo } from 'Foo';",
+            "import type { Foo } from 'Foo';",
+            Some(json!(["prefer-top-level"])),
+        ),
+        (
+            "import { type Foo as Bar } from 'Foo';",
+            "import type { Foo as Bar } from 'Foo';",
+            Some(json!(["prefer-top-level"])),
+        ),
+        (
+            "import { type Foo, type Bar } from 'Foo';",
+            "import type { Foo, Bar } from 'Foo';",
+            Some(json!(["prefer-top-level"])),
+        ),
+        (
+            "import { type Foo, type Bar } from 'Foo';",
+            "import type { Foo, Bar } from 'Foo';",
+            Some(json!(["prefer-top-level"])),
+        ),
+        (
+            "import { Foo, type Bar } from 'Foo';",
+            "import { Foo } from 'Foo';\nimport type { Bar } from 'Foo';",
+            Some(json!(["prefer-top-level"])),
+        ),
+        (
+            "import { type Foo, Bar } from 'Foo';",
+            "import { Bar } from 'Foo';\nimport type { Foo } from 'Foo';",
+            Some(json!(["prefer-top-level"])),
+        ),
+        (
+            "import Foo, { type Bar } from 'Foo';",
+            "import Foo from 'Foo';\nimport type { Bar } from 'Foo';",
+            Some(json!(["prefer-top-level"])),
+        ),
+        (
+            "import Foo, { type Bar, Baz } from 'Foo';",
+            "import Foo, { Baz } from 'Foo';\nimport type { Bar } from 'Foo';",
+            Some(json!(["prefer-top-level"])),
+        ),
     ];
 
     Tester::new(
