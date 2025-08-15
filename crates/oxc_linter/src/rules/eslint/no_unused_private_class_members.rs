@@ -245,6 +245,30 @@ fn test() {
     use crate::tester::Tester;
 
     let pass = vec![
+        r"
+            class Test {
+                #prop = undefined
+                getProp() {
+                    return this.#prop ??= 0
+                }
+            }
+        ",
+        r"
+            class Test {
+                #prop = undefined
+                getProp() {
+                    return this.#prop ||= 0
+                }
+            }
+        ",
+        r"
+            class Test {
+                #prop = undefined
+                getProp() {
+                    return this.#prop += 0
+                }
+            }
+        ",
         r"class Foo {}",
         r"class Foo {
         	    publicMember = 42;
