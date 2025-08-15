@@ -107,7 +107,8 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
 
         if let Some(group_layout) = arguments_grouped_layout(self, f) {
             write_grouped_arguments(self, group_layout, f)
-        } else if call_expression.is_some_and(|call| should_use_long_curried_formatting(call, self)) {
+        } else if call_expression.is_some_and(|call| should_use_long_curried_formatting(call, self))
+        {
             write!(
                 f,
                 [
@@ -129,12 +130,15 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
 }
 
 /// Check if we should use long curried formatting for a call expression
-fn should_use_long_curried_formatting(call: &AstNode<'_, CallExpression<'_>>, arguments: &[Argument<'_>]) -> bool {
+fn should_use_long_curried_formatting(
+    call: &AstNode<'_, CallExpression<'_>>,
+    arguments: &[Argument<'_>],
+) -> bool {
     // First check if it's a long curried call pattern
     if !is_long_curried_call(call) {
         return false;
     }
-    
+
     // Special case: Don't use long curried formatting for path.join in require
     // when it has complex arguments (like conditionals)
     if let Expression::StaticMemberExpression(member) = &call.callee {
@@ -161,7 +165,7 @@ fn should_use_long_curried_formatting(call: &AstNode<'_, CallExpression<'_>>, ar
             }
         }
     }
-    
+
     true
 }
 

@@ -19,15 +19,9 @@ use super::NeedsParentheses;
 // Helper function to check if a MemberExpression has a CallExpression in its object chain
 fn member_has_call_object(member: &MemberExpression) -> bool {
     match member {
-        MemberExpression::ComputedMemberExpression(m) => {
-            expression_is_or_contains_call(&m.object)
-        }
-        MemberExpression::StaticMemberExpression(m) => {
-            expression_is_or_contains_call(&m.object)
-        }
-        MemberExpression::PrivateFieldExpression(m) => {
-            expression_is_or_contains_call(&m.object)
-        }
+        MemberExpression::ComputedMemberExpression(m) => expression_is_or_contains_call(&m.object),
+        MemberExpression::StaticMemberExpression(m) => expression_is_or_contains_call(&m.object),
+        MemberExpression::PrivateFieldExpression(m) => expression_is_or_contains_call(&m.object),
     }
 }
 
@@ -143,12 +137,12 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ArrayExpression<'a>> {
 impl<'a> NeedsParentheses<'a> for AstNode<'a, ObjectExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
         let parent = self.parent;
-        
+
         // Object expressions don't need parentheses when used as function arguments
         if crate::utils::is_expression_used_as_call_argument(self.span, parent) {
             return false;
         }
-        
+
         is_class_extends(parent, self.span())
             || is_first_in_statement(
                 self.span,
@@ -219,7 +213,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, CallExpression<'a>> {
         if let AstNodes::NewExpression(new_expr) = self.parent {
             return new_expr.callee.span() == self.span();
         }
-        
+
         matches!(self.parent, AstNodes::ExportDefaultDeclaration(_)) && {
             let callee = &self.callee;
             let callee_span = callee.span();
@@ -240,7 +234,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, CallExpression<'a>> {
 impl<'a> NeedsParentheses<'a> for AstNode<'a, NewExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
         let parent = self.parent;
-        
+
         // New expressions with call expressions as callees need parentheses when being called
         if let AstNodes::CallExpression(call) = parent {
             if call.callee.span() == self.span() {
@@ -250,7 +244,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, NewExpression<'a>> {
                 }
             }
         }
-        
+
         is_class_extends(parent, self.span())
     }
 }
@@ -491,12 +485,12 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Class<'a>> {
             return false;
         }
         let parent = self.parent;
-        
+
         // Class expressions don't need parentheses when used as function arguments
         if crate::utils::is_expression_used_as_call_argument(self.span, parent) {
             return false;
         }
-        
+
         match parent {
             AstNodes::ExportDefaultDeclaration(_) => true,
             _ => is_first_in_statement(
