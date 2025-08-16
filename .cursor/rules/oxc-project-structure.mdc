@@ -1,0 +1,82 @@
+---
+description: Oxc Project Structure
+alwaysApply: true
+---
+# OXC Project Structure and Conventions
+
+## Project Overview
+This is the OXC (Oxidation Compiler) project, a collection of JavaScript/TypeScript tools written in Rust.
+
+## Key Directories
+
+### Core Crates
+- **[crates/oxc_linter/](mdc:crates/oxc_linter/)** - The main linting engine with ESLint-compatible rules
+- **[crates/oxc_parser/](mdc:crates/oxc_parser/)** - JavaScript/TypeScript parser
+- **[crates/oxc_ast/](mdc:crates/oxc_ast/)** - Abstract Syntax Tree definitions
+- **[crates/oxc_semantic/](mdc:crates/oxc_semantic/)** - Semantic analysis and symbol resolution
+- **[crates/oxc_span/](mdc:crates/oxc_span/)** - Source location tracking
+
+### Linter Rules Organization
+Rules are organized by source:
+- **`eslint/`** - ESLint rule implementations
+- **`typescript/`** - TypeScript-ESLint rule implementations
+- **`jest/`** - Jest plugin rule implementations
+- **`react/`** - React plugin rule implementations
+- **`oxc/`** - OXC-specific rules (performance, etc.)
+
+## Coding Conventions
+
+### Rule Implementation Pattern
+Each linting rule follows this structure:
+```rust
+// 1. Diagnostic function
+fn rule_name_diagnostic(span: Span) -> OxcDiagnostic { /* */ }
+
+// 2. Rule struct
+#[derive(Debug, Default, Clone)]
+pub struct RuleName;
+
+// 3. Rule declaration with documentation
+declare_oxc_lint!(/* */);
+
+// 4. Rule implementation
+impl Rule for RuleName {
+    fn run<'a>(&self, node: &AstNode<'a>, ctx: &LintContext<'a>) { /* */ }
+}
+
+// 5. Tests
+#[test]
+fn test() { /* */ }
+```
+
+### Helper Function Organization
+- Place helper functions after the main `impl Rule` block
+- Use descriptive names that clearly indicate purpose
+- Keep functions focused on single responsibilities
+- Document complex logic with inline comments
+
+### Error Handling
+- Use `Option` and `Result` types appropriately
+- Prefer early returns with guard clauses
+- Use `?` operator for clean error propagation
+- Avoid `unwrap()` in favor of explicit error handling
+
+## Testing Conventions
+- Each rule must have comprehensive tests in a `#[test]` function
+- Use the `Tester` framework: `Tester::new(RuleName::NAME, RuleName::PLUGIN, pass, fail)`
+- Include both positive (pass) and negative (fail) test cases
+- Test edge cases and complex scenarios
+
+## Performance Considerations
+- Lint rules are called frequently, so optimize for performance
+- Avoid unnecessary allocations in hot paths
+- Use `&str` instead of `String` when possible
+- Consider algorithmic complexity of rule logic
+
+## Contributing Guidelines
+- Follow the established patterns in existing rules
+- Extract complex logic into well-named helper functions
+- Ensure comprehensive test coverage
+- Document complex algorithms or domain-specific logic
+- Run `cargo test` to verify all tests pass
+---
