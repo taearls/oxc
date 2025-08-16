@@ -329,24 +329,21 @@ impl<'a> Format<'a> for BinaryLeftOrRightSide<'a, '_> {
                     }
                 });
 
-                let parent = binary_like_expression.parent();
-
                 // Doesn't match prettier that only distinguishes between logical and binary
-                let should_group =
-                    !(is_same_binary_expression_kind(binary_like_expression, parent)
-                        || is_same_binary_expression_kind(
-                            binary_like_expression,
-                            binary_like_expression.left().as_ast_nodes(),
-                        )
-                        || is_same_binary_expression_kind(
-                            binary_like_expression,
-                            right.as_ast_nodes(),
-                        )
-                        || (*inside_parenthesis
-                            && matches!(
-                                binary_like_expression,
-                                BinaryLikeExpression::LogicalExpression(_)
-                            )));
+                let should_group = !(is_same_binary_expression_kind(
+                    binary_like_expression,
+                    binary_like_expression.parent(),
+                ) || is_same_binary_expression_kind(
+                    binary_like_expression,
+                    binary_like_expression.left().as_ast_nodes(),
+                ) || is_same_binary_expression_kind(
+                    binary_like_expression,
+                    right.as_ast_nodes(),
+                ) || (*inside_parenthesis
+                    && matches!(
+                        binary_like_expression,
+                        BinaryLikeExpression::LogicalExpression(_)
+                    )));
 
                 if should_group {
                     // `left` side has printed before `right` side, so that trailing comments of `left` side has been printed,
@@ -417,7 +414,6 @@ fn split_into_left_and_right_sides<'a, 'b>(
         items: &mut Vec<BinaryLeftOrRightSide<'a, 'b>>,
     ) {
         let left = binary.left();
-        let right = binary.right();
 
         if binary.can_flatten() {
             // We can flatten the left hand side, so we need to check if we have a nested binary expression
