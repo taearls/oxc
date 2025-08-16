@@ -487,6 +487,11 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Class<'a>> {
         }
         let parent = self.parent;
 
+        // Decorated class expressions need parentheses when used in extends clause
+        if !self.decorators.is_empty() && is_class_extends(parent, self.span) {
+            return true;
+        }
+
         // Class expressions don't need parentheses when used as function arguments
         if is_expression_used_as_call_argument(self.span, parent) {
             return false;
