@@ -11,6 +11,7 @@ use crate::{
     Format,
     formatter::Formatter,
     generated::ast_nodes::{AstNode, AstNodes},
+    utils::is_expression_used_as_call_argument,
     write::{BinaryLikeExpression, ExpressionLeftSide, should_flatten},
 };
 
@@ -139,7 +140,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ObjectExpression<'a>> {
         let parent = self.parent;
 
         // Object expressions don't need parentheses when used as function arguments
-        if crate::utils::is_expression_used_as_call_argument(self.span, parent) {
+        if is_expression_used_as_call_argument(self.span, parent) {
             return false;
         }
 
@@ -487,7 +488,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Class<'a>> {
         let parent = self.parent;
 
         // Class expressions don't need parentheses when used as function arguments
-        if crate::utils::is_expression_used_as_call_argument(self.span, parent) {
+        if is_expression_used_as_call_argument(self.span, parent) {
             return false;
         }
 
