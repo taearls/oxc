@@ -81,7 +81,6 @@ pub fn get_boolean_ancestor<'a, 'b>(
 ) -> (&'b AstNode<'a>, bool) {
     let mut is_negative = false;
     let mut cur = node;
-
     loop {
         if let Some(parent) = outermost_paren_parent(cur, ctx) {
             let kind = parent.kind();
@@ -94,7 +93,6 @@ pub fn get_boolean_ancestor<'a, 'b>(
                 cur = parent;
                 continue;
             }
-
             break;
         }
         break;
