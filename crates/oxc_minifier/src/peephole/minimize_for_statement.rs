@@ -46,7 +46,7 @@ impl<'a> PeepholeOptimizations {
                 Expression::UnaryExpression(unary_expr) if unary_expr.operator.is_not() => {
                     unary_expr.unbox().argument
                 }
-                e => self.minimize_not(e.span(), e, ctx),
+                e => Self::minimize_not(e.span(), e, ctx),
             };
 
             if let Some(test) = &mut for_stmt.test {

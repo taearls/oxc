@@ -158,12 +158,17 @@ impl<'a> PeepholeOptimizations {
                             {
                                 // "if (a, b) return c; return d;" => "return a, b ? c : d;"
                                 let test = sequence_expr.expressions.pop().unwrap();
-                                let mut b =
-                                    self.minimize_conditional(prev_if.span, test, left, right, ctx);
+                                let mut b = Self::minimize_conditional(
+                                    prev_if.span,
+                                    test,
+                                    left,
+                                    right,
+                                    ctx,
+                                );
                                 Self::join_sequence(&mut prev_if.test, &mut b, ctx)
                             } else {
                                 // "if (a) return b; return c;" => "return a ? b : c;"
-                                self.minimize_conditional(
+                                Self::minimize_conditional(
                                     prev_if.span,
                                     prev_if.test.take_in(ctx.ast),
                                     left,
@@ -243,12 +248,17 @@ impl<'a> PeepholeOptimizations {
                             {
                                 // "if (a, b) throw c; throw d;" => "throw a, b ? c : d;"
                                 let test = sequence_expr.expressions.pop().unwrap();
-                                let mut b =
-                                    self.minimize_conditional(prev_if.span, test, left, right, ctx);
+                                let mut b = Self::minimize_conditional(
+                                    prev_if.span,
+                                    test,
+                                    left,
+                                    right,
+                                    ctx,
+                                );
                                 Self::join_sequence(&mut prev_if.test, &mut b, ctx)
                             } else {
                                 // "if (a) throw b; throw c;" => "throw a ? b : c;"
-                                self.minimize_conditional(
+                                Self::minimize_conditional(
                                     prev_if.span,
                                     prev_if.test.take_in(ctx.ast),
                                     left,
@@ -469,7 +479,7 @@ impl<'a> PeepholeOptimizations {
                         // "if (a) continue c; if (b) continue c;" => "if (a || b) continue c;"
                         // "if (a) return c; if (b) return c;" => "if (a || b) return c;"
                         // "if (a) throw c; if (b) throw c;" => "if (a || b) throw c;"
-                        if_stmt.test = self.join_with_left_associative_op(
+                        if_stmt.test = Self::join_with_left_associative_op(
                             if_stmt.test.span(),
                             LogicalOperator::Or,
                             prev_if_stmt.test.take_in(ctx.ast),
@@ -545,8 +555,8 @@ impl<'a> PeepholeOptimizations {
                             body[0].span()
                         };
                         let test = if_stmt.test.take_in(ctx.ast);
-                        let mut test = self.minimize_not(test.span(), test, ctx);
-                        self.try_fold_expr_in_boolean_context(&mut test, ctx);
+                        let mut test = Self::minimize_not(test.span(), test, ctx);
+                        Self::try_fold_expr_in_boolean_context(&mut test, ctx);
                         let consequent = if body.len() == 1 {
                             body.remove(0)
                         } else {
@@ -556,8 +566,7 @@ impl<'a> PeepholeOptimizations {
                             Statement::BlockStatement(ctx.ast.alloc(block_stmt))
                         };
                         let mut if_stmt = ctx.ast.if_statement(test.span(), test, consequent, None);
-                        let if_stmt = self
-                            .try_minimize_if(&mut if_stmt, ctx)
+                        let if_stmt = Self::try_minimize_if(&mut if_stmt, ctx)
                             .unwrap_or_else(|| Statement::IfStatement(ctx.ast.alloc(if_stmt)));
                         result.push(if_stmt);
                         ctx.state.changed = true;
