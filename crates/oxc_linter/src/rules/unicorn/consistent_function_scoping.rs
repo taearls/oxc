@@ -261,9 +261,11 @@ impl Rule for ConsistentFunctionScoping {
 
         if matches!(
             outermost_paren_parent(node, ctx).map(AstNode::kind),
-            Some(AstKind::ReturnStatement(_))
-                | Some(AstKind::CallExpression(_))
-                | Some(AstKind::NewExpression(_))
+            Some(
+                AstKind::ReturnStatement(_)
+                    | AstKind::CallExpression(_)
+                    | AstKind::NewExpression(_)
+            )
         ) {
             return;
         }
