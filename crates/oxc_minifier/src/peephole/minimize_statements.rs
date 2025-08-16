@@ -43,7 +43,7 @@ impl<'a> PeepholeOptimizations {
                 keep_var.visit_statement(&stmt);
                 continue;
             }
-            if PeepholeOptimizations::minimize_statement(
+            if Self::minimize_statement(
                 stmt,
                 i,
                 &mut old_stmts,
