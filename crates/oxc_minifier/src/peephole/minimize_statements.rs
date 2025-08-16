@@ -30,7 +30,7 @@ impl<'a> PeepholeOptimizations {
     ///
     /// ## MinimizeExitPoints:
     /// <https://github.com/google/closure-compiler/blob/v20240609/src/com/google/javascript/jscomp/MinimizeExitPoints.java>
-    pub fn minimize_statements(&self, stmts: &mut Vec<'a, Statement<'a>>, ctx: &mut Ctx<'a, '_>) {
+    pub fn minimize_statements(stmts: &mut Vec<'a, Statement<'a>>, ctx: &mut Ctx<'a, '_>) {
         let mut old_stmts = stmts.take_in(ctx.ast);
         let mut is_control_flow_dead = false;
         let mut keep_var = KeepVar::new(ctx.ast);
@@ -43,9 +43,15 @@ impl<'a> PeepholeOptimizations {
                 keep_var.visit_statement(&stmt);
                 continue;
             }
-            if self
-                .minimize_statement(stmt, i, &mut old_stmts, stmts, &mut is_control_flow_dead, ctx)
-                .is_break()
+            if PeepholeOptimizations::minimize_statement(
+                stmt,
+                i,
+                &mut old_stmts,
+                stmts,
+                &mut is_control_flow_dead,
+                ctx,
+            )
+            .is_break()
             {
                 break;
             }
@@ -277,7 +283,6 @@ impl<'a> PeepholeOptimizations {
     }
 
     fn minimize_statement(
-        &self,
         stmt: Statement<'a>,
         i: usize,
         stmts: &mut Vec<'a, Statement<'a>>,
@@ -297,35 +302,35 @@ impl<'a> PeepholeOptimizations {
                 result.push(Statement::ContinueStatement(s));
             }
             Statement::VariableDeclaration(var_decl) => {
-                self.handle_variable_declaration(var_decl, result, ctx);
+                Self::handle_variable_declaration(var_decl, result, ctx);
             }
             Statement::ExpressionStatement(expr_stmt) => {
-                self.handle_expression_statement(expr_stmt, result, ctx);
+                Self::handle_expression_statement(expr_stmt, result, ctx);
             }
             Statement::SwitchStatement(switch_stmt) => {
-                self.handle_switch_statement(switch_stmt, result, ctx);
+                Self::handle_switch_statement(switch_stmt, result, ctx);
             }
             Statement::IfStatement(if_stmt) => {
-                if self.handle_if_statement(i, stmts, if_stmt, result, ctx).is_break() {
+                if Self::handle_if_statement(i, stmts, if_stmt, result, ctx).is_break() {
                     return ControlFlow::Break(());
                 }
             }
             Statement::ReturnStatement(ret_stmt) => {
-                self.handle_return_statement(ret_stmt, result, is_control_flow_dead, ctx);
+                Self::handle_return_statement(ret_stmt, result, is_control_flow_dead, ctx);
             }
             Statement::ThrowStatement(throw_stmt) => {
-                self.handle_throw_statement(throw_stmt, result, is_control_flow_dead, ctx);
+                Self::handle_throw_statement(throw_stmt, result, is_control_flow_dead, ctx);
             }
             Statement::ForStatement(for_stmt) => {
-                self.handle_for_statement(for_stmt, result, ctx);
+                Self::handle_for_statement(for_stmt, result, ctx);
             }
             Statement::ForInStatement(for_in_stmt) => {
-                self.handle_for_in_statement(for_in_stmt, result, ctx);
+                Self::handle_for_in_statement(for_in_stmt, result, ctx);
             }
             Statement::ForOfStatement(for_of_stmt) => {
-                self.handle_for_of_statement(for_of_stmt, result, ctx);
+                Self::handle_for_of_statement(for_of_stmt, result, ctx);
             }
-            Statement::BlockStatement(block_stmt) => self.handle_block(result, block_stmt, ctx),
+            Statement::BlockStatement(block_stmt) => Self::handle_block(result, block_stmt, ctx),
             stmt => result.push(stmt),
         }
         ControlFlow::Continue(())
@@ -366,7 +371,6 @@ impl<'a> PeepholeOptimizations {
     /// * remove the variable declarator if it is unused
     /// * keep the initializer if it has side effects
     fn handle_variable_declaration(
-        &self,
         var_decl: Box<'a, VariableDeclaration<'a>>,
         result: &mut Vec<'a, Statement<'a>>,
 
@@ -409,10 +413,8 @@ impl<'a> PeepholeOptimizations {
     }
 
     fn handle_expression_statement(
-        &self,
         mut expr_stmt: Box<'a, ExpressionStatement<'a>>,
         result: &mut Vec<'a, Statement<'a>>,
-
         ctx: &mut Ctx<'a, '_>,
     ) {
         if ctx.options().sequences {
@@ -428,10 +430,8 @@ impl<'a> PeepholeOptimizations {
     }
 
     fn handle_switch_statement(
-        &self,
         mut switch_stmt: Box<'a, SwitchStatement<'a>>,
         result: &mut Vec<'a, Statement<'a>>,
-
         ctx: &mut Ctx<'a, '_>,
     ) {
         if ctx.options().sequences {
@@ -448,12 +448,10 @@ impl<'a> PeepholeOptimizations {
 
     #[expect(clippy::cast_possible_truncation)]
     fn handle_if_statement(
-        &self,
         i: usize,
         stmts: &mut Vec<'a, Statement<'a>>,
         mut if_stmt: Box<'a, IfStatement<'a>>,
         result: &mut Vec<'a, Statement<'a>>,
-
         ctx: &mut Ctx<'a, '_>,
     ) -> ControlFlow<()> {
         // Absorb a previous expression statement
@@ -548,7 +546,7 @@ impl<'a> PeepholeOptimizations {
                             ctx.ast.vec_from_iter(drained_stmts)
                         };
 
-                        self.minimize_statements(&mut body, ctx);
+                        Self::minimize_statements(&mut body, ctx);
                         let span = if body.is_empty() {
                             if_stmt.consequent.span()
                         } else {
@@ -582,7 +580,7 @@ impl<'a> PeepholeOptimizations {
                             if if_stmt.consequent.is_jump_statement() {
                                 if let Some(stmt) = if_stmt.alternate.take() {
                                     if let Statement::BlockStatement(block_stmt) = stmt {
-                                        self.handle_block(result, block_stmt, ctx);
+                                        Self::handle_block(result, block_stmt, ctx);
                                     } else {
                                         result.push(stmt);
                                         ctx.state.changed = true;
@@ -603,7 +601,6 @@ impl<'a> PeepholeOptimizations {
     }
 
     fn handle_return_statement(
-        &self,
         mut ret_stmt: Box<'a, ReturnStatement<'a>>,
         result: &mut Vec<'a, Statement<'a>>,
         is_control_flow_dead: &mut bool,
@@ -625,7 +622,6 @@ impl<'a> PeepholeOptimizations {
     }
 
     fn handle_throw_statement(
-        &self,
         mut throw_stmt: Box<'a, ThrowStatement<'a>>,
         result: &mut Vec<'a, Statement<'a>>,
         is_control_flow_dead: &mut bool,
@@ -646,7 +642,6 @@ impl<'a> PeepholeOptimizations {
     }
 
     fn handle_for_statement(
-        &self,
         mut for_stmt: Box<'a, ForStatement<'a>>,
         result: &mut Vec<'a, Statement<'a>>,
 
@@ -699,7 +694,6 @@ impl<'a> PeepholeOptimizations {
     }
 
     fn handle_for_in_statement(
-        &self,
         mut for_in_stmt: Box<'a, ForInStatement<'a>>,
         result: &mut Vec<'a, Statement<'a>>,
 
@@ -774,7 +768,6 @@ impl<'a> PeepholeOptimizations {
     }
 
     fn handle_for_of_statement(
-        &self,
         mut for_of_stmt: Box<'a, ForOfStatement<'a>>,
         result: &mut Vec<'a, Statement<'a>>,
         ctx: &mut Ctx<'a, '_>,
@@ -813,7 +806,6 @@ impl<'a> PeepholeOptimizations {
 
     /// `appendIfOrLabelBodyPreservingScope`: <https://github.com/evanw/esbuild/blob/v0.24.2/internal/js_ast/js_parser.go#L9852>
     fn handle_block(
-        &self,
         result: &mut Vec<'a, Statement<'a>>,
         block_stmt: Box<'a, BlockStatement<'a>>,
         ctx: &mut Ctx<'a, '_>,
