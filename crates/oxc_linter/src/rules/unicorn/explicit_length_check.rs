@@ -11,7 +11,7 @@ use crate::{
     AstNode,
     context::LintContext,
     rule::Rule,
-    utils::{get_boolean_ancestor, is_boolean_node},
+    utils::{get_boolean_ancestor, is_boolean_call, is_boolean_node},
 };
 
 fn non_zero(span: Span, prop_name: &str, op_and_rhs: &str, help: Option<String>) -> OxcDiagnostic {
@@ -198,7 +198,27 @@ impl ExplicitLengthCheck {
             }
         };
 
-        let span = kind.span();
+        // Determine the span to replace
+        let replacement_span = match kind {
+            // For Boolean calls with logical expressions, only replace the member expression
+            AstKind::CallExpression(call) if is_boolean_call(&kind) => {
+                if let Some(arg) = call.arguments.first() {
+                    if matches!(arg.as_expression(), Some(Expression::LogicalExpression(_))) {
+                        // Only replace the member expression itself
+                        static_member_expr.span
+                    } else {
+                        // Replace the entire Boolean call for simple cases like Boolean(foo.length)
+                        kind.span()
+                    }
+                } else {
+                    kind.span()
+                }
+            }
+            // For other cases, use the node's span
+            _ => kind.span(),
+        };
+
+        let span = replacement_span;
         let mut need_pad_start = false;
         let mut need_pad_end = false;
         let parent = ctx.nodes().parent_kind(node.id());
@@ -214,10 +234,11 @@ impl ExplicitLengthCheck {
         }
 
         let fixed = format!(
-            "{}{}{} {}{}{}",
+            "{}{}{}{}{}{}{}",
             if need_pad_start { " " } else { "" },
             if need_paren { "(" } else { "" },
             static_member_expr.span.source_text(ctx.source_text()),
+            " ",
             check_code,
             if need_paren { ")" } else { "" },
             if need_pad_end { " " } else { "" },

@@ -9,7 +9,7 @@ use oxc_span::{Atom, GetSpan, Span};
 
 use crate::{
     AstNode,
-    ast_util::{get_function_like_declaration, nth_outermost_paren_parent, outermost_paren_parent},
+    ast_util::{get_function_like_declaration, outermost_paren_parent},
     context::LintContext,
     rule::Rule,
     utils::is_react_hook,
@@ -261,7 +261,11 @@ impl Rule for ConsistentFunctionScoping {
 
         if matches!(
             outermost_paren_parent(node, ctx).map(AstNode::kind),
-            Some(AstKind::ReturnStatement(_) | AstKind::Argument(_))
+            Some(
+                AstKind::ReturnStatement(_)
+                    | AstKind::CallExpression(_)
+                    | AstKind::NewExpression(_)
+            )
         ) {
             return;
         }
@@ -349,15 +353,49 @@ impl<'a> Visit<'a> for ReferencesFinder {
 }
 
 fn is_parent_scope_iife<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>) -> bool {
-    if let Some(parent_node) = outermost_paren_parent(node, ctx) {
-        if let Some(parent_node) = outermost_paren_parent(parent_node, ctx) {
-            if matches!(
-                parent_node.kind(),
-                AstKind::Function(_) | AstKind::ArrowFunctionExpression(_)
-            ) {
-                if let Some(parent_node) = outermost_paren_parent(parent_node, ctx) {
-                    return matches!(parent_node.kind(), AstKind::CallExpression(_));
-                }
+    // Look for the pattern where a function is declared inside an IIFE
+    // IIFE pattern: (function() { function inner() {} })() or (() => { function inner() {} })()
+
+    // Find the containing function/arrow function by traversing ancestors
+    let ancestors: Vec<&AstNode> = ctx.nodes().ancestors(node.id()).collect();
+    let mut containing_function = None;
+
+    for ancestor in ancestors {
+        match ancestor.kind() {
+            AstKind::Function(_) | AstKind::ArrowFunctionExpression(_) => {
+                containing_function = Some(ancestor);
+                break;
+            }
+            _ => {}
+        }
+    }
+
+    // If we found a containing function, check if it's immediately invoked
+    if let Some(func_node) = containing_function {
+        // Check if this function is directly called (IIFE pattern)
+        let func_parent = outermost_paren_parent(func_node, ctx);
+
+        if let Some(parent) = func_parent {
+            if let AstKind::CallExpression(call_expr) = parent.kind() {
+                // Check if the function is the callee of the call expression
+                // Handle both direct function call and parenthesized function call
+                let is_callee = match &call_expr.callee {
+                    Expression::ParenthesizedExpression(paren_expr) => {
+                        paren_expr.span() == func_node.span()
+                            || match &paren_expr.expression {
+                                Expression::FunctionExpression(func_expr) => {
+                                    func_expr.span == func_node.span()
+                                }
+                                Expression::ArrowFunctionExpression(arrow_expr) => {
+                                    arrow_expr.span == func_node.span()
+                                }
+                                _ => false,
+                            }
+                    }
+                    _ => call_expr.callee.span() == func_node.span(),
+                };
+
+                return is_callee;
             }
         }
     }
@@ -366,13 +404,36 @@ fn is_parent_scope_iife<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>) -> bool {
 }
 
 fn is_in_react_hook<'a>(node: &AstNode<'a>, ctx: &LintContext<'a>) -> bool {
-    // we want the 3rd outermost parent
-    // parents are: function body -> function -> argument -> call expression
-    if let Some(parent) = nth_outermost_paren_parent(node, ctx, 3) {
-        if let AstKind::CallExpression(call_expr) = parent.kind() {
-            return is_react_hook(&call_expr.callee);
+    // Check if this function is directly inside a React hook callback
+    // We want to exempt functions that are direct arguments to React hooks,
+    // but not nested functions within those callbacks
+
+    // Find the containing function/arrow function
+    let ancestors: Vec<&AstNode> = ctx.nodes().ancestors(node.id()).collect();
+    let mut containing_function = None;
+
+    for ancestor in ancestors {
+        match ancestor.kind() {
+            AstKind::Function(_) | AstKind::ArrowFunctionExpression(_) => {
+                containing_function = Some(ancestor);
+                break;
+            }
+            _ => {}
         }
     }
+
+    // If this function is not directly inside another function, check if it's a React hook callback
+    if let Some(func_node) = containing_function {
+        // Check if the containing function is directly an argument to a React hook
+        let func_parent = ctx.nodes().parent_node(func_node.id());
+        if let AstKind::CallExpression(call_expr) = func_parent.kind() {
+            // Check if this containing function is directly in the arguments array
+            if call_expr.arguments.iter().any(|arg| arg.span() == func_node.span()) {
+                return is_react_hook(&call_expr.callee);
+            }
+        }
+    }
+
     false
 }
 
