@@ -248,6 +248,7 @@ fn test() {
         r"
             class Test {
                 #prop = undefined
+
                 getProp() {
                     return this.#prop ??= 0
                 }
@@ -256,6 +257,7 @@ fn test() {
         r"
             class Test {
                 #prop = undefined
+
                 getProp() {
                     return this.#prop ||= 0
                 }
@@ -264,6 +266,7 @@ fn test() {
         r"
             class Test {
                 #prop = undefined
+
                 getProp() {
                     return this.#prop += 0
                 }
