@@ -339,7 +339,7 @@ impl<'a> PeepholeOptimizations {
     fn join_sequence(
         a: &mut Expression<'a>,
         b: &mut Expression<'a>,
-        ctx: &mut Ctx<'a, '_>,
+        ctx: &Ctx<'a, '_>,
     ) -> Expression<'a> {
         let a = a.take_in(ctx.ast);
         let b = b.take_in(ctx.ast);
@@ -415,6 +415,7 @@ impl<'a> PeepholeOptimizations {
     fn handle_expression_statement(
         mut expr_stmt: Box<'a, ExpressionStatement<'a>>,
         result: &mut Vec<'a, Statement<'a>>,
+
         ctx: &mut Ctx<'a, '_>,
     ) {
         if ctx.options().sequences {
@@ -432,6 +433,7 @@ impl<'a> PeepholeOptimizations {
     fn handle_switch_statement(
         mut switch_stmt: Box<'a, SwitchStatement<'a>>,
         result: &mut Vec<'a, Statement<'a>>,
+
         ctx: &mut Ctx<'a, '_>,
     ) {
         if ctx.options().sequences {
@@ -452,6 +454,7 @@ impl<'a> PeepholeOptimizations {
         stmts: &mut Vec<'a, Statement<'a>>,
         mut if_stmt: Box<'a, IfStatement<'a>>,
         result: &mut Vec<'a, Statement<'a>>,
+
         ctx: &mut Ctx<'a, '_>,
     ) -> ControlFlow<()> {
         // Absorb a previous expression statement

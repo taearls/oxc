@@ -384,6 +384,7 @@ impl<'a> PeepholeOptimizations {
             (Some(true), Some(false)) => {
                 let test = expr.test.take_in(ctx.ast);
                 let test = Self::minimize_not(expr.span, test, ctx);
+                let test = Self::minimize_not(expr.span, test, ctx);
                 return Some(test);
             }
             (Some(false), Some(true)) => {

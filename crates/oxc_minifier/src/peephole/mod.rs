@@ -1,5 +1,3 @@
-#![allow(clippy::unused_self)]
-
 mod convert_to_dotted_properties;
 mod fold_constants;
 mod inline;
@@ -133,25 +131,50 @@ impl<'a> Traverse<'a, MinifierState<'a>> for PeepholeOptimizations {
     }
 
     fn exit_statement(&mut self, stmt: &mut Statement<'a>, ctx: &mut TraverseCtx<'a>) {
-        let mut ctx = Ctx::new(ctx);
-        self.try_fold_stmt_in_boolean_context(stmt, &mut ctx);
-        self.remove_dead_code_exit_statement(stmt, &mut ctx);
-        if let Statement::IfStatement(if_stmt) = stmt {
-            if let Some(folded_stmt) = Self::try_minimize_if(if_stmt, &mut ctx) {
-                *stmt = folded_stmt;
-                ctx.state.changed = true;
+        let ctx = &mut Ctx::new(ctx);
+        match stmt {
+            Statement::BlockStatement(_) => Self::try_optimize_block(stmt, ctx),
+            Statement::IfStatement(s) => {
+                Self::try_fold_expr_in_boolean_context(&mut s.test, ctx);
+                Self::try_fold_if(stmt, ctx);
+                if let Statement::IfStatement(if_stmt) = stmt {
+                    if let Some(folded_stmt) = Self::try_minimize_if(if_stmt, ctx) {
+                        *stmt = folded_stmt;
+                        ctx.state.changed = true;
+                    }
+                }
             }
+            Statement::WhileStatement(s) => {
+                Self::try_fold_expr_in_boolean_context(&mut s.test, ctx);
+            }
+            Statement::ForStatement(s) => {
+                if let Some(test) = &mut s.test {
+                    Self::try_fold_expr_in_boolean_context(test, ctx);
+                }
+                Self::try_fold_for(stmt, ctx);
+            }
+            Statement::DoWhileStatement(s) => {
+                Self::try_fold_expr_in_boolean_context(&mut s.test, ctx);
+            }
+            Statement::TryStatement(_) => Self::try_fold_try(stmt, ctx),
+            Statement::LabeledStatement(_) => Self::try_fold_labeled(stmt, ctx),
+            Statement::FunctionDeclaration(_) => {
+                Self::remove_unused_function_declaration(stmt, ctx);
+            }
+            Statement::ClassDeclaration(_) => Self::remove_unused_class_declaration(stmt, ctx),
+            _ => {}
         }
+        Self::try_fold_expression_stmt(stmt, ctx);
     }
 
     fn exit_for_statement(&mut self, stmt: &mut ForStatement<'a>, ctx: &mut TraverseCtx<'a>) {
         let mut ctx = Ctx::new(ctx);
-        PeepholeOptimizations::minimize_for_statement(stmt, &mut ctx);
+        Self::substitute_for_statement(stmt, &mut ctx);
+        Self::minimize_for_statement(stmt, &mut ctx);
     }
 
     fn exit_return_statement(&mut self, stmt: &mut ReturnStatement<'a>, ctx: &mut TraverseCtx<'a>) {
         let mut ctx = Ctx::new(ctx);
-
         Self::substitute_return_statement(stmt, &mut ctx);
     }
 
@@ -233,7 +256,7 @@ impl<'a> Traverse<'a, MinifierState<'a>> for PeepholeOptimizations {
                 Self::try_compress_normal_assignment_to_combined_logical_assignment(e, ctx);
                 Self::try_compress_normal_assignment_to_combined_assignment(e, ctx);
                 Self::try_compress_assignment_to_update_expression(expr, ctx);
-                Self::remove_unused_assignment_expression(expr, ctx);
+                Self::remove_unused_assignment_expr(expr, ctx);
             }
             Expression::SequenceExpression(_) => Self::try_fold_sequence_expression(expr, ctx),
             Expression::ArrowFunctionExpression(e) => Self::try_compress_arrow_expression(e, ctx),
@@ -272,7 +295,6 @@ impl<'a> Traverse<'a, MinifierState<'a>> for PeepholeOptimizations {
 
     fn exit_object_property(&mut self, prop: &mut ObjectProperty<'a>, ctx: &mut TraverseCtx<'a>) {
         let mut ctx = Ctx::new(ctx);
-
         Self::substitute_object_property(prop, &mut ctx);
     }
 
@@ -282,7 +304,6 @@ impl<'a> Traverse<'a, MinifierState<'a>> for PeepholeOptimizations {
         ctx: &mut TraverseCtx<'a>,
     ) {
         let mut ctx = Ctx::new(ctx);
-
         Self::substitute_assignment_target_property(node, &mut ctx);
     }
 
@@ -342,8 +363,8 @@ impl<'a> Traverse<'a, MinifierState<'a>> for PeepholeOptimizations {
     }
 
     fn exit_class_body(&mut self, body: &mut ClassBody<'a>, ctx: &mut TraverseCtx<'a>) {
-        let ctx = Ctx::new(ctx);
-        Self::remove_dead_code_exit_class_body(body, &ctx);
+        let mut ctx = Ctx::new(ctx);
+        Self::remove_dead_code_exit_class_body(body, &mut ctx);
     }
 
     fn exit_catch_clause(&mut self, catch: &mut CatchClause<'a>, ctx: &mut TraverseCtx<'a>) {
@@ -353,14 +374,13 @@ impl<'a> Traverse<'a, MinifierState<'a>> for PeepholeOptimizations {
 }
 
 pub struct DeadCodeElimination {
-    inner: PeepholeOptimizations,
     iteration: u8,
     changed: bool,
 }
 
 impl<'a> DeadCodeElimination {
     pub fn new() -> Self {
-        Self { inner: PeepholeOptimizations::new(), iteration: 0, changed: false }
+        Self { iteration: 0, changed: false }
     }
 
     fn run_once(
@@ -399,15 +419,17 @@ impl<'a> Traverse<'a, MinifierState<'a>> for DeadCodeElimination {
     }
 
     fn exit_program(&mut self, program: &mut Program<'a>, ctx: &mut TraverseCtx<'a>) {
-        // Remove unused references by visiting the AST again and diff the collected references.
-        let refs_before =
-            ctx.scoping().resolved_references().flatten().copied().collect::<FxHashSet<_>>();
-        let mut counter = ReferencesCounter::default();
-        counter.visit_program(program);
-        for reference_id_to_remove in refs_before.difference(&counter.refs) {
-            ctx.scoping_mut().delete_reference(*reference_id_to_remove);
-        }
         self.changed = ctx.state.changed;
+        if self.changed {
+            // Remove unused references by visiting the AST again and diff the collected references.
+            let refs_before =
+                ctx.scoping().resolved_references().flatten().copied().collect::<FxHashSet<_>>();
+            let mut counter = ReferencesCounter::default();
+            counter.visit_program(program);
+            for reference_id_to_remove in refs_before.difference(&counter.refs) {
+                ctx.scoping_mut().delete_reference(*reference_id_to_remove);
+            }
+        }
     }
 
     fn exit_variable_declarator(
@@ -420,8 +442,24 @@ impl<'a> Traverse<'a, MinifierState<'a>> for DeadCodeElimination {
     }
 
     fn exit_statement(&mut self, stmt: &mut Statement<'a>, ctx: &mut TraverseCtx<'a>) {
-        let mut ctx = Ctx::new(ctx);
-        self.inner.remove_dead_code_exit_statement(stmt, &mut ctx);
+        let ctx = &mut Ctx::new(ctx);
+        match stmt {
+            Statement::BlockStatement(_) => PeepholeOptimizations::try_optimize_block(stmt, ctx),
+            Statement::IfStatement(_) => PeepholeOptimizations::try_fold_if(stmt, ctx),
+            Statement::ForStatement(_) => PeepholeOptimizations::try_fold_for(stmt, ctx),
+            Statement::TryStatement(_) => PeepholeOptimizations::try_fold_try(stmt, ctx),
+            Statement::LabeledStatement(_) => PeepholeOptimizations::try_fold_labeled(stmt, ctx),
+            Statement::FunctionDeclaration(_) => {
+                PeepholeOptimizations::remove_unused_function_declaration(stmt, ctx);
+            }
+            Statement::ClassDeclaration(_) => {
+                PeepholeOptimizations::remove_unused_class_declaration(stmt, ctx);
+            }
+            Statement::ExpressionStatement(_) => {
+                PeepholeOptimizations::try_fold_expression_stmt(stmt, ctx);
+            }
+            _ => {}
+        }
     }
 
     fn exit_statements(&mut self, stmts: &mut Vec<'a, Statement<'a>>, ctx: &mut TraverseCtx<'a>) {
@@ -433,7 +471,7 @@ impl<'a> Traverse<'a, MinifierState<'a>> for DeadCodeElimination {
         let ctx = &mut Ctx::new(ctx);
         match e {
             Expression::TemplateLiteral(t) => {
-                PeepholeOptimizations::inline_template_literal(t, ctx)
+                PeepholeOptimizations::inline_template_literal(t, ctx);
             }
             Expression::ObjectExpression(e) => PeepholeOptimizations::fold_object_exp(e, ctx),
             Expression::BinaryExpression(_) => {
@@ -457,10 +495,10 @@ impl<'a> Traverse<'a, MinifierState<'a>> for DeadCodeElimination {
                 PeepholeOptimizations::try_fold_conditional_expression(e, ctx);
             }
             Expression::SequenceExpression(_) => {
-                PeepholeOptimizations::try_fold_sequence_expression(e, ctx)
+                PeepholeOptimizations::try_fold_sequence_expression(e, ctx);
             }
             Expression::AssignmentExpression(_) => {
-                PeepholeOptimizations::remove_unused_assignment_expression(e, ctx);
+                PeepholeOptimizations::remove_unused_assignment_expr(e, ctx);
             }
             _ => {}
         }

@@ -165,7 +165,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, MemberExpression<'a>> {
         if let AstNodes::NewExpression(new_expr) = self.parent {
             if new_expr.callee.span() == self.span() {
                 // Check if the object of this member expression needs parens
-                return member_has_call_object(&**self);
+                return member_has_call_object(self);
             }
         }
         false
@@ -239,7 +239,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, NewExpression<'a>> {
         if let AstNodes::CallExpression(call) = parent {
             if call.callee.span() == self.span() {
                 // Only need parens if the new expression's callee is a call expression
-                if let Expression::CallExpression(_) = &(**self).callee {
+                if let Expression::CallExpression(_) = self.callee {
                     return true;
                 }
             }
