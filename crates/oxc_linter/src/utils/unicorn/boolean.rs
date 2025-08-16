@@ -90,17 +90,11 @@ pub fn get_boolean_ancestor<'a, 'b>(
                 cur = parent;
                 continue;
             }
-            // Check if parent is a Boolean call
             if is_boolean_call(&kind) {
                 cur = parent;
                 continue;
             }
-            // Check if parent's parent is a Boolean call (for arguments)
-            let parent_of_parent = ctx.nodes().parent_node(parent.id());
-            if is_boolean_call(&parent_of_parent.kind()) {
-                cur = parent_of_parent;
-                continue;
-            }
+
             break;
         }
         break;
