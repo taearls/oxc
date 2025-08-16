@@ -59,10 +59,14 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
         let call_expression =
             if let AstNodes::CallExpression(call) = self.parent { Some(call) } else { None };
 
-        let (is_commonjs_or_amd_call, is_test_call) = if let Some(call) = call_expression {
-            (is_commonjs_or_amd_call(self, call), is_test_call_expression(call))
+        let (is_commonjs_or_amd_call, is_test_call, is_angular_wrapper) = if let Some(call) = call_expression {
+            let is_angular = matches!(&call.callee,
+                Expression::Identifier(ident) if
+                matches!(ident.name.as_str(), "async" | "inject" | "fakeAsync" | "waitForAsync")
+            );
+            (is_commonjs_or_amd_call(self, call), is_test_call_expression(call), is_angular)
         } else {
-            (false, false)
+            (false, false, false)
         };
 
         let is_first_arg_string_literal_or_template = self.len() != 2
@@ -74,6 +78,20 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
                         | Argument::TaggedTemplateExpression(_)
                 )
             );
+
+        // Angular test wrappers should keep their arrow function arguments inline
+        if is_angular_wrapper && self.len() == 1 && self.first().is_some_and(|arg| 
+            matches!(arg.as_ref(), Argument::ArrowFunctionExpression(_))
+        ) {
+            return write!(
+                f,
+                [
+                    l_paren_token,
+                    format_once(|f| self.first().unwrap().fmt(f)),
+                    r_paren_token
+                ]
+            );
+        }
 
         if is_commonjs_or_amd_call
             || is_multiline_template_only_args(self, f.source_text())
