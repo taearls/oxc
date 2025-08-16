@@ -3,13 +3,14 @@ use crate::{
     context::{ContextHost, LintContext},
     fixer::{RuleFix, RuleFixer},
     rule::Rule,
+    utils::is_jsx_fragment,
 };
 use oxc_allocator::Vec as ArenaVec;
 use oxc_ast::{
     AstKind,
     ast::{
         JSXAttributeItem, JSXAttributeName, JSXChild, JSXElement, JSXElementName, JSXExpression,
-        JSXFragment, JSXMemberExpressionObject, JSXOpeningElement,
+        JSXFragment,
     },
 };
 use oxc_diagnostics::OxcDiagnostic;
@@ -321,22 +322,6 @@ fn is_html_element(elem_name: &JSXElementName) -> bool {
     ident.name.starts_with(char::is_lowercase)
 }
 
-fn is_jsx_fragment(elem: &JSXOpeningElement) -> bool {
-    match &elem.name {
-        JSXElementName::IdentifierReference(ident) => ident.name == "Fragment",
-        JSXElementName::MemberExpression(mem_expr) => {
-            if let JSXMemberExpressionObject::IdentifierReference(ident) = &mem_expr.object {
-                ident.name == "React" && mem_expr.property.name == "Fragment"
-            } else {
-                false
-            }
-        }
-        JSXElementName::NamespacedName(_)
-        | JSXElementName::Identifier(_)
-        | JSXElementName::ThisExpression(_) => false,
-    }
-}
-
 fn has_less_than_two_children(children: &oxc_allocator::Vec<'_, JSXChild<'_>>) -> bool {
     let non_padding_children = children.iter().filter(|v| is_padding_spaces(v)).collect::<Vec<_>>();
 
@@ -539,7 +524,7 @@ fn test() {
             r"
             const Comp = () => (
               <html>
-                
+
               </html>
             );
             ",
