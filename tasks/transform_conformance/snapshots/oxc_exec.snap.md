@@ -1,6 +1,6 @@
 commit: 98d18aa4
 
-node: v24.1.0
+node: v22.14.0
 
 Passed: 8 of 10 (80.00%)
 
