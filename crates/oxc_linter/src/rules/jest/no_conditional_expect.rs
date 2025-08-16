@@ -14,11 +14,6 @@ use crate::{
     },
 };
 
-// String constants to avoid repeated allocations
-const EXPECT_STR: &str = "expect";
-const FAIL_STR: &str = "fail";
-const CATCH_STR: &str = "catch";
-
 fn no_conditional_expect_diagnostic(span: Span) -> OxcDiagnostic {
     OxcDiagnostic::warn("Unexpected conditional expect")
         .with_help("Avoid calling `expect` conditionally")
@@ -141,7 +136,7 @@ impl Rule for NoConditionalExpect {
 
             // If not a Jest expect call, check if it's a regular expect call that might be in a function used by Jest
             if let Expression::Identifier(ident) = &call_expr.callee {
-                if ident.name == EXPECT_STR {
+                if ident.name == "expect" {
                     // Check if this expect call is inside a function that's used in Jest tests
                     if is_expect_in_jest_function_context(node, ctx) {
                         // Record visited nodes for avoid infinite loop.
@@ -160,66 +155,6 @@ impl Rule for NoConditionalExpect {
                             // Check if this expect call is in a finally block, which should be allowed
                             if !is_in_finally_block_simple(node, ctx) {
                                 ctx.diagnostic(no_conditional_expect_diagnostic(ident.span));
-                            }
-                        }
-                    }
-                }
-            }
-            // Also check member expressions like expect().toBe() or expect.fail()
-            else if let Expression::StaticMemberExpression(member) = &call_expr.callee {
-                if let Expression::Identifier(ident) = &member.object {
-                    if ident.name == EXPECT_STR {
-                        // Check if this is expect.fail, which should be allowed
-                        if member.property.name == FAIL_STR {
-                            return; // Don't flag expect.fail
-                        }
-
-                        // Check if this expect call is inside a function that's used in Jest tests
-                        if is_expect_in_jest_function_context(node, ctx) {
-                            // Record visited nodes for avoid infinite loop.
-                            let mut visited = FxHashSet::default();
-
-                            // When first visiting the node, we assume it's not in a conditional block.
-                            let (has_condition_or_catch, _) = check_parents(
-                                node,
-                                &mut visited,
-                                InConditional(false),
-                                InJestTest(false),
-                                ctx,
-                            );
-
-                            if matches!(has_condition_or_catch, InConditional(true)) {
-                                ctx.diagnostic(no_conditional_expect_diagnostic(ident.span));
-                            }
-                        }
-                    }
-                }
-                // Also check chained calls like expect().toBe()
-                else if let Expression::CallExpression(inner_call) = &member.object {
-                    if let Expression::Identifier(ident) = &inner_call.callee {
-                        if ident.name == EXPECT_STR {
-                            // Check if this expect call is inside a function that's used in Jest tests
-                            if is_expect_in_jest_function_context(node, ctx) {
-                                // Record visited nodes for avoid infinite loop.
-                                let mut visited = FxHashSet::default();
-
-                                // When first visiting the node, we assume it's not in a conditional block.
-                                let (has_condition_or_catch, _) = check_parents(
-                                    node,
-                                    &mut visited,
-                                    InConditional(false),
-                                    InJestTest(false),
-                                    ctx,
-                                );
-
-                                if matches!(has_condition_or_catch, InConditional(true)) {
-                                    // Check if this expect call is in a finally block, which should be allowed
-                                    if !is_in_finally_block_simple(node, ctx) {
-                                        ctx.diagnostic(no_conditional_expect_diagnostic(
-                                            ident.span,
-                                        ));
-                                    }
-                                }
                             }
                         }
                     }
@@ -356,7 +291,7 @@ fn check_parents<'a>(
 
             // Optimized catch detection
             if let Some(member_expr) = call_expr.callee.as_member_expression() {
-                if member_expr.static_property_name() == Some(CATCH_STR) {
+                if member_expr.static_property_name() == Some("catch") {
                     return check_parents(
                         parent_node,
                         visited,
