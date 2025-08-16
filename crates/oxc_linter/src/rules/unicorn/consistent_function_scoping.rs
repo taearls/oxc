@@ -261,28 +261,11 @@ impl Rule for ConsistentFunctionScoping {
 
         if matches!(
             outermost_paren_parent(node, ctx).map(AstNode::kind),
-            Some(AstKind::ReturnStatement(_)) // TODO: | AstKind::Argument(_))
+            Some(AstKind::ReturnStatement(_))
+                | Some(AstKind::CallExpression(_))
+                | Some(AstKind::NewExpression(_))
         ) {
             return;
-        }
-
-        // Check if the function is directly an argument to a function call or constructor
-        // This should only apply to direct function arguments, not functions declared within callback bodies
-        let immediate_parent = ctx.nodes().parent_node(node.id());
-        match immediate_parent.kind() {
-            AstKind::CallExpression(call_expr) => {
-                // Check if this node is directly in the arguments array
-                if call_expr.arguments.iter().any(|arg| arg.span() == node.span()) {
-                    return;
-                }
-            }
-            AstKind::NewExpression(new_expr) => {
-                // Check if this node is directly in the arguments array
-                if new_expr.arguments.iter().any(|arg| arg.span() == node.span()) {
-                    return;
-                }
-            }
-            _ => {}
         }
 
         if is_parent_scope_iife(node, ctx) || is_in_react_hook(node, ctx) {
