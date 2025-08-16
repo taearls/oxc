@@ -1,0 +1,2 @@
+js compatibility: 525/699 (75.11%)
+ts compatibility: 277/573 (48.34%)
