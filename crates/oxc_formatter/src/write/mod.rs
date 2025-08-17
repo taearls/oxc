@@ -516,10 +516,28 @@ impl<'a> FormatWrite<'a> for AstNode<'a, AssignmentTargetPropertyProperty<'a>> {
 
 impl<'a> FormatWrite<'a> for AstNode<'a, SequenceExpression<'a>> {
     fn write(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
+        // Check if this is a simple sequence that should stay on one line
+        let is_simple_sequence = self.expressions().iter().all(|expr| {
+            matches!(
+                expr.as_ref(),
+                Expression::NumericLiteral(_)
+                    | Expression::StringLiteral(_)
+                    | Expression::BooleanLiteral(_)
+                    | Expression::NullLiteral(_)
+                    | Expression::Identifier(_)
+            )
+        });
+        
         let format_inner = format_with(|f| {
             for (i, expr) in self.expressions().iter().enumerate() {
                 if i != 0 {
-                    write!(f, [",", line_suffix_boundary(), soft_line_break_or_space()])?;
+                    if is_simple_sequence {
+                        // For simple sequences, use regular space to prevent breaking
+                        write!(f, [",", space()])?;
+                    } else {
+                        // For complex sequences, allow breaking
+                        write!(f, [",", line_suffix_boundary(), soft_line_break_or_space()])?;
+                    }
                 }
                 write!(f, expr)?;
             }
