@@ -774,8 +774,10 @@ fn update_or_lower_expression_needs_parens(span: Span, parent: &AstNodes<'_>) ->
     match parent {
         AstNodes::TSNonNullExpression(_)
         | AstNodes::StaticMemberExpression(_)
-        | AstNodes::TemplateLiteral(_)
         | AstNodes::TaggedTemplateExpression(_) => return true,
+        
+        // Template literals only need parens for certain expression types
+        AstNodes::TemplateLiteral(_) => return false,
 
         // For call expressions, only add parentheses if this expression is the callee, not an argument
         AstNodes::CallExpression(call) => {

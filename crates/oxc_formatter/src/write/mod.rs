@@ -272,7 +272,16 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TemplateLiteral<'a>> {
         for quasi in self.quasis() {
             write!(f, quasi);
             if let Some(expr) = expressions.next() {
-                write!(f, [group(&format_args!("${", soft_block_indent(expr), "}"))]);
+                // Use group formatting for complex expressions that benefit from breaking
+                // but keep simple expressions inline
+                match expr.as_ref() {
+                    Expression::BinaryExpression(_) | Expression::LogicalExpression(_) => {
+                        write!(f, [group(&format_args!("${", soft_block_indent(expr), "}"))]);
+                    }
+                    _ => {
+                        write!(f, ["${", expr, "}"]);
+                    }
+                }
             }
         }
 
