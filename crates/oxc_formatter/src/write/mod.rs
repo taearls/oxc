@@ -272,7 +272,7 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TemplateLiteral<'a>> {
         for quasi in self.quasis() {
             write!(f, quasi);
             if let Some(expr) = expressions.next() {
-                write!(f, ["${", expr, "}"]);
+                write!(f, [group(&format_args!("${", soft_block_indent(expr), "}"))]);
             }
         }
 
