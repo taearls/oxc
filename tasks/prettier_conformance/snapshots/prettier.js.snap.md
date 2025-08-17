@@ -1,12 +1,15 @@
-js compatibility: 525/699 (75.11%)
+js compatibility: 519/699 (74.25%)
 
 # Failed
 
 | Spec path | Failed or Passed | Match ratio |
 | :-------- | :--------------: | :---------: |
-| js/arrows/call.js | 💥💥 | 92.04% |
-| js/arrows/comment.js | 💥💥 | 94.55% |
-| js/arrows/curried.js | 💥💥 | 92.55% |
+| js/arrows/call.js | 💥💥 | 91.53% |
+| js/arrows/chain-as-arg.js | 💥💥 | 43.59% |
+| js/arrows/comment.js | 💥💥 | 78.11% |
+| js/arrows/curried.js | 💥💥 | 72.58% |
+| js/arrows/currying-2.js | 💥💥 | 59.08% |
+| js/arrows/currying-4.js | 💥💥 | 78.15% |
 | js/arrows/semi/semi.js | 💥✨ | 0.00% |
 | js/assignment/issue-10218.js | 💥 | 52.63% |
 | js/assignment/sequence.js | 💥 | 71.43% |
@@ -26,7 +29,7 @@ js compatibility: 525/699 (75.11%)
 | js/comments/empty-statements.js | 💥💥 | 90.91% |
 | js/comments/export.js | 💥💥 | 97.37% |
 | js/comments/function-declaration.js | 💥💥 | 91.06% |
-| js/comments/issue-3532.js | 💥💥 | 79.73% |
+| js/comments/issue-3532.js | 💥💥 | 82.43% |
 | js/comments/issues.js | 💥💥 | 94.89% |
 | js/comments/jsdoc-nestled-dangling.js | 💥💥 | 93.02% |
 | js/comments/jsdoc-nestled.js | 💥💥 | 89.29% |
@@ -59,6 +62,8 @@ js compatibility: 525/699 (75.11%)
 | js/conditional/new-ternary-examples.js | 💥💥 | 43.38% |
 | js/conditional/new-ternary-spec.js | 💥💥 | 58.16% |
 | js/conditional/postfix-ternary-regressions.js | 💥💥 | 67.00% |
+| js/decorators/member-expression.js | 💥 | 84.85% |
+| js/decorators/parens.js | 💥 | 75.00% |
 | js/decorators/class-expression/class-expression.js | 💥✨ | 43.55% |
 | js/decorators/class-expression/member-expression.js | 💥✨ | 37.50% |
 | js/destructuring-ignore/ignore.js | 💥💥💥 | 83.33% |
@@ -68,6 +73,8 @@ js compatibility: 525/699 (75.11%)
 | js/export-default/function_in_template.js | 💥 | 0.00% |
 | js/for/for-in-with-initializer.js | 💥 | 37.50% |
 | js/for/parentheses.js | 💥 | 96.00% |
+| js/function/issue-10277.js | 💥 | 30.77% |
+| js/functional-composition/pipe-function-calls.js | 💥 | 87.80% |
 | js/identifier/for-of/await.js | 💥 | 50.00% |
 | js/identifier/for-of/let.js | 💥 | 69.23% |
 | js/identifier/parentheses/let.js | 💥💥 | 79.55% |
@@ -80,13 +87,12 @@ js compatibility: 525/699 (75.11%)
 | js/last-argument-expansion/edge_case.js | 💥 | 83.97% |
 | js/last-argument-expansion/issue-7518.js | 💥 | 85.71% |
 | js/last-argument-expansion/jsx.js | 💥 | 25.00% |
-| js/line-suffix-boundary/boundary.js | 💥 | 30.43% |
+| js/line-suffix-boundary/boundary.js | 💥 | 37.50% |
 | js/logical_expressions/issue-7024.js | 💥 | 66.67% |
 | js/method-chain/break-last-member.js | 💥 | 80.56% |
-| js/method-chain/comment.js | 💥 | 97.56% |
 | js/method-chain/conditional.js | 💥 | 85.19% |
 | js/method-chain/pr-7889.js | 💥 | 33.33% |
-| js/new-expression/new_expression.js | 💥 | 55.56% |
+| js/method-chain/square_0.js | 💥 | 77.78% |
 | js/no-semi/class.js | 💥✨ | 46.55% |
 | js/no-semi/comments.js | 💥✨ | 36.36% |
 | js/no-semi/issue2006.js | 💥✨ | 37.50% |
@@ -96,24 +102,24 @@ js compatibility: 525/699 (75.11%)
 | js/object-property-ignore/issue-5678.js | 💥💥💥 | 52.50% |
 | js/optional-chaining/chaining.js | 💥 | 77.01% |
 | js/preserve-line/member-chain.js | 💥 | 93.85% |
+| js/preserve-line/parameter-list.js | 💥 | 97.37% |
 | js/quote-props/classes.js | 💥💥✨✨ | 47.06% |
 | js/quote-props/objects.js | 💥💥✨✨ | 45.10% |
 | js/quote-props/with_numbers.js | 💥💥✨✨ | 46.43% |
 | js/quotes/objects.js | 💥💥 | 80.00% |
-| js/sequence-break/break.js | 💥 | 53.45% |
+| js/require/require.js | 💥 | 93.51% |
+| js/sequence-break/break.js | 💥 | 41.12% |
 | js/sequence-expression/ignore.js | 💥 | 42.86% |
+| js/sequence-expression/parenthesized.js | 💥 | 88.89% |
 | js/strings/escaped.js | 💥💥 | 73.68% |
-| js/strings/template-literals.js | 💥💥 | 51.49% |
+| js/strings/template-literals.js | 💥💥 | 76.74% |
 | js/template/comment.js | 💥 | 23.08% |
 | js/template/graphql.js | 💥 | 81.25% |
 | js/template/indent.js | 💥 | 85.71% |
-| js/template-align/indent.js | 💥💥 | 14.47% |
-| js/template-literals/binary-exporessions.js | 💥 | 0.00% |
+| js/template-align/indent.js | 💥💥 | 46.05% |
 | js/template-literals/conditional-expressions.js | 💥 | 0.00% |
 | js/template-literals/expressions.js | 💥 | 88.89% |
 | js/template-literals/indention.js | 💥 | 51.16% |
-| js/template-literals/logical-expressions.js | 💥 | 0.00% |
-| js/template-literals/sequence-expressions.js | 💥 | 0.00% |
 | js/ternaries/binary.js | 💥💥💥💥💥💥💥💥 | 43.27% |
 | js/ternaries/func-call.js | 💥💥💥💥💥💥💥💥 | 50.56% |
 | js/ternaries/indent-after-paren.js | 💥💥💥💥💥💥💥💥 | 52.71% |
@@ -126,7 +132,7 @@ js compatibility: 525/699 (75.11%)
 | js/test-declarations/angularjs_inject.js | 💥💥 | 91.53% |
 | js/test-declarations/jest-each-template-string.js | 💥💥 | 27.78% |
 | js/test-declarations/jest-each.js | 💥💥 | 67.65% |
-| js/test-declarations/test_declarations.js | 💥💥 | 75.81% |
+| js/test-declarations/test_declarations.js | 💥💥 | 73.40% |
 | js/trailing-comma/dynamic-import.js | 💥💥💥 | 0.00% |
 | js/trailing-comma/jsx.js | 💥💥💥 | 0.00% |
 | js/unicode/nbsp-jsx.js | 💥 | 22.22% |
