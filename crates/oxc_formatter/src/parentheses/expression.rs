@@ -576,6 +576,12 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ParenthesizedExpression<'a>> {
         // ParenthesizedExpression nodes are only created when preserve_parens is true,
         // which is not the case in our conformance tests. This implementation is kept
         // for when preserve_parens is enabled.
+        // 
+        // However, in decorator contexts, we should preserve parentheses that were
+        // explicitly in the source to maintain the user's intent
+        if let AstNodes::Decorator(_) = self.parent {
+            return true;
+        }
         false
     }
 }
