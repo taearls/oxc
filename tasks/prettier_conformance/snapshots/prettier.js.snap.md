@@ -1,4 +1,4 @@
-js compatibility: 521/699 (74.54%)
+js compatibility: 524/699 (74.96%)
 
 # Failed
 
@@ -62,7 +62,7 @@ js compatibility: 521/699 (74.54%)
 | js/conditional/new-ternary-examples.js | 💥💥 | 43.38% |
 | js/conditional/new-ternary-spec.js | 💥💥 | 58.16% |
 | js/conditional/postfix-ternary-regressions.js | 💥💥 | 67.00% |
-| js/decorators/member-expression.js | 💥 | 84.85% |
+| js/decorators/member-expression.js | 💥 | 92.42% |
 | js/decorators/class-expression/class-expression.js | 💥✨ | 43.55% |
 | js/decorators/class-expression/member-expression.js | 💥✨ | 37.50% |
 | js/destructuring-ignore/ignore.js | 💥💥💥 | 83.33% |
@@ -73,7 +73,6 @@ js compatibility: 521/699 (74.54%)
 | js/for/for-in-with-initializer.js | 💥 | 37.50% |
 | js/for/parentheses.js | 💥 | 96.00% |
 | js/function/issue-10277.js | 💥 | 30.77% |
-| js/functional-composition/pipe-function-calls.js | 💥 | 87.80% |
 | js/identifier/for-of/await.js | 💥 | 50.00% |
 | js/identifier/for-of/let.js | 💥 | 69.23% |
 | js/identifier/parentheses/let.js | 💥💥 | 79.55% |
@@ -101,7 +100,6 @@ js compatibility: 521/699 (74.54%)
 | js/object-property-ignore/issue-5678.js | 💥💥💥 | 52.50% |
 | js/optional-chaining/chaining.js | 💥 | 77.01% |
 | js/preserve-line/member-chain.js | 💥 | 93.85% |
-| js/preserve-line/parameter-list.js | 💥 | 97.37% |
 | js/quote-props/classes.js | 💥💥✨✨ | 47.06% |
 | js/quote-props/objects.js | 💥💥✨✨ | 45.10% |
 | js/quote-props/with_numbers.js | 💥💥✨✨ | 46.43% |
@@ -127,10 +125,9 @@ js compatibility: 521/699 (74.54%)
 | js/ternaries/parenthesis.js | 💥💥💥💥💥💥💥✨ | 29.31% |
 | js/ternaries/test.js | 💥💥💥💥💥💥💥✨ | 32.79% |
 | js/ternaries/parenthesis/await-expression.js | 💥💥 | 14.29% |
-| js/test-declarations/angularjs_inject.js | 💥💥 | 91.53% |
 | js/test-declarations/jest-each-template-string.js | 💥💥 | 27.78% |
 | js/test-declarations/jest-each.js | 💥💥 | 67.65% |
-| js/test-declarations/test_declarations.js | 💥💥 | 73.40% |
+| js/test-declarations/test_declarations.js | 💥💥 | 75.00% |
 | js/trailing-comma/dynamic-import.js | 💥💥💥 | 0.00% |
 | js/trailing-comma/jsx.js | 💥💥💥 | 0.00% |
 | js/unicode/nbsp-jsx.js | 💥 | 22.22% |

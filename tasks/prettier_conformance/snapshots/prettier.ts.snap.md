@@ -1,4 +1,4 @@
-ts compatibility: 277/573 (48.34%)
+ts compatibility: 278/573 (48.52%)
 
 # Failed
 
@@ -75,7 +75,7 @@ ts compatibility: 277/573 (48.34%)
 | typescript/assignment/issue-12413.ts | 💥 | 21.88% |
 | typescript/call-signature/call-signature.ts | 💥 | 79.66% |
 | typescript/cast/as-const.ts | 💥 | 60.00% |
-| typescript/cast/generic-cast.ts | 💥 | 38.83% |
+| typescript/cast/generic-cast.ts | 💥 | 39.60% |
 | typescript/cast/tuple-and-record.ts | 💥 | 0.00% |
 | typescript/chain-expression/call-expression.ts | 💥 | 68.75% |
 | typescript/chain-expression/member-expression.ts | 💥 | 65.67% |
@@ -184,7 +184,6 @@ ts compatibility: 277/573 (48.34%)
 | typescript/function-type/consistent.ts | 💥 | 70.83% |
 | typescript/function-type/single-parameter.ts | 💥 | 50.00% |
 | typescript/function-type/type-annotation.ts | 💥 | 0.00% |
-| typescript/functional-composition/pipe-function-calls.ts | 💥 | 82.76% |
 | typescript/generic/arrow-return-type.ts | 💥 | 80.77% |
 | typescript/generic/issue-6899.ts | 💥 | 21.05% |
 | typescript/generic/object-method.ts | 💥 | 72.73% |
