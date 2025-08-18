@@ -41,6 +41,24 @@ fn expression_is_or_contains_call(expr: &Expression) -> bool {
     }
 }
 
+// Helper function to check if an expression can be used unparenthesized in a decorator
+// Based on Prettier's isDecoratorMemberExpression
+fn is_decorator_member_expression(expr: &Expression) -> bool {
+    match expr {
+        Expression::Identifier(_) => true,
+        Expression::StaticMemberExpression(m) if !m.optional => {
+            // Non-optional static member access like a.b.c
+            is_decorator_member_expression(&m.object)
+        }
+        Expression::ComputedMemberExpression(m) if !m.optional => {
+            // Non-optional computed member access like a[0] or a["prop"]
+            // Note: Prettier allows this without parentheses
+            is_decorator_member_expression(&m.object)
+        }
+        _ => false,
+    }
+}
+
 impl<'a> NeedsParentheses<'a> for AstNode<'a, Expression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
         match self.as_ast_nodes() {
@@ -183,6 +201,16 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ComputedMemberExpression<'a>> {
                 return expression_is_or_contains_call(&self.object);
             }
         }
+        
+        // Optional computed member expressions need parentheses in decorators
+        // Example: @(decorators?.[0])
+        // But non-optional ones don't: @decorators[0]
+        if let AstNodes::Decorator(_) = self.parent {
+            if self.optional {
+                return true;
+            }
+        }
+        
         false
     }
 }
@@ -197,6 +225,15 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, StaticMemberExpression<'a>> {
                 return expression_is_or_contains_call(&self.object);
             }
         }
+        
+        // Optional static member expressions need parentheses in decorators
+        // Example: @(decorators?.first)
+        if let AstNodes::Decorator(_) = self.parent {
+            if self.optional {
+                return true;
+            }
+        }
+        
         false
     }
 }
@@ -213,6 +250,19 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, CallExpression<'a>> {
         // Example: new (factory())()
         if let AstNodes::NewExpression(new_expr) = self.parent {
             return new_expr.callee.span() == self.span();
+        }
+        
+        // Optional call expressions need parentheses in decorators
+        // Example: @(decorator?.())
+        if let AstNodes::Decorator(_) = self.parent {
+            if self.optional {
+                return true;
+            }
+            // Also check if the callee is not a simple member expression
+            // Following Prettier's canDecoratorExpressionUnparenthesized logic
+            if !is_decorator_member_expression(&self.callee) {
+                return true;
+            }
         }
 
         matches!(self.parent, AstNodes::ExportDefaultDeclaration(_)) && {
