@@ -1,4 +1,4 @@
-ts compatibility: 275/573 (47.99%)
+ts compatibility: 277/573 (48.34%)
 
 # Failed
 
@@ -76,7 +76,6 @@ ts compatibility: 275/573 (47.99%)
 | typescript/call-signature/call-signature.ts | 💥 | 79.66% |
 | typescript/cast/as-const.ts | 💥 | 60.00% |
 | typescript/cast/generic-cast.ts | 💥 | 38.83% |
-| typescript/cast/hug-args.ts | 💥 | 87.50% |
 | typescript/cast/tuple-and-record.ts | 💥 | 0.00% |
 | typescript/chain-expression/call-expression.ts | 💥 | 68.75% |
 | typescript/chain-expression/member-expression.ts | 💥 | 65.67% |
@@ -250,7 +249,6 @@ ts compatibility: 275/573 (47.99%)
 | typescript/satisfies-operators/export-default-as.ts | 💥💥 | 0.00% |
 | typescript/satisfies-operators/expression-statement.ts | 💥💥 | 78.38% |
 | typescript/satisfies-operators/gt-lt.ts | 💥💥 | 0.00% |
-| typescript/satisfies-operators/hug-args.ts | 💥💥 | 50.00% |
 | typescript/satisfies-operators/lhs.ts | 💥✨ | 30.00% |
 | typescript/satisfies-operators/nested-await-and-satisfies.ts | 💥💥 | 16.67% |
 | typescript/satisfies-operators/non-null.ts | 💥💥 | 66.67% |
