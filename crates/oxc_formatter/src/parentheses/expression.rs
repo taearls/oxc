@@ -538,6 +538,9 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ChainExpression<'a>> {
                 member.object.span() == self.span()
             }
             AstNodes::ComputedMemberExpression(member) => member.object.span() == self.span(),
+            // Chain expressions (optional chaining) need parentheses in decorators
+            // Example: @(decorators?.[0])
+            AstNodes::Decorator(_) => true,
             _ => false,
         }
     }

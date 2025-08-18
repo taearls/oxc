@@ -567,7 +567,16 @@ impl<'a> FormatWrite<'a> for AstNode<'a, ChainExpression<'a>> {
 
 impl<'a> FormatWrite<'a> for AstNode<'a, ParenthesizedExpression<'a>> {
     fn write(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
-        self.expression().fmt(f)
+        // Check if we need to preserve parentheses even when preserve_parens is false
+        // This is needed for decorator contexts where parentheses are semantically important
+        if self.needs_parentheses(f) {
+            write!(f, ["("])?;
+            self.expression().fmt(f)?;
+            write!(f, [")"])?;
+            Ok(())
+        } else {
+            self.expression().fmt(f)
+        }
     }
 }
 
