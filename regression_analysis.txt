@@ -5,10 +5,10 @@ js/arrows/chain-as-arg.js
 js/arrows/currying-2.js
 js/arrows/currying-4.js
 js/decorators/member-expression.js
-js/decorators/parens.js
 js/function/issue-10277.js
 js/functional-composition/pipe-function-calls.js
+js/method-chain/square_0.js
 js/preserve-line/parameter-list.js
-js/require/require.js
+js/sequence-expression/parenthesized.js
 
 Total: 9 tests
