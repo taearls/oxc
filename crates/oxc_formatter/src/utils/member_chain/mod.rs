@@ -309,13 +309,9 @@ fn compute_remaining_groups<'a, 'b>(
             // [0] should be appended at the end of the group instead of the
             // beginning of the next one
             ChainMember::ComputedMember(_) if is_computed_array_member_access(&member) => {
-                if should_break_group {
-                    groups_builder.close_group();
-                    groups_builder.start_group(member.clone());
-                    has_seen_call_expression = false;
-                } else {
-                    groups_builder.start_or_continue_group(member.clone());
-                }
+                // Always append to the current group, don't start a new one
+                groups_builder.start_or_continue_group(member.clone());
+                // Don't reset has_seen_call_expression since we're continuing the group
             }
             ChainMember::StaticMember(_) | ChainMember::ComputedMember(_) => {
                 // if we have seen a CallExpression, we want to close the group.

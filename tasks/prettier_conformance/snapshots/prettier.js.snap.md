@@ -1,4 +1,4 @@
-js compatibility: 524/699 (74.96%)
+js compatibility: 525/699 (75.11%)
 
 # Failed
 
@@ -90,7 +90,6 @@ js compatibility: 524/699 (74.96%)
 | js/method-chain/break-last-member.js | 💥 | 80.56% |
 | js/method-chain/conditional.js | 💥 | 85.19% |
 | js/method-chain/pr-7889.js | 💥 | 33.33% |
-| js/method-chain/square_0.js | 💥 | 77.78% |
 | js/no-semi/class.js | 💥✨ | 46.55% |
 | js/no-semi/comments.js | 💥✨ | 36.36% |
 | js/no-semi/issue2006.js | 💥✨ | 37.50% |
