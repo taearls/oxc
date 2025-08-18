@@ -12,6 +12,11 @@ use super::{FormatContext, GroupId, SyntaxNode, UniqueGroupIdBuilder};
 pub struct FormatState<'ast> {
     context: FormatContext<'ast>,
     group_id_builder: UniqueGroupIdBuilder,
+    
+    /// Track argument formatting depth for nested calls
+    /// This helps detect when expressions are being formatted as arguments
+    pub argument_depth: usize,
+    
     // This is using a RefCell as it only exists in debug mode,
     // the Formatter is still completely immutable in release builds
     // #[cfg(debug_assertions)]
@@ -30,6 +35,7 @@ impl<'ast> FormatState<'ast> {
         Self {
             context,
             group_id_builder: UniqueGroupIdBuilder::default(),
+            argument_depth: 0,
             // #[cfg(debug_assertions)]
             // printed_tokens: Default::default(),
         }
@@ -54,6 +60,24 @@ impl<'ast> FormatState<'ast> {
     /// The name is unused for production builds and has no meaning on the equality of two group ids.
     pub fn group_id(&self, debug_name: &'static str) -> GroupId {
         self.group_id_builder.group_id(debug_name)
+    }
+
+    /// Returns true if currently formatting within arguments
+    #[inline]
+    pub fn is_formatting_argument(&self) -> bool {
+        self.argument_depth > 0
+    }
+    
+    /// Enter argument formatting context
+    #[inline]
+    pub fn enter_arguments(&mut self) {
+        self.argument_depth += 1;
+    }
+    
+    /// Exit argument formatting context
+    #[inline]
+    pub fn exit_arguments(&mut self) {
+        self.argument_depth = self.argument_depth.saturating_sub(1);
     }
 
     #[cfg(not(debug_assertions))]
