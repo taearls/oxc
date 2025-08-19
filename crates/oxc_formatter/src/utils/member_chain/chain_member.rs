@@ -54,7 +54,7 @@ impl ChainMember<'_, '_> {
     }
 
     /// Check if this member has a trailing line comment on the same line
-    pub fn has_same_line_trailing_comment<'a>(&self, f: &Formatter<'_, 'a>) -> bool {
+    pub fn has_same_line_trailing_comment(&self, f: &Formatter<'_, '_>) -> bool {
         // Only check for trailing comments on static members for now
         // to avoid breaking up other constructs
         match self {
@@ -73,10 +73,10 @@ impl ChainMember<'_, '_> {
                 // Also check that it's not just whitespace before the comment
                 if let Some(comment_pos) = line_content.find("//") {
                     let before_comment = &line_content[..comment_pos];
-                    let has_trailing = before_comment.chars().all(|c| c.is_whitespace())
-                        && !before_comment.is_empty();
+                    
 
-                    has_trailing
+                    before_comment.chars().all(char::is_whitespace)
+                        && !before_comment.is_empty()
                 } else {
                     false
                 }
