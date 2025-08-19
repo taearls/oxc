@@ -42,13 +42,10 @@ use super::{
 
 impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
     fn fmt(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
-        // Enter argument context to track that we're formatting arguments
-        f.state_mut().enter_arguments();
-        
         let l_paren_token = "(";
         let r_paren_token = ")";
         if self.is_empty() {
-            let result = write!(
+            return write!(
                 f,
                 [
                     l_paren_token,
@@ -57,9 +54,6 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
                     r_paren_token
                 ]
             );
-            // Exit argument context before returning
-            f.state_mut().exit_arguments();
-            return result;
         }
 
         let call_expression =
@@ -107,13 +101,10 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
                 .first()
                 .is_some_and(|arg| matches!(arg.as_ref(), Argument::ArrowFunctionExpression(_)))
         {
-            let result = write!(
+            return write!(
                 f,
                 [l_paren_token, format_once(|f| self.first().unwrap().fmt(f)), r_paren_token]
             );
-            // Exit argument context before returning
-            f.state_mut().exit_arguments();
-            return result;
         }
 
         if is_commonjs_or_amd_call
@@ -122,7 +113,7 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
             || (is_test_call && is_first_arg_string_literal_or_template)
             || is_single_arg_to_commonjs  // Keep path.join() inline when in require()
         {
-            let result = write!(
+            return write!(
                 f,
                 [
                     l_paren_token,
@@ -137,32 +128,22 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
                     r_paren_token
                 ]
             );
-            // Exit argument context before returning
-            f.state_mut().exit_arguments();
-            return result;
         }
 
         let mut has_empty_line = false;
 
         let has_empty_line = self.iter().any(|arg| get_lines_before(arg.span(), f) > 1);
 
-        // Check if we're nested in arguments - if so, avoid aggressive function composition breaking
-        // We check for depth > 1 because we've already entered arguments context at depth 1
-        let is_nested_in_arguments = f.state().argument_depth > 1;
-        let should_break_composition = is_function_composition_args(self) 
-            && !is_nested_in_arguments;
+        let should_break_composition = is_function_composition_args(self);
         
 
         if has_empty_line || should_break_composition {
-            let result = format_all_args_broken_out(self, true, &mut *f);
-            // Exit argument context before returning
-            f.state_mut().exit_arguments();
-            return result;
+            return format_all_args_broken_out(self, true, f);
         }
 
-        let result = if let Some(group_layout) = arguments_grouped_layout(self, f) {
+        if let Some(group_layout) = arguments_grouped_layout(self, f) {
             write_grouped_arguments(self, group_layout, f)
-        } else if call_expression.is_some_and(|call| is_long_curried_call(call)) && !is_nested_in_arguments {
+        } else if call_expression.is_some_and(|call| is_long_curried_call(call)) {
             write!(
                 f,
                 [
@@ -178,13 +159,8 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
                 ]
             )
         } else {
-            // Don't force expansion for normal calls, allowing them to fit if possible
-            format_all_args_broken_out(self, false, &mut *f)
-        };
-        
-        // Exit argument context before returning final result
-        f.state_mut().exit_arguments();
-        result
+            format_all_args_broken_out(self, false, f)
+        }
     }
 }
 

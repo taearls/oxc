@@ -1,4 +1,4 @@
-js compatibility: 525/699 (75.11%)
+js compatibility: 526/699 (75.25%)
 
 # Failed
 
@@ -62,7 +62,6 @@ js compatibility: 525/699 (75.11%)
 | js/conditional/new-ternary-examples.js | 💥💥 | 43.38% |
 | js/conditional/new-ternary-spec.js | 💥💥 | 58.16% |
 | js/conditional/postfix-ternary-regressions.js | 💥💥 | 67.00% |
-| js/decorators/member-expression.js | 💥 | 92.42% |
 | js/decorators/class-expression/class-expression.js | 💥✨ | 43.55% |
 | js/decorators/class-expression/member-expression.js | 💥✨ | 37.50% |
 | js/destructuring-ignore/ignore.js | 💥💥💥 | 83.33% |
