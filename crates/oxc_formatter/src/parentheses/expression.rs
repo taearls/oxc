@@ -214,13 +214,13 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ComputedMemberExpression<'a>> {
                 return expression_is_or_contains_call(&self.object);
             }
         }
-        
+
         // Computed member expressions need parentheses in decorators
         // Example: @(decorators[0]) and @(decorators?.[0])
         if let AstNodes::Decorator(_) = self.parent {
             return true;
         }
-        
+
         false
     }
 }
@@ -235,7 +235,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, StaticMemberExpression<'a>> {
                 return expression_is_or_contains_call(&self.object);
             }
         }
-        
+
         // Optional static member expressions need parentheses in decorators
         // Example: @(decorators?.first)
         if let AstNodes::Decorator(_) = self.parent {
@@ -243,7 +243,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, StaticMemberExpression<'a>> {
                 return true;
             }
         }
-        
+
         false
     }
 }
@@ -261,7 +261,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, CallExpression<'a>> {
         if let AstNodes::NewExpression(new_expr) = self.parent {
             return new_expr.callee.span() == self.span();
         }
-        
+
         // Optional call expressions need parentheses in decorators
         // Example: @(decorator?.())
         if let AstNodes::Decorator(_) = self.parent {
@@ -576,7 +576,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ParenthesizedExpression<'a>> {
         // ParenthesizedExpression nodes are only created when preserve_parens is true,
         // which is not the case in our conformance tests. This implementation is kept
         // for when preserve_parens is enabled.
-        // 
+        //
         // However, in decorator contexts, we should preserve parentheses that were
         // explicitly in the source to maintain the user's intent
         if let AstNodes::Decorator(_) = self.parent {
@@ -844,7 +844,7 @@ fn update_or_lower_expression_needs_parens(span: Span, parent: &AstNodes<'_>) ->
         AstNodes::TSNonNullExpression(_)
         | AstNodes::StaticMemberExpression(_)
         | AstNodes::TaggedTemplateExpression(_) => return true,
-        
+
         // Template literals only need parens for certain expression types
         AstNodes::TemplateLiteral(_) => return false,
 

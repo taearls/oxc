@@ -527,7 +527,7 @@ impl<'a> FormatWrite<'a> for AstNode<'a, SequenceExpression<'a>> {
                     | Expression::Identifier(_)
             )
         });
-        
+
         let format_inner = format_with(|f| {
             for (i, expr) in self.expressions().iter().enumerate() {
                 if i != 0 {
@@ -1047,7 +1047,7 @@ impl<'a> FormatWrite<'a> for AstNode<'a, FormalParameters<'a>> {
         } else {
             false
         };
-        
+
         let layout = if !self.has_parameter() {
             ParameterLayout::NoParameters
         } else if can_hug || is_test_call {

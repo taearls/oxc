@@ -52,7 +52,7 @@ impl ChainMember<'_, '_> {
     pub const fn is_computed_expression(&self) -> bool {
         matches!(self, Self::ComputedMember { .. })
     }
-    
+
     /// Check if this member has a trailing line comment on the same line
     pub fn has_same_line_trailing_comment<'a>(&self, f: &Formatter<'_, 'a>) -> bool {
         // Only check for trailing comments on static members for now
@@ -61,21 +61,21 @@ impl ChainMember<'_, '_> {
             Self::StaticMember(e) => {
                 let member_end = e.property().span.end;
                 let source = f.source_text();
-                
+
                 // Look for the rest of the line after this member
                 let rest_of_line = &source[member_end as usize..];
-                
+
                 // Find the end of the current line
                 let line_end_pos = rest_of_line.find('\n').unwrap_or(rest_of_line.len());
                 let line_content = &rest_of_line[..line_end_pos];
-                
+
                 // Check if there's a line comment on this line
                 // Also check that it's not just whitespace before the comment
                 if let Some(comment_pos) = line_content.find("//") {
                     let before_comment = &line_content[..comment_pos];
-                    let has_trailing = before_comment.chars().all(|c| c.is_whitespace()) && !before_comment.is_empty();
-                    
-                    
+                    let has_trailing = before_comment.chars().all(|c| c.is_whitespace())
+                        && !before_comment.is_empty();
+
                     has_trailing
                 } else {
                     false

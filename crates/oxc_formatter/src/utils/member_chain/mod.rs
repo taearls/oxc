@@ -304,7 +304,7 @@ fn compute_remaining_groups<'a, 'b>(
         // Check if previous member had a trailing comment
         // If so, we should start a new group
         let should_break_group = has_seen_call_expression || has_trailing_comment;
-        
+
         match member {
             // [0] should be appended at the end of the group instead of the
             // beginning of the next one
@@ -346,7 +346,7 @@ fn compute_remaining_groups<'a, 'b>(
             }
             ChainMember::Node(_) => unreachable!("Remaining members never have a `Node` variant"),
         }
-        
+
         // Check if this member has a trailing comment for the next iteration
         has_trailing_comment = member.has_same_line_trailing_comment(f);
     }

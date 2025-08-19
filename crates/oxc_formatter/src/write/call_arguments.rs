@@ -58,7 +58,7 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
 
         let call_expression =
             if let AstNodes::CallExpression(call) = self.parent { Some(call) } else { None };
-        
+
         // Check if this call expression is a single argument to require/define
         // This helps path.join() stay inline when used in require(path.join(...))
         let is_single_arg_to_commonjs = call_expression.is_some_and(|call| {
@@ -110,7 +110,8 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
             || is_multiline_template_only_args(self, f.source_text())
             || is_react_hook_with_deps_array(self, f.comments())
             || (is_test_call && is_first_arg_string_literal_or_template)
-            || is_single_arg_to_commonjs  // Keep path.join() inline when in require()
+            || is_single_arg_to_commonjs
+        // Keep path.join() inline when in require()
         {
             return write!(
                 f,
