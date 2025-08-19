@@ -73,10 +73,8 @@ impl ChainMember<'_, '_> {
                 // Also check that it's not just whitespace before the comment
                 if let Some(comment_pos) = line_content.find("//") {
                     let before_comment = &line_content[..comment_pos];
-                    
 
-                    before_comment.chars().all(char::is_whitespace)
-                        && !before_comment.is_empty()
+                    before_comment.chars().all(char::is_whitespace) && !before_comment.is_empty()
                 } else {
                     false
                 }
