@@ -1,4 +1,4 @@
-js compatibility: 526/699 (75.25%)
+js compatibility: 525/699 (75.11%)
 
 # Failed
 
@@ -72,6 +72,7 @@ js compatibility: 526/699 (75.25%)
 | js/for/for-in-with-initializer.js | 💥 | 37.50% |
 | js/for/parentheses.js | 💥 | 96.00% |
 | js/function/issue-10277.js | 💥 | 30.77% |
+| js/functional-composition/pipe-function-calls.js | 💥 | 87.80% |
 | js/identifier/for-of/await.js | 💥 | 50.00% |
 | js/identifier/for-of/let.js | 💥 | 69.23% |
 | js/identifier/parentheses/let.js | 💥💥 | 79.55% |
