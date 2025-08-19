@@ -215,13 +215,10 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ComputedMemberExpression<'a>> {
             }
         }
         
-        // Optional computed member expressions need parentheses in decorators
-        // Example: @(decorators?.[0])
-        // But non-optional ones don't: @decorators[0]
+        // Computed member expressions need parentheses in decorators
+        // Example: @(decorators[0]) and @(decorators?.[0])
         if let AstNodes::Decorator(_) = self.parent {
-            if self.optional {
-                return true;
-            }
+            return true;
         }
         
         false
