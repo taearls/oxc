@@ -58,7 +58,6 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
 
         let call_expression =
             if let AstNodes::CallExpression(call) = self.parent { Some(call) } else { None };
-            
         
         // Check if this call expression is a single argument to require/define
         // This helps path.join() stay inline when used in require(path.join(...))
@@ -134,10 +133,7 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
 
         let has_empty_line = self.iter().any(|arg| get_lines_before(arg.span(), f) > 1);
 
-        let should_break_composition = is_function_composition_args(self);
-        
-
-        if has_empty_line || should_break_composition {
+        if has_empty_line || is_function_composition_args(self) {
             return format_all_args_broken_out(self, true, f);
         }
 
