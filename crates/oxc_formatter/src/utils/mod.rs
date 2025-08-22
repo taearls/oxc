@@ -66,7 +66,7 @@ pub fn is_expression_used_as_call_argument(span: Span, parent: &AstNodes) -> boo
             call.arguments.iter().any(|arg| arg.span().contains_inclusive(span))
         }
         AstNodes::NewExpression(new_expr) => {
-            // Fast path for empty arguments (common case)  
+            // Fast path for empty arguments (common case)
             if new_expr.arguments.is_empty() {
                 return false;
             }

@@ -162,7 +162,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ObjectExpression<'a>> {
         match parent {
             // Direct argument case
             AstNodes::CallExpression(call) => {
-                if !call.arguments.is_empty() 
+                if !call.arguments.is_empty()
                     && call.arguments.iter().any(|arg| arg.span().contains_inclusive(self.span))
                 {
                     return false;
@@ -573,7 +573,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Class<'a>> {
         // Optimize: inline the check to avoid function call overhead
         match parent {
             AstNodes::CallExpression(call) => {
-                if !call.arguments.is_empty() 
+                if !call.arguments.is_empty()
                     && call.arguments.iter().any(|arg| arg.span().contains_inclusive(self.span))
                 {
                     return false;
