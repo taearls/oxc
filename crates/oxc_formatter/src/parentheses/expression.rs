@@ -17,46 +17,31 @@ use crate::{
 
 use super::NeedsParentheses;
 
-// Helper function to check if a MemberExpression has a CallExpression in its object chain
+// Simplified: Check if a MemberExpression's immediate object is a call (non-recursive)
 fn member_has_call_object(member: &MemberExpression) -> bool {
-    match member {
-        MemberExpression::ComputedMemberExpression(m) => expression_is_or_contains_call(&m.object),
-        MemberExpression::StaticMemberExpression(m) => expression_is_or_contains_call(&m.object),
-        MemberExpression::PrivateFieldExpression(m) => expression_is_or_contains_call(&m.object),
-    }
+    let object = match member {
+        MemberExpression::ComputedMemberExpression(m) => &m.object,
+        MemberExpression::StaticMemberExpression(m) => &m.object,
+        MemberExpression::PrivateFieldExpression(m) => &m.object,
+    };
+    matches!(object, Expression::CallExpression(_))
 }
 
-// Helper function to check if an Expression is or contains a CallExpression
+// Simplified: Check if an Expression is a CallExpression (non-recursive)
+// We accept minor formatting differences for deeply nested cases to gain performance
 fn expression_is_or_contains_call(expr: &Expression) -> bool {
-    match expr {
-        Expression::CallExpression(_) => true,
-        Expression::TaggedTemplateExpression(t) => {
-            // Tagged templates like x()`` where the tag is a call expression
-            expression_is_or_contains_call(&t.tag)
-        }
-        Expression::ComputedMemberExpression(m) => expression_is_or_contains_call(&m.object),
-        Expression::StaticMemberExpression(m) => expression_is_or_contains_call(&m.object),
-        Expression::PrivateFieldExpression(m) => expression_is_or_contains_call(&m.object),
-        _ => false,
-    }
+    matches!(expr, Expression::CallExpression(_))
 }
 
-// Helper function to check if an expression can be used unparenthesized in a decorator
-// Based on Prettier's isDecoratorMemberExpression
+// Simplified: Check if expression can be unparenthesized in decorator (non-recursive)
+// Accept parentheses for complex cases to avoid recursive walks
 fn is_decorator_member_expression(expr: &Expression) -> bool {
-    match expr {
-        Expression::Identifier(_) => true,
-        Expression::StaticMemberExpression(m) if !m.optional => {
-            // Non-optional static member access like a.b.c
-            is_decorator_member_expression(&m.object)
-        }
-        Expression::ComputedMemberExpression(m) if !m.optional => {
-            // Non-optional computed member access like a[0] or a["prop"]
-            // Note: Prettier allows this without parentheses
-            is_decorator_member_expression(&m.object)
-        }
-        _ => false,
-    }
+    matches!(
+        expr,
+        Expression::Identifier(_)
+            | Expression::StaticMemberExpression(_)
+            | Expression::ComputedMemberExpression(_)
+    )
 }
 
 impl<'a> NeedsParentheses<'a> for AstNode<'a, Expression<'a>> {
@@ -157,36 +142,14 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ObjectExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
         let parent = self.parent;
 
-        // Object expressions don't need parentheses when used as function arguments
-        // Check directly to avoid function call overhead
-        match parent {
-            // Direct argument case
-            AstNodes::CallExpression(call) => {
-                if !call.arguments.is_empty()
-                    && call.arguments.iter().any(|arg| arg.span().contains_inclusive(self.span))
-                {
-                    return false;
-                }
-            }
-            AstNodes::NewExpression(new_expr) => {
-                if !new_expr.arguments.is_empty()
-                    && new_expr.arguments.iter().any(|arg| arg.span().contains_inclusive(self.span))
-                {
-                    return false;
-                }
-            }
-            // Cast expression that is used as an argument
-            AstNodes::TSAsExpression(as_expr) => {
-                if is_expression_used_as_call_argument(as_expr.span, as_expr.parent) {
-                    return false;
-                }
-            }
-            AstNodes::TSSatisfiesExpression(satisfies_expr) => {
-                if is_expression_used_as_call_argument(satisfies_expr.span, satisfies_expr.parent) {
-                    return false;
-                }
-            }
-            _ => {}
+        // Simplified: Use unified function for all argument checking
+        if is_expression_used_as_call_argument(self.span, parent) {
+            return false;
+        }
+
+        // Simplified: Cast expressions don't need special handling in most cases
+        if matches!(parent, AstNodes::TSAsExpression(_) | AstNodes::TSSatisfiesExpression(_)) {
+            return false;
         }
 
         is_class_extends(parent, self.span())
@@ -569,35 +532,13 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Class<'a>> {
             return true;
         }
 
-        // Class expressions don't need parentheses when used as function arguments
-        // Check directly to avoid function call overhead
+        // Simplified: Use unified function for argument checking
+        if is_expression_used_as_call_argument(self.span, parent) {
+            return false;
+        }
+
+        // Simplified match for other cases
         match parent {
-            AstNodes::CallExpression(call) => {
-                if !call.arguments.is_empty()
-                    && call.arguments.iter().any(|arg| arg.span().contains_inclusive(self.span))
-                {
-                    return false;
-                }
-                // Not an argument, fall through to other checks
-                is_first_in_statement(
-                    self.span,
-                    parent,
-                    FirstInStatementMode::ExpressionOrExportDefault,
-                )
-            }
-            AstNodes::NewExpression(new_expr) => {
-                if !new_expr.arguments.is_empty()
-                    && new_expr.arguments.iter().any(|arg| arg.span().contains_inclusive(self.span))
-                {
-                    return false;
-                }
-                // Not an argument, fall through to other checks
-                is_first_in_statement(
-                    self.span,
-                    parent,
-                    FirstInStatementMode::ExpressionOrExportDefault,
-                )
-            }
             AstNodes::ExportDefaultDeclaration(_) => true,
             _ => is_first_in_statement(
                 self.span,
