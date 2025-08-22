@@ -158,21 +158,35 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ObjectExpression<'a>> {
         let parent = self.parent;
 
         // Object expressions don't need parentheses when used as function arguments
-        if is_expression_used_as_call_argument(self.span, parent) {
-            return false;
-        }
-
-        // Object expressions don't need parentheses when used as the expression of a cast
-        // that is itself used as an argument
-        if let AstNodes::TSAsExpression(as_expr) = parent {
-            if is_expression_used_as_call_argument(as_expr.span, as_expr.parent) {
-                return false;
+        // Optimize: check multiple cases in a single match to avoid repeated function calls
+        match parent {
+            // Direct argument case
+            AstNodes::CallExpression(call) => {
+                if !call.arguments.is_empty() 
+                    && call.arguments.iter().any(|arg| arg.span().contains_inclusive(self.span))
+                {
+                    return false;
+                }
             }
-        }
-        if let AstNodes::TSSatisfiesExpression(satisfies_expr) = parent {
-            if is_expression_used_as_call_argument(satisfies_expr.span, satisfies_expr.parent) {
-                return false;
+            AstNodes::NewExpression(new_expr) => {
+                if !new_expr.arguments.is_empty()
+                    && new_expr.arguments.iter().any(|arg| arg.span().contains_inclusive(self.span))
+                {
+                    return false;
+                }
             }
+            // Cast expression that is used as an argument
+            AstNodes::TSAsExpression(as_expr) => {
+                if is_expression_used_as_call_argument(as_expr.span, as_expr.parent) {
+                    return false;
+                }
+            }
+            AstNodes::TSSatisfiesExpression(satisfies_expr) => {
+                if is_expression_used_as_call_argument(satisfies_expr.span, satisfies_expr.parent) {
+                    return false;
+                }
+            }
+            _ => {}
         }
 
         is_class_extends(parent, self.span())
@@ -556,11 +570,34 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Class<'a>> {
         }
 
         // Class expressions don't need parentheses when used as function arguments
-        if is_expression_used_as_call_argument(self.span, parent) {
-            return false;
-        }
-
+        // Optimize: inline the check to avoid function call overhead
         match parent {
+            AstNodes::CallExpression(call) => {
+                if !call.arguments.is_empty() 
+                    && call.arguments.iter().any(|arg| arg.span().contains_inclusive(self.span))
+                {
+                    return false;
+                }
+                // Not an argument, fall through to other checks
+                is_first_in_statement(
+                    self.span,
+                    parent,
+                    FirstInStatementMode::ExpressionOrExportDefault,
+                )
+            }
+            AstNodes::NewExpression(new_expr) => {
+                if !new_expr.arguments.is_empty()
+                    && new_expr.arguments.iter().any(|arg| arg.span().contains_inclusive(self.span))
+                {
+                    return false;
+                }
+                // Not an argument, fall through to other checks
+                is_first_in_statement(
+                    self.span,
+                    parent,
+                    FirstInStatementMode::ExpressionOrExportDefault,
+                )
+            }
             AstNodes::ExportDefaultDeclaration(_) => true,
             _ => is_first_in_statement(
                 self.span,

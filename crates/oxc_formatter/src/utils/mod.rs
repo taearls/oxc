@@ -59,9 +59,17 @@ pub fn is_long_curried_call(call: &AstNode<'_, CallExpression<'_>>) -> bool {
 pub fn is_expression_used_as_call_argument(span: Span, parent: &AstNodes) -> bool {
     match parent {
         AstNodes::CallExpression(call) => {
+            // Fast path for empty arguments (common case)
+            if call.arguments.is_empty() {
+                return false;
+            }
             call.arguments.iter().any(|arg| arg.span().contains_inclusive(span))
         }
         AstNodes::NewExpression(new_expr) => {
+            // Fast path for empty arguments (common case)  
+            if new_expr.arguments.is_empty() {
+                return false;
+            }
             new_expr.arguments.iter().any(|arg| arg.span().contains_inclusive(span))
         }
         _ => false,
