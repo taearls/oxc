@@ -158,7 +158,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ObjectExpression<'a>> {
         let parent = self.parent;
 
         // Object expressions don't need parentheses when used as function arguments
-        // Optimize: check multiple cases in a single match to avoid repeated function calls
+        // Check directly to avoid function call overhead
         match parent {
             // Direct argument case
             AstNodes::CallExpression(call) => {
@@ -570,7 +570,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Class<'a>> {
         }
 
         // Class expressions don't need parentheses when used as function arguments
-        // Optimize: inline the check to avoid function call overhead
+        // Check directly to avoid function call overhead
         match parent {
             AstNodes::CallExpression(call) => {
                 if !call.arguments.is_empty()
