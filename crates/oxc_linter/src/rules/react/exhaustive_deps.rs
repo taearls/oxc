@@ -844,9 +844,24 @@ fn analyze_property_chain<'a, 'b>(
         // TODO; is this correct?
         Expression::JSXElement(_) => Ok(None),
         Expression::StaticMemberExpression(expr) => concat_members(expr, semantic),
-        Expression::ChainExpression(chain_expr) => match &chain_expr.expression {
-            ChainElement::StaticMemberExpression(expr) => concat_members(expr, semantic),
-            _ => Err(()),
+        Expression::ChainExpression(chain_expr) => {
+            // For ChainExpression, extract the base object dependency and ignore optional chaining
+            // This handles cases like props.foo?.toString() -> extract props.foo
+            match &chain_expr.expression {
+                ChainElement::StaticMemberExpression(expr) => {
+                    // For props.foo?.bar, analyze props.foo
+                    analyze_property_chain(&expr.object, semantic)
+                },
+                ChainElement::CallExpression(call_expr) => {
+                    // For props.foo?.toString(), analyze props.foo from callee
+                    analyze_property_chain(&call_expr.callee, semantic)  
+                },
+                ChainElement::ComputedMemberExpression(expr) => {
+                    // For props.foo?.[key], analyze props.foo
+                    analyze_property_chain(&expr.object, semantic)
+                },
+                _ => Err(()),
+            }
         },
         _ => Err(()),
     }
