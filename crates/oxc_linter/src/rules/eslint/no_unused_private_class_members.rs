@@ -207,7 +207,6 @@ fn is_value_context(kind: &AstNode, semantic: &Semantic<'_>) -> bool {
         | AstKind::ArrayExpression(_)
         | AstKind::ObjectProperty(_)
         | AstKind::JSXExpressionContainer(_)
-        | AstKind::Argument(_)
         | AstKind::ChainExpression(_)
         | AstKind::StaticMemberExpression(_)
         | AstKind::ComputedMemberExpression(_)
@@ -243,12 +242,14 @@ fn is_value_context(kind: &AstNode, semantic: &Semantic<'_>) -> bool {
 
 /// Check if a compound assignment result is being used in a value context
 fn is_compound_assignment_read(parent_id: NodeId, semantic: &Semantic) -> bool {
-    semantic
-        .nodes()
-        .ancestors(parent_id)
-        .tuple_windows::<(&AstNode<'_>, &AstNode<'_>)>()
-        .next()
-        .is_some_and(|(grandparent, _)| is_value_context(grandparent, semantic))
+    // Use tuple_windows like the main is_read function to check for value contexts
+    // We want to check if any ancestor is a value context
+    semantic.nodes().ancestors(parent_id).tuple_windows::<(&AstNode<'_>, &AstNode<'_>)>().any(
+        |(child, _parent)| {
+            // Check if the child node represents a value context
+            is_value_context(child, semantic)
+        },
+    )
 }
 
 #[test]
