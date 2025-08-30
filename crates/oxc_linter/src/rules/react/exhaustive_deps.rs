@@ -564,7 +564,7 @@ impl Rule for ExhaustiveDeps {
         }
 
         let undeclared_deps = found_dependencies.difference(&declared_dependencies).filter(|dep| {
-            if declared_dependencies.iter().any(|decl_dep| dep.contains(decl_dep)) {
+            if declared_dependencies.iter().any(|decl_dep| decl_dep.contains(dep)) {
                 return false;
             }
 
@@ -818,15 +818,15 @@ impl Dependency<'_> {
     }
 }
 
-fn chain_contains(a: &[Atom<'_>], b: &[Atom<'_>]) -> bool {
-    for (index, part) in b.iter().enumerate() {
-        let Some(other) = a.get(index) else { return false };
-        if other != part {
-            return false;
-        }
+fn chain_contains(declared_chain: &[Atom<'_>], found_chain: &[Atom<'_>]) -> bool {
+    // If declared chain is empty, it contains everything (e.g., `foo` contains `foo.length`)
+    if declared_chain.is_empty() {
+        return true;
     }
-
-    true
+    
+    // Check if declared_chain is a prefix of found_chain  
+    // This means the declared dependency covers the found usage
+    found_chain.starts_with(declared_chain)
 }
 
 fn analyze_property_chain<'a, 'b>(
@@ -870,6 +870,7 @@ fn concat_members<'a, 'b>(
         symbol_id: semantic.scoping().get_reference(source.reference_id).symbol_id(),
     }))
 }
+
 
 fn is_identifier_a_dependency<'a>(
     ident_name: Atom<'a>,
@@ -1251,6 +1252,7 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
         // noop
     }
 
+
     fn visit_variable_declarator(&mut self, decl: &VariableDeclarator<'a>) {
         self.stack.push(AstType::VariableDeclarator);
         // NOTE: decl_stack is only appended when visiting initializer
@@ -1294,54 +1296,47 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
             return;
         }
 
-        let is_parent_call_expr =
-            self.stack.last().is_some_and(|&ty| ty == AstType::CallExpression);
-
         match analyze_property_chain(&it.object, self.semantic) {
             Ok(source) => {
                 if let Some(source) = source {
-                    if is_parent_call_expr {
-                        self.found_dependencies.insert(source);
-                    } else {
-                        let new_chain = Vec::from([it.property.name]);
+                    let new_chain = Vec::from([it.property.name]);
 
-                        let mut destructured_props: Vec<Atom<'a>> = vec![];
-                        let mut did_see_ref = false;
-                        let needs_full_chain = self
-                            .iter_destructure_bindings(|id| {
-                                if let Cow::Borrowed(id) = id {
-                                    if id == "current" {
-                                        did_see_ref = true;
-                                    } else {
-                                        destructured_props.push(id.into());
-                                    }
+                    let mut destructured_props: Vec<Atom<'a>> = vec![];
+                    let mut did_see_ref = false;
+                    let needs_full_chain = self
+                        .iter_destructure_bindings(|id| {
+                            if let Cow::Borrowed(id) = id {
+                                if id == "current" {
+                                    did_see_ref = true;
                                 } else {
-                                    // todo
+                                    destructured_props.push(id.into());
                                 }
-                            })
-                            .unwrap_or(true);
+                            } else {
+                                // todo
+                            }
+                        })
+                        .unwrap_or(true);
 
-                        let symbol_id =
-                            self.semantic.scoping().get_reference(source.reference_id).symbol_id();
-                        if needs_full_chain || (destructured_props.is_empty() && !did_see_ref) {
+                    let symbol_id =
+                        self.semantic.scoping().get_reference(source.reference_id).symbol_id();
+                    if needs_full_chain || (destructured_props.is_empty() && !did_see_ref) {
+                        self.found_dependencies.insert(Dependency {
+                            name: source.name,
+                            reference_id: source.reference_id,
+                            span: source.span,
+                            chain: [source.chain.clone(), new_chain].concat(),
+                            symbol_id,
+                        });
+                    } else {
+                        for prop in destructured_props {
                             self.found_dependencies.insert(Dependency {
                                 name: source.name,
                                 reference_id: source.reference_id,
                                 span: source.span,
-                                chain: [source.chain.clone(), new_chain].concat(),
+                                chain: [source.chain.clone(), new_chain.clone(), vec![prop]]
+                                    .concat(),
                                 symbol_id,
                             });
-                        } else {
-                            for prop in destructured_props {
-                                self.found_dependencies.insert(Dependency {
-                                    name: source.name,
-                                    reference_id: source.reference_id,
-                                    span: source.span,
-                                    chain: [source.chain.clone(), new_chain.clone(), vec![prop]]
-                                        .concat(),
-                                    symbol_id,
-                                });
-                            }
                         }
                     }
                 }
