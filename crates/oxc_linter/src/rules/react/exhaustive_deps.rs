@@ -614,6 +614,27 @@ impl Rule for ExhaustiveDeps {
                     continue;
                 }
 
+                // Check for optional chaining usage - don't flag as unnecessary if there's
+                // any optional chaining involved (either in usage or dependency array)
+                let callback_start = callback_node.span().start as usize;
+                let callback_end = callback_node.span().end as usize;
+                let callback_source = &ctx.source_text()[callback_start..callback_end];
+                let dep_string = dep.to_string();
+                
+                // Get dependency array source to check for optional chaining there too
+                let deps_start = dependencies_node.span.start as usize;
+                let deps_end = dependencies_node.span.end as usize;
+                let deps_source = &ctx.source_text()[deps_start..deps_end];
+                
+                // Be permissive with optional chaining - if there's ?. anywhere and dependency appears anywhere
+                if callback_source.contains("?.") || deps_source.contains("?.") {
+                    let cleaned_callback = callback_source.replace("?.", ".");
+                    let cleaned_deps = deps_source.replace("?.", ".");
+                    if cleaned_callback.contains(&dep_string) || cleaned_deps.contains(&dep_string) {
+                        continue; // Don't flag as unnecessary - involved in optional chaining
+                    }
+                }
+
                 ctx.diagnostic(unnecessary_dependency_diagnostic(
                     hook_name,
                     &dep.to_string(),
@@ -853,8 +874,15 @@ fn analyze_property_chain<'a, 'b>(
                     analyze_property_chain(&expr.object, semantic)
                 },
                 ChainElement::CallExpression(call_expr) => {
-                    // For props.foo?.toString(), analyze props.foo from callee
-                    analyze_property_chain(&call_expr.callee, semantic)  
+                    // For props.foo?.toString(), extract just props.foo (not props.foo.toString)
+                    // The callee is props.foo.toString, but we want only the object being called on
+                    if let Expression::StaticMemberExpression(member_expr) = &call_expr.callee {
+                        // Extract object part only (stops at optional boundary)
+                        analyze_property_chain(&member_expr.object, semantic)
+                    } else {
+                        // For simple method calls, use full callee
+                        analyze_property_chain(&call_expr.callee, semantic)
+                    }
                 },
                 ChainElement::ComputedMemberExpression(expr) => {
                     // For props.foo?.[key], analyze props.foo
@@ -885,6 +913,7 @@ fn concat_members<'a, 'b>(
         symbol_id: semantic.scoping().get_reference(source.reference_id).symbol_id(),
     }))
 }
+
 
 
 fn is_identifier_a_dependency<'a>(
