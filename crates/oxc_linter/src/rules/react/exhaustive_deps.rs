@@ -517,7 +517,7 @@ impl Rule for ExhaustiveDeps {
                 match_expression!(ArrayExpressionElement) => {
                     let elem = elem.to_expression().get_inner_expression();
 
-                    if let Ok(Some(dep)) = analyze_property_chain(elem, ctx) {
+                    if let Ok(Some(dep)) = analyze_property_chain(elem, ctx.semantic(), false) {
                         // Check if dependency ends with .current - invalid mutable value
                         let dep_string = dep.to_string();
                         if dep_string.ends_with(".current") {
@@ -841,6 +841,7 @@ fn chain_contains(declared_chain: &[Atom<'_>], found_chain: &[Atom<'_>]) -> bool
 fn analyze_property_chain<'a, 'b>(
     expr: &'b Expression<'a>,
     semantic: &'b Semantic<'a>,
+    exclude_current: bool,
 ) -> Result<Option<Dependency<'a>>, ()> {
     match expr.get_inner_expression() {
         Expression::Identifier(ident) => Ok(Some(Dependency {
@@ -852,14 +853,14 @@ fn analyze_property_chain<'a, 'b>(
         })),
         // TODO; is this correct?
         Expression::JSXElement(_) => Ok(None),
-        Expression::StaticMemberExpression(expr) => concat_members(expr, semantic),
+        Expression::StaticMemberExpression(expr) => concat_members(expr, semantic, exclude_current),
         Expression::ChainExpression(chain_expr) => {
             // For ChainExpression, extract the base object dependency and ignore optional chaining
             // This handles cases like props.foo?.toString() -> extract props.foo
             match &chain_expr.expression {
                 ChainElement::StaticMemberExpression(expr) => {
                     // For props.foo?.bar, analyze props.foo
-                    analyze_property_chain(&expr.object, semantic)
+                    analyze_property_chain(&expr.object, semantic, exclude_current)
                 },
                 ChainElement::CallExpression(_) => {
                     // Reject method calls in dependency arrays - they're complex expressions
@@ -867,7 +868,7 @@ fn analyze_property_chain<'a, 'b>(
                 },
                 ChainElement::ComputedMemberExpression(expr) => {
                     // For props.foo?.[key], analyze props.foo
-                    analyze_property_chain(&expr.object, semantic)
+                    analyze_property_chain(&expr.object, semantic, exclude_current)
                 },
                 _ => Err(()),
             }
@@ -879,14 +880,15 @@ fn analyze_property_chain<'a, 'b>(
 fn concat_members<'a, 'b>(
     member_expr: &'b StaticMemberExpression<'a>,
     semantic: &'b Semantic<'a>,
+    exclude_current: bool,
 ) -> Result<Option<Dependency<'a>>, ()> {
-    // Special case: exclude .current from dependency paths (following React official logic)
+    // Special case: exclude .current from dependency paths when analyzing usage
     // ref.current.addEventListener() should create dependency on 'ref', not 'ref.current'
-    if member_expr.property.name == "current" {
-        return analyze_property_chain(&member_expr.object, semantic);
+    if member_expr.property.name == "current" && exclude_current {
+        return analyze_property_chain(&member_expr.object, semantic, exclude_current);
     }
 
-    let Some(source) = analyze_property_chain(&member_expr.object, semantic)? else {
+    let Some(source) = analyze_property_chain(&member_expr.object, semantic, exclude_current)? else {
         return Ok(None);
     };
 
@@ -1353,7 +1355,7 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
             return;
         }
 
-        match analyze_property_chain(&it.object, self.semantic) {
+        match analyze_property_chain(&it.object, self.semantic, true) {
             Ok(source) => {
                 if let Some(source) = source {
                     let new_chain = Vec::from([it.property.name]);
