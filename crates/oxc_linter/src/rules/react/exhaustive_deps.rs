@@ -573,7 +573,7 @@ impl Rule for ExhaustiveDeps {
         }
 
         let undeclared_deps = found_dependencies.difference(&declared_dependencies).filter(|dep| {
-            if declared_dependencies.iter().any(|decl_dep| decl_dep.contains(dep)) {
+            if declared_dependencies.iter().any(|decl_dep| decl_dep.contains_for_hook_type(dep, is_effect)) {
                 return false;
             }
 
@@ -825,6 +825,23 @@ impl Dependency<'_> {
     fn contains(&self, other: &Self) -> bool {
         self.name == other.name && chain_contains(&self.chain, &other.chain)
     }
+
+    fn contains_for_hook_type(&self, other: &Self, is_effect: bool) -> bool {
+        if self.name != other.name {
+            return false;
+        }
+        
+        if is_effect {
+            // Effects: broader declared dependencies can satisfy specific usage
+            if self.chain.is_empty() {
+                return true; // props satisfies props.foo.bar.baz
+            }
+            other.chain.starts_with(&self.chain) // props.foo satisfies props.foo.bar.baz
+        } else {
+            // Non-effects: declared must be more specific than or equal to usage
+            self.chain.starts_with(&other.chain)
+        }
+    }
 }
 
 fn chain_contains(declared_chain: &[Atom<'_>], found_chain: &[Atom<'_>]) -> bool {
@@ -833,9 +850,9 @@ fn chain_contains(declared_chain: &[Atom<'_>], found_chain: &[Atom<'_>]) -> bool
         return true;
     }
     
-    // Check if declared_chain is a prefix of found_chain  
-    // This means the declared dependency covers the found usage
-    found_chain.starts_with(declared_chain)
+    // Check if declared dependency is more specific than or equal to found dependency
+    // More specific declared deps should satisfy less specific found deps
+    declared_chain.starts_with(found_chain)
 }
 
 fn analyze_property_chain<'a, 'b>(
@@ -859,8 +876,8 @@ fn analyze_property_chain<'a, 'b>(
             // This handles cases like props.foo?.toString() -> extract props.foo
             match &chain_expr.expression {
                 ChainElement::StaticMemberExpression(expr) => {
-                    // For props.foo?.bar, analyze props.foo
-                    analyze_property_chain(&expr.object, semantic, exclude_current)
+                    // For optional chaining member access, build the full chain
+                    concat_members(expr, semantic, exclude_current)
                 },
                 ChainElement::CallExpression(_) => {
                     // Reject method calls in dependency arrays - they're complex expressions
@@ -1353,6 +1370,19 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
         {
             self.visit_expression(&it.object);
             return;
+        }
+
+        // Check if this member expression is being called as a method
+        let is_method_call = self.stack.len() >= 2 
+            && self.stack[self.stack.len() - 2] == AstType::CallExpression;
+
+        if is_method_call {
+            // For method calls like props.method(), only depend on base object (props)
+            // Following React official logic from getDependency function
+            if let Ok(Some(base_dep)) = analyze_property_chain(&it.object, self.semantic, true) {
+                self.found_dependencies.insert(base_dep);
+            }
+            return; // Don't build full chain for method calls
         }
 
         match analyze_property_chain(&it.object, self.semantic, true) {
