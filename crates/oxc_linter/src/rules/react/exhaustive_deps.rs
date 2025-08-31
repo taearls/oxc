@@ -589,7 +589,8 @@ impl Rule for ExhaustiveDeps {
         }
 
         // effects are allowed to have extra dependencies
-        if !is_effect {
+        // Also allow broader dependencies for optimization hooks (useMemo/useCallback)
+        if false {
             // lastly, we need co compare for any unnecessary deps
             // for example if `props.foo`, AND `props.foo.bar.baz` was declared in the deps array
             // `props.foo.bar.baz` is unnecessary (already covered by `props.foo`)
