@@ -832,11 +832,11 @@ impl Dependency<'_> {
         }
         
         if is_effect {
-            // Effects: more specific declared dependencies can satisfy less specific usage
+            // Effects: broader declared dependencies can satisfy specific usage
             if self.chain.is_empty() {
                 return true; // props satisfies props.foo.bar.baz
             }
-            self.chain.starts_with(&other.chain) // props.foo.bar satisfies props.foo usage
+            other.chain.starts_with(&self.chain) // props.foo.bar.baz satisfied by props.foo
         } else {
             // Non-effects: declared must be more specific than or equal to usage
             self.chain.starts_with(&other.chain)
@@ -876,14 +876,9 @@ fn analyze_property_chain<'a, 'b>(
             // This handles cases like props.foo?.toString() -> extract props.foo
             match &chain_expr.expression {
                 ChainElement::StaticMemberExpression(expr) => {
-                    if exclude_current {
-                        // For usage analysis: only depend on required part before optional chain
-                        // props.foo?.bar should depend on props.foo, not props.foo.bar
-                        analyze_property_chain(&expr.object, semantic, exclude_current)
-                    } else {
-                        // For declaration parsing: build full chain as before
-                        concat_members(expr, semantic, exclude_current)
-                    }
+                    // For optional chaining: always depend on required part before optional boundary
+                    // Both usage and declaration of props.foo?.bar should depend on props.foo
+                    analyze_property_chain(&expr.object, semantic, exclude_current)
                 },
                 ChainElement::CallExpression(_) => {
                     // Reject method calls in dependency arrays - they're complex expressions
