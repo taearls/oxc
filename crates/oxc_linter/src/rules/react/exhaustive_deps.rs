@@ -914,7 +914,15 @@ fn concat_members<'a, 'b>(
     }))
 }
 
-
+/// Checks if an identifier references a value created by useRef hook.
+/// useRef values are not reactive and should not be included in dependency arrays.
+fn is_identifier_from_use_ref(ident: &IdentifierReference, semantic: &Semantic) -> bool {
+    let Some(_symbol_id) = semantic.scoping().get_reference(ident.reference_id()).symbol_id() else { return false };
+    let Some(declaration) = get_declaration_from_reference_id(ident.reference_id(), semantic) else { return false };
+    let AstKind::VariableDeclarator(declarator) = declaration.kind() else { return false };
+    let Some(Expression::CallExpression(call)) = &declarator.init else { return false };
+    func_call_without_react_namespace(call).is_some_and(|name| name == "useRef")
+}
 
 fn is_identifier_a_dependency<'a>(
     ident_name: Atom<'a>,
@@ -1321,18 +1329,25 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
     }
 
     fn visit_static_member_expression(&mut self, it: &StaticMemberExpression<'a>) {
-        if it.property.name == "current" && is_inside_effect_cleanup(&self.stack) {
-            // Safety: this is safe
-            let it = unsafe {
-                std::mem::transmute::<&StaticMemberExpression<'_>, &'a StaticMemberExpression<'a>>(
-                    it,
-                )
-            };
-            self.refs_inside_cleanups.push(it);
+        if it.property.name == "current" {
+            // Check if accessing .current on a useRef value
+            if let Expression::Identifier(ident) = it.object.get_inner_expression() {
+                if is_identifier_from_use_ref(ident, self.semantic) {
+                    return; // Skip dependency collection for useRef.current access
+                }
+            }
+            
+            // Handle refs inside effect cleanup
+            if is_inside_effect_cleanup(&self.stack) {
+                let it = unsafe {
+                    std::mem::transmute::<&StaticMemberExpression<'_>, &'a StaticMemberExpression<'a>>(
+                        it,
+                    )
+                };
+                self.refs_inside_cleanups.push(it);
+            }
         }
 
-        // consider `useEffect(() => { console.log(props.foo().foo.bar); }, [props.foo]);`
-        // we don't care about `foo.bar`, only `props.foo`
         if matches!(it.object.get_inner_expression(), Expression::CallExpression(_))
             || self.skip_reporting_dependency
         {
