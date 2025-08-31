@@ -517,8 +517,17 @@ impl Rule for ExhaustiveDeps {
                 match_expression!(ArrayExpressionElement) => {
                     let elem = elem.to_expression().get_inner_expression();
 
-                    if let Ok(dep) = analyze_property_chain(elem, ctx) {
-                        dep
+                    if let Ok(Some(dep)) = analyze_property_chain(elem, ctx) {
+                        // Check if dependency ends with .current - invalid mutable value
+                        let dep_string = dep.to_string();
+                        if dep_string.ends_with(".current") {
+                            ctx.diagnostic(OxcDiagnostic::warn(format!(
+                                "React Hook {hook_name} has a dependency on '{dep_string}'. Mutable values like '{dep_string}' aren't valid dependencies because mutating them doesn't re-render the component."
+                            )).with_label(elem.span()));
+                            None
+                        } else {
+                            Some(dep)
+                        }
                     } else {
                         ctx.diagnostic(complex_expression_in_dependency_array_diagnostic(
                             hook_name.as_str(),
@@ -852,16 +861,9 @@ fn analyze_property_chain<'a, 'b>(
                     // For props.foo?.bar, analyze props.foo
                     analyze_property_chain(&expr.object, semantic)
                 },
-                ChainElement::CallExpression(call_expr) => {
-                    // For props.foo?.toString(), extract just props.foo (not props.foo.toString)
-                    // The callee is props.foo.toString, but we want only the object being called on
-                    if let Expression::StaticMemberExpression(member_expr) = &call_expr.callee {
-                        // Extract object part only (stops at optional boundary)
-                        analyze_property_chain(&member_expr.object, semantic)
-                    } else {
-                        // For simple method calls, use full callee
-                        analyze_property_chain(&call_expr.callee, semantic)
-                    }
+                ChainElement::CallExpression(_) => {
+                    // Reject method calls in dependency arrays - they're complex expressions
+                    Err(()) // Triggers "complex expression in dependency array" diagnostic
                 },
                 ChainElement::ComputedMemberExpression(expr) => {
                     // For props.foo?.[key], analyze props.foo
