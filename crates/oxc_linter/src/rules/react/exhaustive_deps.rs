@@ -832,11 +832,11 @@ impl Dependency<'_> {
         }
         
         if is_effect {
-            // Effects: broader declared dependencies can satisfy specific usage
+            // Effects: more specific declared dependencies can satisfy less specific usage
             if self.chain.is_empty() {
                 return true; // props satisfies props.foo.bar.baz
             }
-            other.chain.starts_with(&self.chain) // props.foo satisfies props.foo.bar.baz
+            self.chain.starts_with(&other.chain) // props.foo.bar satisfies props.foo usage
         } else {
             // Non-effects: declared must be more specific than or equal to usage
             self.chain.starts_with(&other.chain)
