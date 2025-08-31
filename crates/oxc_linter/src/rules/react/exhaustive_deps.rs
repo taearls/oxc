@@ -876,8 +876,14 @@ fn analyze_property_chain<'a, 'b>(
             // This handles cases like props.foo?.toString() -> extract props.foo
             match &chain_expr.expression {
                 ChainElement::StaticMemberExpression(expr) => {
-                    // For optional chaining member access, build the full chain
-                    concat_members(expr, semantic, exclude_current)
+                    if exclude_current {
+                        // For usage analysis: only depend on required part before optional chain
+                        // props.foo?.bar should depend on props.foo, not props.foo.bar
+                        analyze_property_chain(&expr.object, semantic, exclude_current)
+                    } else {
+                        // For declaration parsing: build full chain as before
+                        concat_members(expr, semantic, exclude_current)
+                    }
                 },
                 ChainElement::CallExpression(_) => {
                     // Reject method calls in dependency arrays - they're complex expressions
