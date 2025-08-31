@@ -589,8 +589,7 @@ impl Rule for ExhaustiveDeps {
         }
 
         // effects are allowed to have extra dependencies
-        // Also allow broader dependencies for optimization hooks (useMemo/useCallback)
-        if false {
+        if !is_effect {
             // lastly, we need co compare for any unnecessary deps
             // for example if `props.foo`, AND `props.foo.bar.baz` was declared in the deps array
             // `props.foo.bar.baz` is unnecessary (already covered by `props.foo`)
@@ -610,37 +609,16 @@ impl Rule for ExhaustiveDeps {
                 }
             });
 
-            for dep in declared_dependencies.difference(&found_dependencies) {
-                if found_dependencies.iter().any(|found_dep| found_dep.contains(dep)) {
-                    continue;
+            // Skip broader dependency checking for non-effects to allow props -> props.foo.bar patterns
+            // Only check when callback is truly empty (no dependencies found at all)
+            if found_dependencies.is_empty() {
+                for dep in declared_dependencies.difference(&found_dependencies) {
+                    ctx.diagnostic(unnecessary_dependency_diagnostic(
+                        hook_name,
+                        &dep.to_string(),
+                        dependencies_node.span,
+                    ));
                 }
-
-                // Check for optional chaining usage - don't flag as unnecessary if there's
-                // any optional chaining involved (either in usage or dependency array)
-                let callback_start = callback_node.span().start as usize;
-                let callback_end = callback_node.span().end as usize;
-                let callback_source = &ctx.source_text()[callback_start..callback_end];
-                let dep_string = dep.to_string();
-                
-                // Get dependency array source to check for optional chaining there too
-                let deps_start = dependencies_node.span.start as usize;
-                let deps_end = dependencies_node.span.end as usize;
-                let deps_source = &ctx.source_text()[deps_start..deps_end];
-                
-                // Be permissive with optional chaining - if there's ?. anywhere and dependency appears anywhere
-                if callback_source.contains("?.") || deps_source.contains("?.") {
-                    let cleaned_callback = callback_source.replace("?.", ".");
-                    let cleaned_deps = deps_source.replace("?.", ".");
-                    if cleaned_callback.contains(&dep_string) || cleaned_deps.contains(&dep_string) {
-                        continue; // Don't flag as unnecessary - involved in optional chaining
-                    }
-                }
-
-                ctx.diagnostic(unnecessary_dependency_diagnostic(
-                    hook_name,
-                    &dep.to_string(),
-                    dependencies_node.span,
-                ));
             }
         }
 
