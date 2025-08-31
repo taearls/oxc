@@ -899,6 +899,12 @@ fn concat_members<'a, 'b>(
     member_expr: &'b StaticMemberExpression<'a>,
     semantic: &'b Semantic<'a>,
 ) -> Result<Option<Dependency<'a>>, ()> {
+    // Special case: exclude .current from dependency paths (following React official logic)
+    // ref.current.addEventListener() should create dependency on 'ref', not 'ref.current'
+    if member_expr.property.name == "current" {
+        return analyze_property_chain(&member_expr.object, semantic);
+    }
+
     let Some(source) = analyze_property_chain(&member_expr.object, semantic)? else {
         return Ok(None);
     };
@@ -1330,11 +1336,21 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
 
     fn visit_static_member_expression(&mut self, it: &StaticMemberExpression<'a>) {
         if it.property.name == "current" {
-            // Check if accessing .current on a useRef value
+            // For .current access, collect dependency on the base object only
             if let Expression::Identifier(ident) = it.object.get_inner_expression() {
+                // Check if this is a useRef-created ref (non-reactive)
                 if is_identifier_from_use_ref(ident, self.semantic) {
                     return; // Skip dependency collection for useRef.current access
                 }
+                
+                // For parameter/prop refs (reactive), collect dependency on base object
+                self.found_dependencies.insert(Dependency {
+                    span: ident.span,
+                    name: ident.name,
+                    reference_id: ident.reference_id(),
+                    chain: vec![], // Exclude .current from chain
+                    symbol_id: self.semantic.scoping().get_reference(ident.reference_id()).symbol_id(),
+                });
             }
             
             // Handle refs inside effect cleanup
@@ -1346,6 +1362,7 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
                 };
                 self.refs_inside_cleanups.push(it);
             }
+            return; // Don't continue normal traversal for .current access
         }
 
         if matches!(it.object.get_inner_expression(), Expression::CallExpression(_))
