@@ -9,7 +9,7 @@ use oxc_ast::{
     AstKind, AstType,
     ast::{
         Argument, ArrayExpressionElement, ArrowFunctionExpression, BindingPattern,
-        BindingPatternKind, CallExpression, ChainElement, Expression, FormalParameters, Function,
+        BindingPatternKind, CallExpression, ChainElement, ChainExpression, Expression, FormalParameters, Function,
         FunctionBody, IdentifierReference, StaticMemberExpression, TSTypeAnnotation,
         TSTypeParameterInstantiation, TSTypeReference, VariableDeclarationKind, VariableDeclarator,
     },
@@ -876,9 +876,9 @@ fn analyze_property_chain<'a, 'b>(
             // This handles cases like props.foo?.toString() -> extract props.foo
             match &chain_expr.expression {
                 ChainElement::StaticMemberExpression(expr) => {
-                    // For optional chaining: always depend on required part before optional boundary
-                    // Both usage and declaration of props.foo?.bar should depend on props.foo
-                    analyze_property_chain(&expr.object, semantic, exclude_current)
+                    // Build full chain like official React implementation
+                    // props.foo?.bar creates dependency on props.foo.bar (normalized)
+                    concat_members(expr, semantic, exclude_current)
                 },
                 ChainElement::CallExpression(_) => {
                     // Reject method calls in dependency arrays - they're complex expressions
@@ -1311,6 +1311,43 @@ impl<'a> Visit<'a> for ExhaustiveDepsVisitor<'a, '_> {
         // noop
     }
 
+    fn visit_chain_expression(&mut self, chain_expr: &ChainExpression<'a>) {
+        // Handle ChainExpression as a complete unit to build full normalized chains
+        match &chain_expr.expression {
+            ChainElement::StaticMemberExpression(expr) => {
+                // Build full chain dependency for optional chaining
+                // props.foo?.bar should create dependency on props.foo.bar (normalized)
+                if let Ok(Some(dep)) = concat_members(expr, self.semantic, true) {
+                    self.found_dependencies.insert(dep);
+                }
+            }
+            ChainElement::CallExpression(call_expr) => {
+                // For method calls in optional chains, depend on object being called on
+                // props.foo?.toString() should depend on props.foo, not props.foo.toString
+                if let Expression::StaticMemberExpression(member_expr) = &call_expr.callee {
+                    if let Ok(Some(obj_dep)) = analyze_property_chain(&member_expr.object, self.semantic, true) {
+                        self.found_dependencies.insert(obj_dep);
+                    }
+                } else {
+                    // For other callee types, depend on full callee
+                    if let Ok(Some(callee_dep)) = analyze_property_chain(&call_expr.callee, self.semantic, true) {
+                        self.found_dependencies.insert(callee_dep);
+                    }
+                }
+            }
+            ChainElement::ComputedMemberExpression(expr) => {
+                // For computed access, depend on object
+                if let Ok(Some(obj_dep)) = analyze_property_chain(&expr.object, self.semantic, true) {
+                    self.found_dependencies.insert(obj_dep);
+                }
+            }
+            _ => {
+                // For other types, fall back to default traversal
+                // This will call the default visit method for the inner expression
+            }
+        }
+        // Don't continue with default traversal to prevent double collection
+    }
 
     fn visit_variable_declarator(&mut self, decl: &VariableDeclarator<'a>) {
         self.stack.push(AstType::VariableDeclarator);
