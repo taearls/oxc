@@ -170,11 +170,14 @@ impl<'a, 'b> BinaryLikeExpression<'a, 'b> {
                     // TODO(prettier): Why not include `NewExpression` ???
                     !matches!(parent.parent(), AstNodes::Argument(argument) if matches!(argument.parent, AstNodes::CallExpression(_)))
             }
-            AstNodes::Argument(argument) => {
-                // https://github.com/prettier/prettier/issues/18057#issuecomment-3472912112
-                matches!(argument.parent, AstNodes::CallExpression(call) if call.arguments.len() == 1 &&
-                 matches!(&call.callee, Expression::Identifier(ident) if ident.name == "Boolean"))
-            }
+            AstNodes::ConditionalExpression(conditional) => !matches!(
+                conditional.parent,
+                AstNodes::ReturnStatement(_)
+                    | AstNodes::ThrowStatement(_)
+                    | AstNodes::CallExpression(_)
+                    | AstNodes::ImportExpression(_)
+                    | AstNodes::MetaProperty(_)
+            ),
             _ => false,
         }
     }
