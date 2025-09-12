@@ -1,4 +1,4 @@
-ts compatibility: 332/573 (57.94%)
+ts compatibility: 340/573 (59.34%)
 
 # Failed
 
@@ -85,11 +85,9 @@ ts compatibility: 332/573 (57.94%)
 | typescript/conformance/interfaces/interfaceDeclarations/interfaceWithMultipleBaseTypes2.ts | 💥 | 52.00% |
 | typescript/conformance/internalModules/importDeclarations/exportImportAlias.ts | 💥 | 91.67% |
 | typescript/conformance/internalModules/importDeclarations/importAliasIdentifiers.ts | 💥 | 86.00% |
-| typescript/conformance/internalModules/importDeclarations/invalidImportAliasIdentifiers.ts | 💥 | 87.50% |
+| typescript/conformance/internalModules/importDeclarations/invalidImportAliasIdentifiers.ts | 💥 | 95.83% |
 | typescript/conformance/internalModules/importDeclarations/shadowedInternalModule.ts | 💥 | 87.88% |
-| typescript/conformance/types/ambient/ambientDeclarations.ts | 💥 | 60.00% |
-| typescript/conformance/types/constKeyword/constKeyword.ts | 💥 | 40.00% |
-| typescript/conformance/types/enumDeclaration/enumDeclaration.ts | 💥 | 40.00% |
+| typescript/conformance/types/ambient/ambientDeclarations.ts | 💥 | 70.00% |
 | typescript/conformance/types/firstTypeNode/firstTypeNode.ts | 💥 | 51.61% |
 | typescript/conformance/types/functions/functionImplementations.ts | 💥 | 99.44% |
 | typescript/conformance/types/functions/functionOverloadCompatibilityWithVoid01.ts | 💥 | 75.00% |
@@ -108,7 +106,6 @@ ts compatibility: 332/573 (57.94%)
 | typescript/conformance/types/union/unionTypeEquivalence.ts | 💥 | 90.00% |
 | typescript/conformance/types/union/unionTypeFromArrayLiteral.ts | 💥 | 93.55% |
 | typescript/conformance/types/union/unionTypeIndexSignature.ts | 💥 | 63.33% |
-| typescript/const/initializer-ambient-context.ts | 💥 | 93.33% |
 | typescript/custom/abstract/abstractProperties.ts | 💥 | 75.00% |
 | typescript/custom/computedProperties/string.ts | 💥 | 73.33% |
 | typescript/custom/computedProperties/symbol.ts | 💥 | 71.43% |
@@ -118,7 +115,6 @@ ts compatibility: 332/573 (57.94%)
 | typescript/custom/typeParameters/callAndConstructSignatureLong.ts | 💥 | 18.18% |
 | typescript/custom/typeParameters/functionTypeLong.ts | 💥 | 50.00% |
 | typescript/custom/typeParameters/typeParametersLong.ts | 💥 | 0.00% |
-| typescript/declare/declare_enum.ts | 💥 | 0.00% |
 | typescript/declare/declare_function.ts | 💥 | 44.44% |
 | typescript/declare/declare_var.ts | 💥 | 80.00% |
 | typescript/declare/object-type-in-declare-function.ts | 💥 | 23.08% |
@@ -131,8 +127,6 @@ ts compatibility: 332/573 (57.94%)
 | typescript/definite/definite.ts | 💥 | 57.14% |
 | typescript/definite/without-annotation.ts | 💥 | 25.00% |
 | typescript/enum/computed-members.ts | 💥 | 0.00% |
-| typescript/enum/enum.ts | 💥 | 52.17% |
-| typescript/enum/multiline.ts | 💥 | 0.00% |
 | typescript/export/comment.ts | 💥 | 50.00% |
 | typescript/export/default.ts | 💥 | 66.67% |
 | typescript/export/export.ts | 💥 | 85.71% |
@@ -145,7 +139,6 @@ ts compatibility: 332/573 (57.94%)
 | typescript/generic/issue-6899.ts | 💥 | 21.05% |
 | typescript/generic/object-method.ts | 💥 | 72.73% |
 | typescript/generic/ungrouped-parameters.ts | 💥 | 74.07% |
-| typescript/import-export/type-modifier.ts | 💥 | 66.67% |
 | typescript/import-type/import-type.ts | 💥💥 | 93.33% |
 | typescript/index-signature/static.ts | 💥 | 66.67% |
 | typescript/infer-extends/basic.ts | 💥 | 66.67% |
@@ -167,7 +160,6 @@ ts compatibility: 332/573 (57.94%)
 | typescript/keyof/keyof.ts | 💥 | 20.00% |
 | typescript/keyword-types/conditional-types.ts | 💥 | 87.50% |
 | typescript/keywords/keywords-2.ts | 💥 | 79.41% |
-| typescript/keywords/keywords.ts | 💥 | 83.33% |
 | typescript/last-argument-expansion/decorated-function.tsx | 💥 | 22.81% |
 | typescript/mapped-type/issue-11098.ts | 💥 | 60.00% |
 | typescript/mapped-type/break-mode/break-mode.ts | 💥 | 62.50% |
@@ -211,7 +203,6 @@ ts compatibility: 332/573 (57.94%)
 | typescript/template-literal-types/template-literal-types.ts | 💥 | 73.33% |
 | typescript/test-declarations/test_declarations.ts | 💥💥 | 50.00% |
 | typescript/trailing-comma/arrow-functions.tsx | 💥💥💥 | 25.00% |
-| typescript/trailing-comma/trailing.ts | 💥💥💥 | 87.66% |
 | typescript/trailing-comma/type-arguments.ts | 💥💥💥 | 10.53% |
 | typescript/trailing-comma/type-parameters-vs-arguments.ts | 💥💥💥 | 66.67% |
 | typescript/tsx/type-parameters.tsx | 💥 | 90.48% |

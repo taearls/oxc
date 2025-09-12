@@ -22,6 +22,7 @@ use oxc_linter::{
 
 use crate::{
     cli::{CliRunResult, LintCommand, MiscOptions, ReportUnusedDirectives, WarningOptions},
+    js_plugins::RawTransferFileSystem,
     output_formatter::{LintCommandInfo, OutputFormatter},
     walk::Walk,
 };
@@ -234,6 +235,12 @@ impl LintRunner {
         }
         .with_filters(&filters);
 
+        // If no external rules, discard `ExternalLinter`
+        let mut external_linter = self.external_linter;
+        if external_plugin_store.is_empty() {
+            external_linter = None;
+        }
+
         if let Some(basic_config_file) = oxlintrc_for_print {
             let config_file = config_builder.resolve_final_config_file(basic_config_file);
             if misc_options.print_config {
@@ -308,16 +315,23 @@ impl LintRunner {
         // Run type-aware linting through tsgolint
         // TODO: Add a warning message if `tsgolint` cannot be found, but type-aware rules are enabled
         if self.options.type_aware {
-            if let Err(err) = TsGoLintState::new(options.cwd(), config_store.clone())
-                .with_silent(misc_options.silent)
-                .lint(&files_to_lint, tx_error.clone())
+            let state = match TsGoLintState::try_new(options.cwd(), config_store.clone()) {
+                Ok(state) => state,
+                Err(err) => {
+                    print_and_flush_stdout(stdout, &err);
+                    return CliRunResult::TsGoLintError;
+                }
+            };
+
+            if let Err(err) =
+                state.with_silent(misc_options.silent).lint(&files_to_lint, tx_error.clone())
             {
                 print_and_flush_stdout(stdout, &err);
                 return CliRunResult::TsGoLintError;
             }
         }
 
-        let linter = Linter::new(LintOptions::default(), config_store, self.external_linter)
+        let linter = Linter::new(LintOptions::default(), config_store, external_linter)
             .with_fix(fix_options.fix_kind())
             .with_report_unused_directives(report_unused_directives);
 
@@ -346,14 +360,14 @@ impl LintRunner {
 
         // Spawn linting in another thread so diagnostics can be printed immediately from diagnostic_service.run.
         rayon::spawn(move || {
+            let has_external_linter = linter.has_external_linter();
+
             let mut lint_service = LintService::new(linter, options);
             lint_service.with_paths(files_to_lint);
 
-            // Use `RawTransferFileSystem` if `oxlint2` feature is enabled.
+            // Use `RawTransferFileSystem` if `ExternalLinter` exists.
             // This reads the source text into start of allocator, instead of the end.
-            #[cfg(all(feature = "oxlint2", not(feature = "disable_oxlint2")))]
-            {
-                use crate::raw_fs::RawTransferFileSystem;
+            if has_external_linter {
                 lint_service.with_file_system(Box::new(RawTransferFileSystem));
             }
 
@@ -889,10 +903,12 @@ mod test {
     #[test]
     fn test_tsconfig_option() {
         // passed
-        Tester::new().test(&["--tsconfig", "fixtures/tsconfig/tsconfig.json"]);
+        Tester::new().with_cwd("fixtures".into()).test(&["--tsconfig", "tsconfig/tsconfig.json"]);
 
         // failed
-        Tester::new().test_and_snapshot(&["--tsconfig", "oxc/tsconfig.json"]);
+        Tester::new()
+            .with_cwd("fixtures".into())
+            .test_and_snapshot(&["--tsconfig", "oxc/tsconfig.json"]);
     }
 
     #[test]
@@ -939,7 +955,7 @@ mod test {
     #[test]
     fn test_print_config_ban_all_rules() {
         let args = &["-A", "all", "--print-config"];
-        Tester::new().test_and_snapshot(args);
+        Tester::new().with_cwd("fixtures".into()).test_and_snapshot(args);
     }
 
     #[test]
@@ -961,7 +977,7 @@ mod test {
         assert!(!fs::exists(LintRunner::DEFAULT_OXLINTRC).unwrap());
 
         let args = &["--init"];
-        Tester::new().test(args);
+        Tester::new().with_cwd("fixtures".into()).test(args);
 
         assert!(fs::exists(LintRunner::DEFAULT_OXLINTRC).unwrap());
 

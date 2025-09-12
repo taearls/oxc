@@ -2,6 +2,7 @@ use std::iter::FusedIterator;
 
 use oxc_allocator::{Address, GetAddress};
 use oxc_ast::{AstKind, AstType, ast::Program};
+#[cfg(feature = "cfg")]
 use oxc_cfg::BlockNodeId;
 use oxc_index::{IndexSlice, IndexVec};
 use oxc_span::{GetSpan, Span};
@@ -23,6 +24,7 @@ pub struct AstNode<'a> {
     scope_id: ScopeId,
 
     /// Associated `BasicBlockId` in CFG (initialized by control_flow)
+    #[cfg(feature = "cfg")]
     cfg_id: BlockNodeId,
 
     flags: NodeFlags,
@@ -30,6 +32,7 @@ pub struct AstNode<'a> {
 
 impl<'a> AstNode<'a> {
     #[inline]
+    #[cfg(feature = "cfg")]
     pub(crate) fn new(
         kind: AstKind<'a>,
         scope_id: ScopeId,
@@ -38,6 +41,17 @@ impl<'a> AstNode<'a> {
         id: NodeId,
     ) -> Self {
         Self { id, kind, scope_id, cfg_id, flags }
+    }
+
+    #[cfg(not(feature = "cfg"))]
+    pub(crate) fn new(
+        kind: AstKind<'a>,
+        scope_id: ScopeId,
+        _cfg_id: (),
+        flags: NodeFlags,
+        id: NodeId,
+    ) -> Self {
+        Self { id, kind, scope_id, flags }
     }
 
     /// This node's unique identifier.
@@ -50,6 +64,7 @@ impl<'a> AstNode<'a> {
     ///
     /// See [oxc_cfg::ControlFlowGraph] for more information.
     #[inline]
+    #[cfg(feature = "cfg")]
     pub fn cfg_id(&self) -> BlockNodeId {
         self.cfg_id
     }
@@ -207,6 +222,7 @@ impl<'a> AstNodes<'a> {
     /// [`Program`]: oxc_ast::ast::Program
     /// [`add_program_node`]: AstNodes::add_program_node
     #[inline]
+    #[cfg(feature = "cfg")]
     pub fn add_node(
         &mut self,
         kind: AstKind<'a>,
@@ -222,11 +238,29 @@ impl<'a> AstNodes<'a> {
         node_id
     }
 
+    #[inline]
+    #[cfg(not(feature = "cfg"))]
+    pub fn add_node(
+        &mut self,
+        kind: AstKind<'a>,
+        scope_id: ScopeId,
+        parent_node_id: NodeId,
+        _cfg_id: (),
+        flags: NodeFlags,
+    ) -> NodeId {
+        let node_id = self.parent_ids.push(parent_node_id);
+        let node = AstNode::new(kind, scope_id, (), flags, node_id);
+        self.nodes.push(node);
+        self.node_kinds_set.set(kind.ty());
+        node_id
+    }
+
     /// Create and add an [`AstNode`] to the [`AstNodes`] tree and get its [`NodeId`].
     ///
     /// # Panics
     ///
     /// Panics if this is not the first node being added to the AST.
+    #[cfg(feature = "cfg")]
     pub fn add_program_node(
         &mut self,
         kind: AstKind<'a>,
@@ -245,6 +279,25 @@ impl<'a> AstNodes<'a> {
         NodeId::ROOT
     }
 
+    #[cfg(not(feature = "cfg"))]
+    pub fn add_program_node(
+        &mut self,
+        kind: AstKind<'a>,
+        scope_id: ScopeId,
+        _cfg_id: (),
+        flags: NodeFlags,
+    ) -> NodeId {
+        assert!(self.parent_ids.is_empty(), "Program node must be the first node in the AST.");
+        debug_assert!(
+            matches!(kind, AstKind::Program(_)),
+            "Program node must be of kind `AstKind::Program`"
+        );
+        self.parent_ids.push(NodeId::ROOT);
+        self.nodes.push(AstNode::new(kind, scope_id, (), flags, NodeId::ROOT));
+        self.node_kinds_set.set(AstType::Program);
+        NodeId::ROOT
+    }
+
     /// Reserve space for at least `additional` more nodes.
     pub fn reserve(&mut self, additional: usize) {
         self.nodes.reserve(additional);
@@ -253,15 +306,24 @@ impl<'a> AstNodes<'a> {
 
     /// Checks if the AST contains any nodes of the given types.
     ///
-    /// Example:
-    /// ```ignore
-    /// let for_stmt = AstTypesBitset::from_types(&[AstType::ForStatement]);
-    /// let import_export_decl = AstTypesBitset::from_types(&[AstType::ImportDeclaration, AstType::ExportDeclaration]);
+    /// ## Example
+    /// ```
+    /// # fn get_nodes<'a>() -> AstNodes<'a> { AstNodes::default() }
     ///
-    /// // returns true if there is a `for` loop anywhere in the AST.
-    /// nodes.contains_any(&for_stmt)
-    /// // returns true if there is at least one import OR one export in the AST.
-    /// nodes.contains_any(&import_export_decl)
+    /// use oxc_ast::AstType;
+    /// use oxc_semantic::{AstNodes, AstTypesBitset};
+    ///
+    /// let for_stmt = AstTypesBitset::from_types(&[AstType::ForStatement]);
+    /// let import_export_decl = AstTypesBitset::from_types(&[
+    ///   AstType::ImportDeclaration,
+    ///   AstType::ExportNamedDeclaration,
+    /// ]);
+    ///
+    /// let nodes: AstNodes = get_nodes();
+    /// // `true` if there is a `for` loop anywhere in the AST
+    /// nodes.contains_any(&for_stmt);
+    /// // `true` if there is at least one import OR one export in the AST
+    /// nodes.contains_any(&import_export_decl);
     /// ```
     pub fn contains_any(&self, bitset: &AstTypesBitset) -> bool {
         self.node_kinds_set.intersects(bitset)
@@ -269,15 +331,24 @@ impl<'a> AstNodes<'a> {
 
     /// Checks if the AST contains all of the given types.
     ///
-    /// Example:
-    /// ```ignore
-    /// let for_stmt = AstTypesBitset::from_types(&[AstType::ForStatement]);
-    /// let import_export_decl = AstTypesBitset::from_types(&[AstType::ImportDeclaration, AstType::ExportDeclaration]);
+    /// ## Example
+    /// ```
+    /// # fn get_nodes<'a>() -> AstNodes<'a> { AstNodes::default() }
     ///
-    /// // returns true if there is a `for` loop anywhere in the AST.
-    /// nodes.contains_all(&for_stmt)
-    /// // returns true only if there is at least one import AND one export in the AST.
-    /// nodes.contains_all(&import_export_decl)
+    /// use oxc_ast::AstType;
+    /// use oxc_semantic::{AstNodes, AstTypesBitset};
+    ///
+    /// let for_stmt = AstTypesBitset::from_types(&[AstType::ForStatement]);
+    /// let import_export_decl = AstTypesBitset::from_types(&[
+    ///   AstType::ImportDeclaration,
+    ///   AstType::ExportNamedDeclaration,
+    /// ]);
+    ///
+    /// let nodes: AstNodes = get_nodes();
+    /// // `true` if there is a `for` loop anywhere in the AST
+    /// nodes.contains_all(&for_stmt);
+    /// // `true` if there is at least one import AND one export in the AST
+    /// nodes.contains_all(&import_export_decl);
     /// ```
     pub fn contains_all(&self, bitset: &AstTypesBitset) -> bool {
         self.node_kinds_set.contains(bitset)
@@ -285,12 +356,18 @@ impl<'a> AstNodes<'a> {
 
     /// Checks if the AST contains a node of the given type.
     ///
-    /// Example:
-    /// ```ignore
-    /// // returns true if there is a `for` loop anywhere in the AST.
-    /// nodes.contains(AstType::ForStatement)
-    /// // returns true if there is an `ImportDeclaration` anywhere in the AST.
-    /// nodes.contains(AstType::ImportDeclaration)
+    /// ## Example
+    /// ```
+    /// # fn get_nodes<'a>() -> AstNodes<'a> { AstNodes::default() }
+    ///
+    /// use oxc_ast::AstType;
+    /// use oxc_semantic::{AstNodes, AstTypesBitset};
+    ///
+    /// let nodes: AstNodes = get_nodes();
+    /// // `true` if there is a `for` loop anywhere in the AST
+    /// nodes.contains(AstType::ForStatement);
+    /// // `true` if there is an `ImportDeclaration` anywhere in the AST
+    /// nodes.contains(AstType::ImportDeclaration);
     /// ```
     pub fn contains(&self, ty: AstType) -> bool {
         self.node_kinds_set.has(ty)
