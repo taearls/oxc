@@ -51,7 +51,7 @@ pub fn is_expression_used_as_call_argument(span: Span, parent: &AstNodes) -> boo
             if call.callee.span() == span {
                 return false; // This is the callee, not an argument
             }
-            
+
             // Check every argument for exact or containment match
             call.arguments.iter().any(|arg| {
                 let arg_span = arg.span();
@@ -62,7 +62,7 @@ pub fn is_expression_used_as_call_argument(span: Span, parent: &AstNodes) -> boo
             if new_expr.callee.span() == span {
                 return false; // This is the callee, not an argument
             }
-            
+
             // Check every argument for exact or containment match
             new_expr.arguments.iter().any(|arg| {
                 let arg_span = arg.span();
@@ -72,15 +72,18 @@ pub fn is_expression_used_as_call_argument(span: Span, parent: &AstNodes) -> boo
         // Expanded detection to replace AstKind::Argument functionality
         AstNodes::TemplateLiteral(template) => {
             // Template literal expressions can contain call arguments
-            template.expressions.iter().any(|expr| {
-                expr.span() == span || expr.span().contains_inclusive(span)
-            })
+            template
+                .expressions
+                .iter()
+                .any(|expr| expr.span() == span || expr.span().contains_inclusive(span))
         }
         AstNodes::TaggedTemplateExpression(tagged) => {
             // Tagged template expressions can have call-like behavior
-            tagged.quasi.expressions.iter().any(|expr| {
-                expr.span() == span || expr.span().contains_inclusive(span)
-            })
+            tagged
+                .quasi
+                .expressions
+                .iter()
+                .any(|expr| expr.span() == span || expr.span().contains_inclusive(span))
         }
         AstNodes::ArrayExpression(array) => {
             // Array elements can be call arguments in functional programming patterns
@@ -91,16 +94,13 @@ pub fn is_expression_used_as_call_argument(span: Span, parent: &AstNodes) -> boo
         }
         AstNodes::ObjectExpression(object) => {
             // Object property values can be call arguments
-            object.properties.iter().any(|prop| {
-                match prop {
-                    ObjectPropertyKind::ObjectProperty(obj_prop) => {
-                        obj_prop.value.span() == span || obj_prop.value.span().contains_inclusive(span)
-                    }
-                    _ => false,
+            object.properties.iter().any(|prop| match prop {
+                ObjectPropertyKind::ObjectProperty(obj_prop) => {
+                    obj_prop.value.span() == span || obj_prop.value.span().contains_inclusive(span)
                 }
+                _ => false,
             })
         }
         _ => false,
     }
 }
-

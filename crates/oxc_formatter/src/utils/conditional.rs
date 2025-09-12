@@ -355,7 +355,7 @@ impl<'a> FormatConditionalLike<'a, '_> {
     #[inline]
     fn has_multiline_comment(&self, f: &Formatter<'_, 'a>) -> bool {
         let span = self.span();
-        
+
         // Check for any comments in the conditional span and check if they contain newlines
         f.comments().has_comment_in_span(span) && {
             let source_text = f.source_text();

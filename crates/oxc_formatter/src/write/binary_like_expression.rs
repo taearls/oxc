@@ -159,9 +159,14 @@ impl<'a, 'b> BinaryLikeExpression<'a, 'b> {
             }
             AstNodes::ConditionalExpression(conditional) => {
                 // Check if we're in argument context instead of checking AstNodes::Argument parent
-                let in_argument_context = matches!(conditional.parent, AstNodes::CallExpression(_) | AstNodes::NewExpression(_))
-                    && crate::utils::is_expression_used_as_call_argument(self.span(), &conditional.parent);
-                
+                let in_argument_context = matches!(
+                    conditional.parent,
+                    AstNodes::CallExpression(_) | AstNodes::NewExpression(_)
+                ) && crate::utils::is_expression_used_as_call_argument(
+                    self.span(),
+                    &conditional.parent,
+                );
+
                 !matches!(
                     conditional.parent,
                     AstNodes::ReturnStatement(_)

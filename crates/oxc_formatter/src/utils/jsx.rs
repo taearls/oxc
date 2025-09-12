@@ -74,7 +74,10 @@ pub fn get_wrap_state(parent: &AstNodes<'_>) -> WrapState {
 }
 
 /// Enhanced version that can check argument context when JSX span is available
-pub fn get_wrap_state_with_span(parent: &AstNodes<'_>, jsx_span: Option<oxc_span::Span>) -> WrapState {
+pub fn get_wrap_state_with_span(
+    parent: &AstNodes<'_>,
+    jsx_span: Option<oxc_span::Span>,
+) -> WrapState {
     // Call site has ensures that only non-nested JSX elements are passed.
     debug_assert!(!matches!(parent, AstNodes::JSXElement(_) | AstNodes::JSXFragment(_)));
 

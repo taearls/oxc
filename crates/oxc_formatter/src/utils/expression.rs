@@ -243,7 +243,7 @@ impl<'a> Format<'a> for FormatExpressionWithoutTrailingComments<'a, '_> {
                 print_left_paren(f)?;
                 n.write(f)
             }
-            _ => unreachable!()
+            _ => unreachable!(),
         }?;
 
         if needs_parentheses {

@@ -439,11 +439,11 @@ impl<'a> AssignmentLike<'a, '_> {
         }
 
         // Check for complex type alias by examining type annotation complexity
-        let is_complex_type_alias = matches!(self, Self::VariableDeclarator(decl) 
-            if decl.id.type_annotation.as_ref().is_some_and(|ann| 
-                matches!(ann.type_annotation, 
-                    TSType::TSUnionType(_) | TSType::TSIntersectionType(_) | TSType::TSConditionalType(_)
-                )));
+        let is_complex_type_alias = matches!(self, Self::VariableDeclarator(decl)
+        if decl.id.type_annotation.as_ref().is_some_and(|ann|
+            matches!(ann.type_annotation,
+                TSType::TSUnionType(_) | TSType::TSIntersectionType(_) | TSType::TSConditionalType(_)
+            )));
 
         if !self
             .get_right_expression()

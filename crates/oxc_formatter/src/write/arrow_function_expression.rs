@@ -21,7 +21,7 @@ use crate::{
 /// Check if an arrow function is within a for statement context by traversing up the parent chain
 fn is_in_for_statement_context(arrow: &AstNode<'_, ArrowFunctionExpression<'_>>) -> bool {
     let mut current_parent = arrow.parent;
-    
+
     // Traverse up the parent chain looking for a ForStatement
     loop {
         match current_parent {
@@ -650,7 +650,7 @@ impl<'a> Format<'a> for ArrowChain<'a, '_> {
         let format_tail_body = format_with(|f| {
             // if it's inside a JSXExpression (e.g. an attribute) we should align the expression's closing } with the line with the opening {.
             let should_add_soft_line = matches!(head_parent, AstNodes::JSXExpressionContainer(_));
-            
+
             // Add extra spacing for arrow functions with block bodies in for statements
             let in_for_statement = is_in_for_statement_context(self.head);
             let add_for_spacing = in_for_statement && !tail.expression();
@@ -779,7 +779,7 @@ impl<'a, 'b> ExpressionLeftSide<'a, 'b> {
                     AstNodes::ComputedMemberExpression(expr) => Some(expr.object().into()),
                     AstNodes::StaticMemberExpression(expr) => Some(expr.object().into()),
                     AstNodes::PrivateFieldExpression(expr) => Some(expr.object().into()),
-                    _ => None
+                    _ => None,
                 },
                 _ => None,
             },

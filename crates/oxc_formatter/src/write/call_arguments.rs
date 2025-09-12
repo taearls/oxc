@@ -63,7 +63,6 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
             .map(|call| (is_commonjs_or_amd_call(self, call), is_test_call_expression(call)))
             .unwrap_or_default();
 
-
         if is_commonjs_or_amd_call
             || is_multiline_template_only_args(self, f.source_text())
             || is_react_hook_with_deps_array(self, f.comments())
@@ -164,7 +163,7 @@ pub fn is_function_composition_args(args: &[Argument<'_>]) -> bool {
             }
             Argument::CallExpression(call) => {
                 let has_arrow_or_fn = is_call_expression_with_arrow_or_function(call);
-                
+
                 if has_arrow_or_fn {
                     return true;
                 }
@@ -1010,5 +1009,3 @@ fn is_react_hook_with_deps_array(
         _ => false,
     }
 }
-
-

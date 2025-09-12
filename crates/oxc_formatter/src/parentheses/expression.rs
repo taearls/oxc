@@ -521,7 +521,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, PrivateInExpression<'a>> {
 impl<'a> NeedsParentheses<'a> for AstNode<'a, LogicalExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
         let parent = self.parent;
-        
+
         // Ultra-surgical fix for js/new-expression/new_expression.js (88.89% match)
         // LogicalExpression used as NewExpression callee needs parentheses for precedence
         if let AstNodes::NewExpression(new_expr) = parent {
@@ -529,7 +529,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, LogicalExpression<'a>> {
                 return true; // new (a || b)() needs parentheses around (a || b)
             }
         }
-        
+
         if let AstNodes::LogicalExpression(parent) = parent {
             parent.operator() != self.operator()
         } else if self.operator().is_coalesce()

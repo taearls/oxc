@@ -205,7 +205,6 @@ impl<'a> FormatWrite<'a> for AstNode<'a, CallExpression<'a>> {
         let arguments = self.arguments();
         let optional = self.optional();
 
-
         if callee.as_member_expression().is_some_and(|e| {
             matches!(
                 e,
@@ -451,7 +450,9 @@ impl<'a> FormatWrite<'a> for AstNode<'a, ParenthesizedExpression<'a>> {
                         write!(f, [self.expression()])
                     }
                     // Remove parentheses when used as call/member object: (a?.b).c() -> a?.b.c()
-                    AstNodes::StaticMemberExpression(_) | AstNodes::ComputedMemberExpression(_) | AstNodes::CallExpression(_) => {
+                    AstNodes::StaticMemberExpression(_)
+                    | AstNodes::ComputedMemberExpression(_)
+                    | AstNodes::CallExpression(_) => {
                         write!(f, [self.expression()])
                     }
                     _ => {
@@ -475,7 +476,10 @@ impl<'a> FormatWrite<'a> for AstNode<'a, ParenthesizedExpression<'a>> {
                     }
                     // Remove parentheses around conditional expressions in computed member context
                     // a?.[(b ? c : d)] -> a?.[b ? c : d]
-                    (AstNodes::ComputedMemberExpression(_), Expression::ConditionalExpression(_)) => {
+                    (
+                        AstNodes::ComputedMemberExpression(_),
+                        Expression::ConditionalExpression(_),
+                    ) => {
                         write!(f, [self.expression()])
                     }
                     _ => {
@@ -644,7 +648,7 @@ impl<'a> FormatWrite<'a> for AstNode<'a, WhileStatement<'a>> {
 /// Check if a ForStatement contains arrow functions with block bodies
 fn contains_arrow_function_with_block_body(for_stmt: &ForStatement) -> bool {
     use oxc_ast::ast::*;
-    
+
     // Helper function to check if an expression contains arrow functions with block bodies
     fn check_expression(expr: &Expression) -> bool {
         match expr {
@@ -659,53 +663,47 @@ fn contains_arrow_function_with_block_body(for_stmt: &ForStatement) -> bool {
                 check_expression(&logical.left) || check_expression(&logical.right)
             }
             Expression::ConditionalExpression(cond) => {
-                check_expression(&cond.test) || check_expression(&cond.consequent) || check_expression(&cond.alternate)
+                check_expression(&cond.test)
+                    || check_expression(&cond.consequent)
+                    || check_expression(&cond.alternate)
             }
-            Expression::AssignmentExpression(assign) => {
-                check_expression(&assign.right)
-            }
-            Expression::SequenceExpression(seq) => {
-                seq.expressions.iter().any(check_expression)
-            }
+            Expression::AssignmentExpression(assign) => check_expression(&assign.right),
+            Expression::SequenceExpression(seq) => seq.expressions.iter().any(check_expression),
             Expression::CallExpression(call) => {
-                check_expression(&call.callee) || call.arguments.iter().any(|arg| match arg {
-                    Argument::SpreadElement(spread) => check_expression(&spread.argument),
-                    match_expression!(Argument) => check_expression(arg.to_expression()),
-                })
+                check_expression(&call.callee)
+                    || call.arguments.iter().any(|arg| match arg {
+                        Argument::SpreadElement(spread) => check_expression(&spread.argument),
+                        match_expression!(Argument) => check_expression(arg.to_expression()),
+                    })
             }
-            Expression::ArrayExpression(arr) => {
-                arr.elements.iter().any(|elem| match elem {
-                    ArrayExpressionElement::SpreadElement(spread) => check_expression(&spread.argument),
-                    match_expression!(ArrayExpressionElement) => check_expression(elem.to_expression()),
-                    ArrayExpressionElement::Elision(_) => false,
-                })
-            }
-            Expression::ObjectExpression(obj) => {
-                obj.properties.iter().any(|prop| match prop {
-                    ObjectPropertyKind::ObjectProperty(p) => check_expression(&p.value),
-                    ObjectPropertyKind::SpreadProperty(spread) => check_expression(&spread.argument),
-                })
-            }
+            Expression::ArrayExpression(arr) => arr.elements.iter().any(|elem| match elem {
+                ArrayExpressionElement::SpreadElement(spread) => check_expression(&spread.argument),
+                match_expression!(ArrayExpressionElement) => check_expression(elem.to_expression()),
+                ArrayExpressionElement::Elision(_) => false,
+            }),
+            Expression::ObjectExpression(obj) => obj.properties.iter().any(|prop| match prop {
+                ObjectPropertyKind::ObjectProperty(p) => check_expression(&p.value),
+                ObjectPropertyKind::SpreadProperty(spread) => check_expression(&spread.argument),
+            }),
             _ => false,
         }
     }
-    
+
     // Helper function to check ForStatementInit
     fn check_for_init(init: &ForStatementInit) -> bool {
         match init {
-            ForStatementInit::VariableDeclaration(decl) => {
-                decl.declarations.iter().any(|declarator| {
-                    declarator.init.as_ref().map_or(false, check_expression)
-                })
-            }
+            ForStatementInit::VariableDeclaration(decl) => decl
+                .declarations
+                .iter()
+                .any(|declarator| declarator.init.as_ref().map_or(false, check_expression)),
             match_expression!(ForStatementInit) => check_expression(init.to_expression()),
         }
     }
-    
+
     // Check init, test, and update parts of the for statement
-    for_stmt.init.as_ref().map_or(false, check_for_init) ||
-    for_stmt.test.as_ref().map_or(false, check_expression) ||
-    for_stmt.update.as_ref().map_or(false, check_expression)
+    for_stmt.init.as_ref().map_or(false, check_for_init)
+        || for_stmt.test.as_ref().map_or(false, check_expression)
+        || for_stmt.update.as_ref().map_or(false, check_expression)
 }
 
 impl<'a> FormatWrite<'a> for AstNode<'a, ForStatement<'a>> {
@@ -733,7 +731,7 @@ impl<'a> FormatWrite<'a> for AstNode<'a, ForStatement<'a>> {
         }
 
         let has_arrow_with_block_body = contains_arrow_function_with_block_body(self.as_ref());
-        
+
         let format_inner = format_with(|f| {
             write!(
                 f,
@@ -1970,8 +1968,8 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TSMappedType<'a>> {
         let name_type = self.name_type();
 
         // Check if there are line breaks before property name to determine expansion
-        let should_expand = f.comments().has_comment_in_span(self.span) || 
-            f.source_text()[self.span.start as usize..self.span.end as usize].contains('\n');
+        let should_expand = f.comments().has_comment_in_span(self.span)
+            || f.source_text()[self.span.start as usize..self.span.end as usize].contains('\n');
 
         let type_annotation_has_leading_comment = false;
         //TODO
