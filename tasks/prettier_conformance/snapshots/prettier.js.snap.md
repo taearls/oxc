@@ -1,4 +1,4 @@
-js compatibility: 662/699 (94.71%)
+js compatibility: 662/698 (94.84%)
 
 # Failed
 
@@ -15,10 +15,9 @@ js compatibility: 662/699 (94.71%)
 | js/conditional/new-ternary-spec.js | 💥✨ | 24.35% |
 | js/conditional/postfix-ternary-regressions.js | 💥✨ | 20.77% |
 | js/explicit-resource-management/valid-await-using-comments.js | 💥 | 91.89% |
-| js/for/for-in-with-initializer.js | 💥 | 37.50% |
-| js/for/parentheses.js | 💥 | 96.00% |
-| js/identifier/for-of/let.js | 💥 | 92.31% |
-| js/identifier/parentheses/let.js | 💥💥 | 82.27% |
+| js/for/for-in-with-initializer.js | 💥 | 31.25% |
+| js/functional-composition/pipe-function-calls.js | 💥 | 87.80% |
+| js/identifier/parentheses/let.js | 💥💥 | 83.18% |
 | js/last-argument-expansion/dangling-comment-in-arrow-function.js | 💥 | 22.22% |
 | js/logical_expressions/issue-7024.js | 💥 | 66.67% |
 | js/object-multiline/multiline.js | 💥✨ | 22.22% |

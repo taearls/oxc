@@ -357,7 +357,7 @@ impl<'a> FormatConditionalLike<'a, '_> {
         let span = self.span();
         
         // Check for any comments in the conditional span and check if they contain newlines
-        f.comments().has_comments_in_span(span) && {
+        f.comments().has_comment_in_span(span) && {
             let source_text = f.source_text();
             let start = span.start as usize;
             let end = span.end as usize;

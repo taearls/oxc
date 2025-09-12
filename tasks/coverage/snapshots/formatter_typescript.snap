@@ -2,7 +2,7 @@ commit: 261630d6
 
 formatter_typescript Summary:
 AST Parsed     : 8816/8816 (100.00%)
-Positive Passed: 8248/8816 (93.56%)
+Positive Passed: 8247/8816 (93.55%)
 Expect to Parse: tasks/coverage/typescript/tests/cases/compiler/APISample_jsdoc.ts
 
 Expect to Parse: tasks/coverage/typescript/tests/cases/compiler/addMoreCallSignaturesToBaseSignature.ts
@@ -603,13 +603,6 @@ Expect to Parse: tasks/coverage/typescript/tests/cases/compiler/trackedSymbolsNo
 
 Expect to Parse: tasks/coverage/typescript/tests/cases/compiler/tryStatementInternalComments.ts
 
-<<<<<<< HEAD
-Expect to Parse: tasks/coverage/typescript/tests/cases/compiler/tslibNotFoundDifferentModules.ts
-
-Expect to Parse: tasks/coverage/typescript/tests/cases/compiler/tsxDefaultImports.ts
-
-=======
->>>>>>> origin/main
 Expect to Parse: tasks/coverage/typescript/tests/cases/compiler/tsxInferenceShouldNotYieldAnyOnUnions.tsx
 
 Expect to Parse: tasks/coverage/typescript/tests/cases/compiler/tsxReactPropsInferenceSucceedsOnIntersections.tsx
@@ -754,17 +747,8 @@ Expect to Parse: tasks/coverage/typescript/tests/cases/conformance/es6/yieldExpr
 
 Expect to Parse: tasks/coverage/typescript/tests/cases/conformance/es6/yieldExpressions/generatorTypeCheck8.ts
 
-<<<<<<< HEAD
-Expect to Parse: tasks/coverage/typescript/tests/cases/conformance/es7/exponentiationOperator/exponentiationOperatorWithEnum.ts
-
-Expect to Parse: tasks/coverage/typescript/tests/cases/conformance/es7/exponentiationOperator/exponentiationOperatorWithEnumUnion.ts
-
-Expect to Parse: tasks/coverage/typescript/tests/cases/conformance/es7/exponentiationOperator/exponentiationOperatorWithInvalidOperands.ts
-
 Expect to Parse: tasks/coverage/typescript/tests/cases/conformance/es7/exponentiationOperator/exponentiationOperatorWithNew.ts
 
-=======
->>>>>>> origin/main
 Expect to Parse: tasks/coverage/typescript/tests/cases/conformance/esDecorators/classDeclaration/classSuper/esDecorators-classDeclaration-classSuper.2.ts
 
 Expect to Parse: tasks/coverage/typescript/tests/cases/conformance/esDecorators/classExpression/classSuper/esDecorators-classExpression-classSuper.2.ts
@@ -793,11 +777,7 @@ Expect to Parse: tasks/coverage/typescript/tests/cases/conformance/expressions/c
 
 Expect to Parse: tasks/coverage/typescript/tests/cases/conformance/expressions/contextualTyping/functionExpressionContextualTyping2.ts
 
-<<<<<<< HEAD
-Expect to Parse: tasks/coverage/typescript/tests/cases/conformance/expressions/elementAccess/stringEnumInElementAccess01.ts
-=======
 Expect to Parse: tasks/coverage/typescript/tests/cases/conformance/expressions/elementAccess/letIdentifierInElementAccess01.ts
->>>>>>> origin/main
 
 Expect to Parse: tasks/coverage/typescript/tests/cases/conformance/expressions/functionCalls/functionCalls.ts
 

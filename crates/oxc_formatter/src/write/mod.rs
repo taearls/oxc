@@ -1970,7 +1970,7 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TSMappedType<'a>> {
         let name_type = self.name_type();
 
         // Check if there are line breaks before property name to determine expansion
-        let should_expand = f.comments().has_comments_in_span(self.span) || 
+        let should_expand = f.comments().has_comment_in_span(self.span) || 
             f.source_text()[self.span.start as usize..self.span.end as usize].contains('\n');
 
         let type_annotation_has_leading_comment = false;

@@ -218,7 +218,7 @@ impl<'a> Format<'a> for FormatJsArrowFunctionExpression<'a, '_> {
                     let should_add_soft_line = (is_last_call_arg
                         // if it's inside a JSXExpression (e.g. an attribute) we should align the expression's closing } with the line with the opening {.
                         || matches!(self.arrow.parent, AstNodes::JSXExpressionContainer(_)))
-                        && !f.context().comments().has_comments_in_span(self.arrow.span);
+                        && !f.context().comments().has_comment_in_span(self.arrow.span);
 
                     if body_is_condition_type {
                         write!(
