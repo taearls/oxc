@@ -31,7 +31,6 @@ impl<'a> FormatWrite<'a> for AstNode<'a, VariableDeclaration<'a>> {
             _ => true,
         };
 
-
         // Default formatting for all other cases
         write!(
             f,
