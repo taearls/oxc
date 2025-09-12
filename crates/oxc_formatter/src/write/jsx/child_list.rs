@@ -140,7 +140,7 @@ impl FormatJsxChildList {
                     //   <b />
                     // </div>
                     // ```
-                    else if last.is_none() 
+                    else if last.is_none()
                         || (has_early_self_closing_element
                             && matches!(children_iter.peek(), Some(JsxChild::NonText(next)) if
                                     matches!(next.as_ref(), JSXChild::ExpressionContainer(_))))

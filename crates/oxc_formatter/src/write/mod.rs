@@ -466,7 +466,12 @@ impl<'a> FormatWrite<'a> for AstNode<'a, ParenthesizedExpression<'a>> {
                     // a?.[(await b)] -> a?.[await b]
                     // Remove parentheses around conditional expressions in computed member context
                     // a?.[(b ? c : d)] -> a?.[b ? c : d]
-                    (AstNodes::ComputedMemberExpression(_), Expression::UpdateExpression(_) | Expression::AwaitExpression(_) | Expression::ConditionalExpression(_)) => {
+                    (
+                        AstNodes::ComputedMemberExpression(_),
+                        Expression::UpdateExpression(_)
+                        | Expression::AwaitExpression(_)
+                        | Expression::ConditionalExpression(_),
+                    ) => {
                         write!(f, [self.expression()])
                     }
                     _ => {
