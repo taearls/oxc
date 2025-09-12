@@ -140,14 +140,10 @@ impl FormatJsxChildList {
                     //   <b />
                     // </div>
                     // ```
-                    else if last.is_none() {
-                        multiline.write_with_separator(&JsxRawSpace, &hard_line_break(), f);
-                    }
-                    // Special case: whitespace before an expression when we have early self-closing element
-                    // Should convert to JSX expression and break line
-                    else if has_early_self_closing_element
-                        && matches!(children_iter.peek(), Some(JsxChild::NonText(next)) if
-                                matches!(next.as_ref(), JSXChild::ExpressionContainer(_)))
+                    else if last.is_none() 
+                        || (has_early_self_closing_element
+                            && matches!(children_iter.peek(), Some(JsxChild::NonText(next)) if
+                                    matches!(next.as_ref(), JSXChild::ExpressionContainer(_))))
                     {
                         multiline.write_with_separator(&JsxRawSpace, &hard_line_break(), f);
                     } else {

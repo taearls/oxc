@@ -270,19 +270,19 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ObjectExpression<'a>> {
         let parent = self.parent;
 
         // Object expressions don't need parentheses when used as function arguments or template literals
-        if is_node_argument(span, &parent) || matches!(parent, AstNodes::TemplateLiteral(_)) {
+        if is_node_argument(span, parent) || matches!(parent, AstNodes::TemplateLiteral(_)) {
             return false;
         }
 
         // Object expressions don't need parentheses when used as the expression of a cast
         // that is itself used as an argument
         if let AstNodes::TSAsExpression(as_expr) = parent {
-            if is_node_argument(as_expr.span, &as_expr.parent) {
+            if is_node_argument(as_expr.span, as_expr.parent) {
                 return false;
             }
         }
         if let AstNodes::TSSatisfiesExpression(satisfies_expr) = parent {
-            if is_node_argument(satisfies_expr.span, &satisfies_expr.parent) {
+            if is_node_argument(satisfies_expr.span, satisfies_expr.parent) {
                 return false;
             }
         }
@@ -359,7 +359,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, PrivateFieldExpression<'a>> {
 impl<'a> NeedsParentheses<'a> for AstNode<'a, CallExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
         // Essential: Call expressions in arguments (method chains) need special handling
-        if is_node_argument(self.span(), &self.parent) {
+        if is_node_argument(self.span(), self.parent) {
             return false; // Method chains in arguments rarely need parentheses
         }
 
@@ -408,7 +408,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, UpdateExpression<'a>> {
         let parent = self.parent;
 
         // Essential: Update expressions in arguments need special handling
-        if is_node_argument(self.span(), &parent) {
+        if is_node_argument(self.span(), parent) {
             if self.prefix() {
                 if let AstNodes::UnaryExpression(unary) = parent {
                     let parent_operator = unary.operator();
@@ -441,7 +441,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, UnaryExpression<'a>> {
         let parent = self.parent;
 
         // Essential: Unary expressions in arguments need special handling
-        if is_node_argument(self.span(), &parent) {
+        if is_node_argument(self.span(), parent) {
             return matches!(parent, AstNodes::UnaryExpression(_));
         }
 
@@ -490,7 +490,6 @@ fn is_in_for_initializer(expr: &AstNode<'_, BinaryExpression<'_>>) -> bool {
             AstNodes::ArrowFunctionExpression(_) => {
                 // Skip over arrow functions to continue looking for for-statements
                 parent = parent.parent();
-                continue;
             }
             AstNodes::ForStatement(stmt) => {
                 return stmt
@@ -548,7 +547,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ConditionalExpression<'a>> {
         let span = self.span();
 
         // Essential: Conditional expressions in arguments need different parentheses rules
-        if is_node_argument(span, &parent) {
+        if is_node_argument(span, parent) {
             return matches!(
                 parent,
                 AstNodes::UnaryExpression(_)
@@ -606,7 +605,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Function<'a>> {
         let parent = self.parent;
 
         // Essential: Function expressions in arguments rarely need parentheses
-        if is_node_argument(self.span(), &parent) {
+        if is_node_argument(self.span(), parent) {
             return false;
         }
 
@@ -626,7 +625,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Function<'a>> {
 impl<'a> NeedsParentheses<'a> for AstNode<'a, AssignmentExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
         // Special handling for assignment expressions used as arguments
-        if is_node_argument(self.span(), &self.parent) {
+        if is_node_argument(self.span(), self.parent) {
             // Assignment expressions in call arguments always need parentheses
             return true;
         }
@@ -738,7 +737,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, AwaitExpression<'a>> {
 
         // Only apply argument detection for specific parent types to avoid interference
         if matches!(self.parent, AstNodes::CallExpression(_) | AstNodes::NewExpression(_))
-            && is_node_argument(self.span(), &self.parent)
+            && is_node_argument(self.span(), self.parent)
         {
             return matches!(
                 self.parent,
@@ -755,7 +754,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ChainExpression<'a>> {
         let span = self.span();
 
         // Essential: Chain expressions in arguments need special handling
-        if is_node_argument(span, &self.parent) {
+        if is_node_argument(span, self.parent) {
             return matches!(self.parent, AstNodes::NewExpression(_) | AstNodes::Decorator(_));
         }
 
@@ -785,7 +784,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Class<'a>> {
         }
 
         // Essential: Class expressions in arguments don't need parentheses
-        if is_node_argument(span, &parent) {
+        if is_node_argument(span, parent) {
             return false;
         }
 
@@ -812,7 +811,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ArrowFunctionExpression<'a>> {
         let parent = self.parent;
 
         // Essential: Arrow functions in arguments need different parentheses logic
-        if is_node_argument(span, &parent) {
+        if is_node_argument(span, parent) {
             return matches!(
                 parent,
                 AstNodes::TSAsExpression(_)
@@ -854,7 +853,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, YieldExpression<'a>> {
         let parent = self.parent;
 
         // Essential: Yield expressions in arguments need special handling
-        if is_node_argument(self.span(), &parent) {
+        if is_node_argument(self.span(), parent) {
             return matches!(parent, AstNodes::AwaitExpression(_) | AstNodes::TSTypeAssertion(_));
         }
 
@@ -959,8 +958,8 @@ fn binary_like_needs_parens(binary_like: BinaryLikeExpression<'_, '_>) -> bool {
         | AstNodes::SpreadElement(_)
         | AstNodes::JSXSpreadAttribute(_)
         | AstNodes::StaticMemberExpression(_)
-        | AstNodes::TaggedTemplateExpression(_) => return true,
-        AstNodes::ChainExpression(_) => return true,
+        | AstNodes::TaggedTemplateExpression(_)
+        | AstNodes::ChainExpression(_) => return true,
         // Handle binary-like expressions as callee of CallExpression
         AstNodes::CallExpression(call) => {
             // Check if this binary expression is the callee of the call expression

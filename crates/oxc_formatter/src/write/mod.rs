@@ -442,15 +442,11 @@ impl<'a> FormatWrite<'a> for AstNode<'a, ParenthesizedExpression<'a>> {
             Expression::ChainExpression(_) => {
                 match self.parent {
                     // Remove parentheses in expression statements: (a?.b) -> a?.b
-                    AstNodes::ExpressionStatement(_) => {
-                        write!(f, [self.expression()])
-                    }
                     // Remove parentheses in chain contexts: (a?.b)?.c -> a?.b?.c
-                    AstNodes::ChainExpression(_) => {
-                        write!(f, [self.expression()])
-                    }
                     // Remove parentheses when used as call/member object: (a?.b).c() -> a?.b.c()
-                    AstNodes::StaticMemberExpression(_)
+                    AstNodes::ExpressionStatement(_)
+                    | AstNodes::ChainExpression(_)
+                    | AstNodes::StaticMemberExpression(_)
                     | AstNodes::ComputedMemberExpression(_)
                     | AstNodes::CallExpression(_) => {
                         write!(f, [self.expression()])
@@ -466,20 +462,11 @@ impl<'a> FormatWrite<'a> for AstNode<'a, ParenthesizedExpression<'a>> {
                 match (self.parent, &**self.expression()) {
                     // Remove parentheses around update expressions in computed member context
                     // a?.[(++x)] -> a?.[++x]
-                    (AstNodes::ComputedMemberExpression(_), Expression::UpdateExpression(_)) => {
-                        write!(f, [self.expression()])
-                    }
                     // Remove parentheses around await expressions in computed member context
                     // a?.[(await b)] -> a?.[await b]
-                    (AstNodes::ComputedMemberExpression(_), Expression::AwaitExpression(_)) => {
-                        write!(f, [self.expression()])
-                    }
                     // Remove parentheses around conditional expressions in computed member context
                     // a?.[(b ? c : d)] -> a?.[b ? c : d]
-                    (
-                        AstNodes::ComputedMemberExpression(_),
-                        Expression::ConditionalExpression(_),
-                    ) => {
+                    (AstNodes::ComputedMemberExpression(_), Expression::UpdateExpression(_) | Expression::AwaitExpression(_) | Expression::ConditionalExpression(_)) => {
                         write!(f, [self.expression()])
                     }
                     _ => {
@@ -695,15 +682,15 @@ fn contains_arrow_function_with_block_body(for_stmt: &ForStatement) -> bool {
             ForStatementInit::VariableDeclaration(decl) => decl
                 .declarations
                 .iter()
-                .any(|declarator| declarator.init.as_ref().map_or(false, check_expression)),
+                .any(|declarator| declarator.init.as_ref().is_some_and(check_expression)),
             match_expression!(ForStatementInit) => check_expression(init.to_expression()),
         }
     }
 
     // Check init, test, and update parts of the for statement
-    for_stmt.init.as_ref().map_or(false, check_for_init)
-        || for_stmt.test.as_ref().map_or(false, check_expression)
-        || for_stmt.update.as_ref().map_or(false, check_expression)
+    for_stmt.init.as_ref().is_some_and(check_for_init)
+        || for_stmt.test.as_ref().is_some_and(check_expression)
+        || for_stmt.update.as_ref().is_some_and(check_expression)
 }
 
 impl<'a> FormatWrite<'a> for AstNode<'a, ForStatement<'a>> {

@@ -164,7 +164,7 @@ impl<'a, 'b> BinaryLikeExpression<'a, 'b> {
                     AstNodes::CallExpression(_) | AstNodes::NewExpression(_)
                 ) && crate::utils::is_expression_used_as_call_argument(
                     self.span(),
-                    &conditional.parent,
+                    conditional.parent,
                 );
 
                 !matches!(

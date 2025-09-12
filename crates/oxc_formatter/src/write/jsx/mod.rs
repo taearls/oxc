@@ -291,13 +291,13 @@ fn should_inline_await_argument(expr: &Expression<'_>) -> bool {
         | Expression::ComputedMemberExpression(_)
         | Expression::PrivateFieldExpression(_)
         | Expression::JSXElement(_)
-        | Expression::JSXFragment(_) => true,
+        | Expression::JSXFragment(_)
+        | Expression::Identifier(_) => true, // Identifiers are simple and should be inlined
         Expression::StaticMemberExpression(member_expr) => {
             // For nested member expressions like a.b.c.d, recursively check
             // if the object is also a simple inlinable expression
             should_inline_await_argument(&member_expr.object)
         }
-        Expression::Identifier(_) => true, // Identifiers are simple and should be inlined
         _ => false,
     }
 }

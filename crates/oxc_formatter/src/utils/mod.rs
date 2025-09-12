@@ -37,7 +37,7 @@ pub fn is_long_curried_call(call: &AstNode<'_, CallExpression<'_>>) -> bool {
     false
 }
 
-/// Helper function to check if an AST node is used as an argument  
+/// Helper function to check if an AST node is used as an argument\
 /// This replaces the missing AstNodes::Argument(_) functionality
 pub fn is_node_argument(span: Span, parent: &AstNodes) -> bool {
     is_expression_used_as_call_argument(span, parent)
@@ -98,7 +98,7 @@ pub fn is_expression_used_as_call_argument(span: Span, parent: &AstNodes) -> boo
                 ObjectPropertyKind::ObjectProperty(obj_prop) => {
                     obj_prop.value.span() == span || obj_prop.value.span().contains_inclusive(span)
                 }
-                _ => false,
+                ObjectPropertyKind::SpreadProperty(_) => false,
             })
         }
         _ => false,
