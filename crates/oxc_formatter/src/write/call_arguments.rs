@@ -65,6 +65,7 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
             .map(|call| (is_commonjs_or_amd_call(self, call), is_test_call_expression(call)))
             .unwrap_or_default();
 
+
         if is_commonjs_or_amd_call
             || is_multiline_template_only_args(self, f.source_text())
             || is_react_hook_with_deps_array(self, f.comments())
@@ -163,7 +164,11 @@ pub fn is_function_composition_args(args: &[Argument<'_>]) -> bool {
                 };
             }
             Argument::CallExpression(call) => {
-                return is_call_expression_with_arrow_or_function(call);
+                let has_arrow_or_fn = is_call_expression_with_arrow_or_function(call);
+                
+                if has_arrow_or_fn {
+                    return true;
+                }
             }
             _ => {}
         }
@@ -301,10 +306,12 @@ fn should_group_last_argument(
         Some(last) => {
             let penultimate = iter.next_back();
             if let Some(penultimate) = &penultimate {
-                // TODO: check if both last and penultimate are same kind of expression.
-                // if penultimate.syntax().kind() == last.syntax().kind() {
-                //     return Ok(false);
-                // }
+                // Don't group if last and penultimate are same kind of expression
+                if let Some(penultimate_expr) = penultimate.as_expression() {
+                    if std::mem::discriminant(last) == std::mem::discriminant(penultimate_expr) {
+                        return false;
+                    }
+                }
             }
 
             let previous_span = penultimate.map_or(call_like_span.start, |a| a.span().end);
@@ -473,6 +480,18 @@ fn can_group_expression_argument(argument: &Expression<'_>, f: &Formatter<'_, '_
             can_group_arrow_function_expression_argument(arrow_function, false, f)
         }
         Expression::FunctionExpression(_) => true,
+        Expression::CallExpression(call_expr) => {
+            // Only allow grouping for specific patterns like path.join()
+            match &call_expr.callee {
+                expr @ match_member_expression!(Expression) => {
+                    let member = expr.to_member_expression();
+                    matches!(member, MemberExpression::StaticMemberExpression(static_member)
+                        if matches!(static_member.object, Expression::Identifier(ref ident) if ident.name == "path") &&
+                           static_member.property.name == "join")
+                }
+                _ => false,
+            }
+        }
         _ => false,
     }
 }
@@ -992,3 +1011,5 @@ fn is_react_hook_with_deps_array(
         _ => false,
     }
 }
+
+

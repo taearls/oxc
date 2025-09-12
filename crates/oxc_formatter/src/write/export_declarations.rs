@@ -100,11 +100,14 @@ impl<'a> FormatWrite<'a> for AstNode<'a, ExportNamedDeclaration<'a>> {
             self.format_leading_comments(f)?;
             write!(f, ["export", space()])?;
 
-            let comments = f.context().comments().comments_before_character(self.span.start, b'{');
+            let comments = f.context().comments().comments_before_character(self.span.start + 6, b'{');
             if !comments.is_empty() {
                 write!(f, [FormatLeadingComments::Comments(comments)])?;
+                write!(f, [space(), export_kind, "{"])?;
+            } else {
+                write!(f, [export_kind, "{"])?;
             }
-            write!(f, [export_kind, "{"])?;
+            
             if specifiers.is_empty() {
                 write!(f, [format_dangling_comments(self.span).with_block_indent()])?;
             } else {
