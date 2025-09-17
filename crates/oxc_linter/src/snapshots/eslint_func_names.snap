@@ -148,13 +148,6 @@ source: crates/oxc_linter/src/tester.rs
    ╰────
   help: Remove the name on this function expression.
 
-  ⚠ eslint(func-names): Unexpected named function `ticker`.
-   ╭─[func_names.tsx:1:12]
- 1 │ setTimeout(function ticker() { setTimeout(ticker, 1000); }, 1000);
-   ·            ───────────────
-   ╰────
-  help: Remove the name on this function expression.
-
   ⚠ eslint(func-names): Unexpected named function `foo`.
    ╭─[func_names.tsx:1:21]
  1 │ Foo.prototype.bar = function foo() {};

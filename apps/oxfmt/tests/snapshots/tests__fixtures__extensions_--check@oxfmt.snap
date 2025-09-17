@@ -6,9 +6,20 @@ arguments: --check
 working directory: tests/fixtures/extensions
 ----------
 Checking formatting...
+test.cjs (<variable>ms)
+test.cts (<variable>ms)
+test.es6 (<variable>ms)
+test.js (<variable>ms)
+test.jsm (<variable>ms)
+test.jsx (<variable>ms)
+test.mjs (<variable>ms)
+test.mts (<variable>ms)
+test.pac (<variable>ms)
+test.ts (<variable>ms)
+test.tsx (<variable>ms)
 
-All matched files use the correct format.
+Format issues found in above 11 files. Run without `--check` to fix.
 Finished in <variable>ms on 11 files using 1 threads.
 ----------
-CLI result: FormatSucceeded
+CLI result: FormatMismatch
 ----------

@@ -512,6 +512,8 @@ fn test() {
         ("var a = function foo() { var x = foo; foo(); };", never.clone()),
         // Direct recursive call in setTimeout - this is actually recursive
         ("setTimeout(function ticker() { ticker(); }, 1000);", never.clone()),
+        // Recursive call in setTimeout with different pattern - also recursive
+        ("setTimeout(function ticker() { setTimeout(ticker, 1000); }, 1000);", never.clone()),
         // Mutual recursion doesn't count as self-recursion (would need different handling)
         ("var a = function foo() { function bar() { foo(); } bar(); };", never.clone()),
         // Critical test: function with multiple references where the recursive call is not the first reference
@@ -599,7 +601,6 @@ fn test() {
         ("var foo = 1; var x = function foo() { return foo + 1; };", never.clone()),
         ("var x = function foo() { console.log('hello'); };", never.clone()),
         ("var outer = function inner() { function nested() { nested(); } };", never.clone()),
-        ("setTimeout(function ticker() { setTimeout(ticker, 1000); }, 1000);", never.clone()),
         ("Foo.prototype.bar = function foo() {};", never.clone()),
         ("({foo: function foo() {}})", never.clone()),
         ("export default function() {}", always.clone()), // { "sourceType": "module", "ecmaVersion": 6 },
