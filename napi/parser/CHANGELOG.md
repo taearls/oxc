@@ -4,6 +4,50 @@ All notable changes to this package will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0).
 
+## [0.89.0] - 2025-09-15
+
+### 🐛 Bug Fixes
+
+- 341791e parser: Invalid `main` entrypoint in `package.json` (#13767) (Ari Perkkiö)
+
+
+## [0.89.0] - 2025-09-15
+
+### 🐛 Bug Fixes
+
+- 341791e parser: Invalid `main` entrypoint in `package.json` (#13767) (Ari Perkkiö)
+
+
+## [0.88.0] - 2025-09-15
+
+### 💥 BREAKING CHANGES
+
+- 4577b71 napi/parser: [**BREAKING**] Change `oxc-parser` to ESM (#13432) (Boshen)
+
+### 🐛 Bug Fixes
+
+- ab51394 raw_transfer: Disable layout assertions on some 32-bit platforms (#13716) (overlookmotel)
+
+### 🚜 Refactor
+
+- babbaca all: Remove `pub` from modules with no exports (#13618) (overlookmotel)
+
+
+## [0.88.0] - 2025-09-15
+
+### 💥 BREAKING CHANGES
+
+- 4577b71 napi/parser: [**BREAKING**] Change `oxc-parser` to ESM (#13432) (Boshen)
+
+### 🐛 Bug Fixes
+
+- ab51394 raw_transfer: Disable layout assertions on some 32-bit platforms (#13716) (overlookmotel)
+
+### 🚜 Refactor
+
+- babbaca all: Remove `pub` from modules with no exports (#13618) (overlookmotel)
+
+
 
 
 

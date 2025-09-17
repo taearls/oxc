@@ -1286,7 +1286,11 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TSEnumMember<'a>> {
 
 impl<'a> FormatWrite<'a> for AstNode<'a, TSTypeAnnotation<'a>> {
     fn write(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
-        write!(f, [":", space(), self.type_annotation()])
+        if matches!(self.parent, AstNodes::TSTypePredicate(_)) {
+            write!(f, [self.type_annotation()])
+        } else {
+            write!(f, [":", space(), self.type_annotation()])
+        }
     }
 }
 
@@ -1305,13 +1309,18 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TSConditionalType<'a>> {
 impl<'a> FormatWrite<'a> for AstNode<'a, TSUnionType<'a>> {
     fn write(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
         let mut types = self.types().iter();
+        if self.needs_parentheses(f) {
+            write!(f, "(")?;
+        }
         if let Some(item) = types.next() {
             write!(f, item)?;
 
             for item in types {
                 write!(f, [" | ", item])?;
             }
-            return Ok(());
+        }
+        if self.needs_parentheses(f) {
+            write!(f, ")")?;
         }
         Ok(())
     }
@@ -1600,7 +1609,7 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TSInterfaceDeclaration<'a>> {
                 } else {
                     write!(f, soft_line_break_or_space())?;
                 }
-                write!(f, "extends")?;
+                write!(f, ["extends", space()])?;
                 if extends.len() == 1 {
                     write!(f, extends)?;
                 } else {
@@ -1648,18 +1657,17 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TSInterfaceDeclaration<'a>> {
 
 impl<'a> FormatWrite<'a> for AstNode<'a, TSInterfaceBody<'a>> {
     fn write(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
-        let source_text = f.context().source_text();
-        f.join_nodes_with_soft_line().entries(self.body()).finish()
+        self.body().fmt(f)
     }
 }
 
 impl<'a> FormatWrite<'a> for AstNode<'a, TSPropertySignature<'a>> {
     fn write(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
         if self.readonly() {
-            write!(f, "readonly")?;
+            write!(f, ["readonly", space()])?;
         }
         if self.computed() {
-            write!(f, [space(), "[", self.key(), "]"])?;
+            write!(f, ["[", self.key(), "]"])?;
         } else {
             write!(f, self.key())?;
         }
@@ -1673,9 +1681,50 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TSPropertySignature<'a>> {
     }
 }
 
+struct FormatTSSignature<'a, 'b> {
+    last: bool,
+    signature: &'b AstNode<'a, TSSignature<'a>>,
+}
+
+impl GetSpan for FormatTSSignature<'_, '_> {
+    fn span(&self) -> Span {
+        self.signature.span()
+    }
+}
+
+impl<'a> Format<'a> for FormatTSSignature<'a, '_> {
+    fn fmt(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
+        self.signature.fmt(f)?;
+
+        match f.options().semicolons {
+            Semicolons::Always => {
+                if self.last {
+                    write!(f, [if_group_breaks(&text(";"))])?;
+                } else {
+                    text(";").fmt(f)?;
+                }
+            }
+            Semicolons::AsNeeded => {
+                if !self.last {
+                    write!(f, [if_group_fits_on_line(&text(";"))])?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
 impl<'a> Format<'a> for AstNode<'a, Vec<'a, TSSignature<'a>>> {
     fn fmt(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
-        f.join_nodes_with_soft_line().entries(self).finish()
+        let last_index = self.len().saturating_sub(1);
+        f.join_nodes_with_soft_line()
+            .entries(
+                self.iter()
+                    .enumerate()
+                    .map(|(i, signature)| FormatTSSignature { last: i == last_index, signature }),
+            )
+            .finish()
     }
 }
 
@@ -1693,7 +1742,7 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TSIndexSignature<'a>> {
                 write!(f, [", ", param])?;
             }
         }
-        write!(f, ["]", self.type_annotation(), OptionalSemicolon])
+        write!(f, ["]", self.type_annotation()])
     }
 }
 
@@ -1710,7 +1759,7 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TSCallSignatureDeclaration<'a>> {
         if let Some(return_type) = &self.return_type() {
             write!(f, return_type)?;
         }
-        write!(f, OptionalSemicolon)
+        Ok(())
     }
 }
 
@@ -1756,7 +1805,7 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TSMethodSignature<'a>> {
         if let Some(return_type) = &self.return_type() {
             write!(f, return_type)?;
         }
-        write!(f, OptionalSemicolon)
+        Ok(())
     }
 }
 
@@ -1770,7 +1819,7 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TSConstructSignatureDeclaration<'a>> {
         if let Some(return_type) = self.return_type() {
             write!(f, return_type)?;
         }
-        write!(f, OptionalSemicolon)
+        Ok(())
     }
 }
 
@@ -1796,6 +1845,13 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TSInterfaceHeritage<'a>> {
 
 impl<'a> FormatWrite<'a> for AstNode<'a, TSTypePredicate<'a>> {
     fn write(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
+        if self.asserts() {
+            write!(f, ["asserts", space()])?;
+        }
+        write!(f, [self.parameter_name()])?;
+        if let Some(type_annotation) = self.type_annotation() {
+            write!(f, [space(), "is", space(), type_annotation])?;
+        }
         Ok(())
     }
 }
@@ -1924,7 +1980,14 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TSFunctionType<'a>> {
             write!(f, [space(), "=>", space(), return_type.type_annotation()])
         });
 
-        write!(f, group(&format_inner))
+        if self.needs_parentheses(f) {
+            "(".fmt(f)?;
+        }
+        write!(f, group(&format_inner))?;
+        if self.needs_parentheses(f) {
+            ")".fmt(f)?;
+        }
+        Ok(())
     }
 }
 
@@ -1935,6 +1998,9 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TSConstructorType<'a>> {
         let params = self.params();
         let return_type = self.return_type();
 
+        if self.needs_parentheses(f) {
+            write!(f, "(")?;
+        }
         if r#abstract {
             write!(f, ["abstract", space()])?;
         }
@@ -1950,7 +2016,11 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TSConstructorType<'a>> {
                 space(),
                 return_type.type_annotation()
             ]
-        )
+        );
+        if self.needs_parentheses(f) {
+            write!(f, ")")?;
+        }
+        Ok(())
     }
 }
 

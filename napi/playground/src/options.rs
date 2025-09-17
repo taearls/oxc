@@ -1,4 +1,6 @@
+use napi::Either;
 use napi_derive::napi;
+use rustc_hash::FxHashMap;
 
 #[napi(object)]
 #[derive(Default)]
@@ -12,6 +14,8 @@ pub struct OxcOptions {
     pub compress: Option<OxcCompressOptions>,
     pub mangle: Option<OxcMangleOptions>,
     pub control_flow: Option<OxcControlFlowOptions>,
+    pub inject: Option<OxcInjectOptions>,
+    pub define: Option<OxcDefineOptions>,
 }
 
 #[napi(object)]
@@ -30,7 +34,7 @@ pub struct OxcRunOptions {
 }
 
 #[napi(object)]
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct OxcParserOptions {
     pub extension: String,
     pub allow_return_outside_function: bool,
@@ -39,13 +43,13 @@ pub struct OxcParserOptions {
 }
 
 #[napi(object)]
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct OxcLinterOptions {
     pub config: Option<String>,
 }
 
 #[napi(object)]
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct OxcTransformerOptions {
     pub target: Option<String>,
     pub use_define_for_class_fields: bool,
@@ -54,12 +58,29 @@ pub struct OxcTransformerOptions {
 }
 
 #[napi(object)]
-#[derive(Default)]
+#[derive(Default, Clone)]
+pub struct OxcInjectOptions {
+    /// Map of variable name to module source or [source, specifier]
+    #[napi(ts_type = "Record<string, string | [string, string]>")]
+    pub inject: FxHashMap<String, Either<String, Vec<String>>>,
+}
+
+#[napi(object)]
+#[derive(Default, Clone)]
+pub struct OxcDefineOptions {
+    /// Map of variable name to value for replacement
+    #[napi(ts_type = "Record<string, string>")]
+    pub define: FxHashMap<String, String>,
+}
+
+#[napi(object)]
+#[derive(Default, Clone)]
 pub struct OxcIsolatedDeclarationsOptions {
     pub strip_internal: bool,
 }
 
 #[napi(object)]
+#[derive(Clone)]
 pub struct OxcCodegenOptions {
     pub normal: bool,
     pub jsdoc: bool,
@@ -74,7 +95,7 @@ impl Default for OxcCodegenOptions {
 }
 
 #[napi(object)]
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct OxcControlFlowOptions {
     pub verbose: Option<bool>,
 }

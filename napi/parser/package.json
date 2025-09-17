@@ -1,8 +1,8 @@
 {
   "name": "oxc-parser",
-  "version": "0.87.0",
+  "version": "0.89.0",
   "type": "commonjs",
-  "main": "index.js",
+  "main": "index.mjs",
   "browser": "wasm.mjs",
   "scripts": {
     "build-dev": "napi build --esm --platform --js bindings.mjs",

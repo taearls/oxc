@@ -22,7 +22,6 @@ use oxc_linter::{
 
 use crate::{
     cli::{CliRunResult, LintCommand, MiscOptions, ReportUnusedDirectives, WarningOptions},
-    js_plugins::RawTransferFileSystem,
     output_formatter::{LintCommandInfo, OutputFormatter},
     walk::Walk,
 };
@@ -368,7 +367,21 @@ impl LintRunner {
             // Use `RawTransferFileSystem` if `ExternalLinter` exists.
             // This reads the source text into start of allocator, instead of the end.
             if has_external_linter {
-                lint_service.with_file_system(Box::new(RawTransferFileSystem));
+                #[cfg(all(
+                    feature = "napi",
+                    target_pointer_width = "64",
+                    target_endian = "little"
+                ))]
+                lint_service.with_file_system(Box::new(crate::js_plugins::RawTransferFileSystem));
+
+                #[cfg(not(all(
+                    feature = "napi",
+                    target_pointer_width = "64",
+                    target_endian = "little"
+                )))]
+                unreachable!(
+                    "On unsupported platforms, or with `napi` Cargo feature disabled, `ExternalLinter` should not exist"
+                );
             }
 
             lint_service.run(&tx_error);
@@ -1249,6 +1262,17 @@ mod test {
     #[test]
     fn test_dot_folder() {
         Tester::new().with_cwd("fixtures/dot_folder".into()).test_and_snapshot(&[]);
+    }
+
+    #[test]
+    fn test_disable_directive_issue_13311() {
+        // Test that exhaustive-deps diagnostics are reported at the dependency array
+        // so that disable directives work correctly
+        // Issue: https://github.com/oxc-project/oxc/issues/13311
+        let args = &["test.jsx", "test2.d.ts"];
+        Tester::new()
+            .with_cwd("fixtures/disable_directive_issue_13311".into())
+            .test_and_snapshot(args);
     }
 
     // ToDo: `tsgolint` does not support `big-endian`?

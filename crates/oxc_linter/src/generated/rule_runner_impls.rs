@@ -22,6 +22,10 @@ impl RuleRunner for crate::rules::eslint::block_scoped_var::BlockScopedVar {
         Some(&AstTypesBitset::from_types(&[AstType::VariableDeclaration]));
 }
 
+impl RuleRunner for crate::rules::eslint::class_methods_use_this::ClassMethodsUseThis {
+    const NODE_TYPES: Option<&AstTypesBitset> = None;
+}
+
 impl RuleRunner for crate::rules::eslint::curly::Curly {
     const NODE_TYPES: Option<&AstTypesBitset> = None;
 }
@@ -51,7 +55,8 @@ impl RuleRunner for crate::rules::eslint::for_direction::ForDirection {
 }
 
 impl RuleRunner for crate::rules::eslint::func_names::FuncNames {
-    const NODE_TYPES: Option<&AstTypesBitset> = None;
+    const NODE_TYPES: Option<&AstTypesBitset> =
+        Some(&AstTypesBitset::from_types(&[AstType::Function]));
 }
 
 impl RuleRunner for crate::rules::eslint::func_style::FuncStyle {
@@ -631,6 +636,11 @@ impl RuleRunner for crate::rules::eslint::prefer_spread::PreferSpread {
 impl RuleRunner for crate::rules::eslint::prefer_template::PreferTemplate {
     const NODE_TYPES: Option<&AstTypesBitset> =
         Some(&AstTypesBitset::from_types(&[AstType::BinaryExpression]));
+}
+
+impl RuleRunner for crate::rules::eslint::preserve_caught_error::PreserveCaughtError {
+    const NODE_TYPES: Option<&AstTypesBitset> =
+        Some(&AstTypesBitset::from_types(&[AstType::TryStatement]));
 }
 
 impl RuleRunner for crate::rules::eslint::radix::Radix {
