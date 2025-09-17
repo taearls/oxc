@@ -149,6 +149,69 @@ source: crates/oxc_linter/src/tester.rs
   help: Remove the name on this function expression.
 
   ⚠ eslint(func-names): Unexpected named function `foo`.
+   ╭─[func_names.tsx:1:9]
+ 1 │ var a = function foo() { foo(); };
+   ·         ────────────
+   ╰────
+  help: Remove the name on this function expression.
+
+  ⚠ eslint(func-names): Unexpected named function `fact`.
+   ╭─[func_names.tsx:1:17]
+ 1 │ var factorial = function fact(n) { return n <= 1 ? 1 : n * fact(n - 1); };
+   ·                 ─────────────
+   ╰────
+  help: Remove the name on this function expression.
+
+  ⚠ eslint(func-names): Unexpected named function `fib`.
+   ╭─[func_names.tsx:1:19]
+ 1 │ const fibonacci = function fib(n) { if (n <= 1) return n; return fib(n - 1) + fib(n - 2); };
+   ·                   ────────────
+   ╰────
+  help: Remove the name on this function expression.
+
+  ⚠ eslint(func-names): Unexpected named function `foo`.
+   ╭─[func_names.tsx:1:9]
+ 1 │ var a = function foo() { var x = foo; foo(); };
+   ·         ────────────
+   ╰────
+  help: Remove the name on this function expression.
+
+  ⚠ eslint(func-names): Unexpected named function `ticker`.
+   ╭─[func_names.tsx:1:12]
+ 1 │ setTimeout(function ticker() { ticker(); }, 1000);
+   ·            ───────────────
+   ╰────
+  help: Remove the name on this function expression.
+
+  ⚠ eslint(func-names): Unexpected named function `ticker`.
+   ╭─[func_names.tsx:1:12]
+ 1 │ setTimeout(function ticker() { setTimeout(ticker, 1000); }, 1000);
+   ·            ───────────────
+   ╰────
+  help: Remove the name on this function expression.
+
+  ⚠ eslint(func-names): Unexpected named function `foo`.
+   ╭─[func_names.tsx:1:9]
+ 1 │ var a = function foo() { function bar() { foo(); } bar(); };
+   ·         ────────────
+   ╰────
+  help: Remove the name on this function expression.
+
+  ⚠ eslint(func-names): Unexpected named function `foo`.
+   ╭─[func_names.tsx:1:9]
+ 1 │ var x = function foo() { var ref1 = foo.name; var ref2 = foo.length; foo(); };
+   ·         ────────────
+   ╰────
+  help: Remove the name on this function expression.
+
+  ⚠ eslint(func-names): Unexpected named function `bar`.
+   ╭─[func_names.tsx:1:9]
+ 1 │ var y = function bar() { if (false) { bar.toString(); } if (true) { bar(); } };
+   ·         ────────────
+   ╰────
+  help: Remove the name on this function expression.
+
+  ⚠ eslint(func-names): Unexpected named function `foo`.
    ╭─[func_names.tsx:1:21]
  1 │ Foo.prototype.bar = function foo() {};
    ·                     ────────────

@@ -248,9 +248,12 @@ impl Rule for FuncNames {
 
             if is_invalid_function(config, func, parent_node) {
                 // For named functions, check if they're recursive (need their name for recursion)
-                if let Some(func_name) = func.name() {
-                    if is_recursive_function(func, func_name.as_str(), ctx) {
-                        return;
+                // But only allow this exception for "always" and "as-needed" configs, not "never"
+                if config != FuncNamesConfigType::Never {
+                    if let Some(func_name) = func.name() {
+                        if is_recursive_function(func, func_name.as_str(), ctx) {
+                            return;
+                        }
                     }
                 }
                 diagnostic_invalid_function(func, node, parent_node, ctx);
@@ -499,33 +502,6 @@ fn test() {
         ("function fn(foo = function(){}) {}", as_needed.clone()), // { "ecmaVersion": 6 },
         ("function foo() {}", never.clone()),
         ("var a = function() {};", never.clone()),
-        ("var a = function foo() { foo(); };", never.clone()),
-        (
-            "var factorial = function fact(n) { return n <= 1 ? 1 : n * fact(n - 1); };",
-            never.clone(),
-        ),
-        (
-            "const fibonacci = function fib(n) { if (n <= 1) return n; return fib(n - 1) + fib(n - 2); };",
-            never.clone(),
-        ),
-        // Multiple references, but only one is a call - still recursive
-        ("var a = function foo() { var x = foo; foo(); };", never.clone()),
-        // Direct recursive call in setTimeout - this is actually recursive
-        ("setTimeout(function ticker() { ticker(); }, 1000);", never.clone()),
-        // Recursive call in setTimeout with different pattern - also recursive
-        ("setTimeout(function ticker() { setTimeout(ticker, 1000); }, 1000);", never.clone()),
-        // Mutual recursion doesn't count as self-recursion (would need different handling)
-        ("var a = function foo() { function bar() { foo(); } bar(); };", never.clone()),
-        // Critical test: function with multiple references where the recursive call is not the first reference
-        // This tests the fix for the control flow bug where early returns could miss later recursive calls
-        (
-            "var x = function foo() { var ref1 = foo.name; var ref2 = foo.length; foo(); };",
-            never.clone(),
-        ),
-        (
-            "var y = function bar() { if (false) { bar.toString(); } if (true) { bar(); } };",
-            never.clone(),
-        ),
         ("var foo = {bar: function() {}};", never.clone()),
         ("$('#foo').click(function() {});", never.clone()),
         ("Foo.prototype.bar = function() {};", never.clone()),
@@ -601,6 +577,32 @@ fn test() {
         ("var foo = 1; var x = function foo() { return foo + 1; };", never.clone()),
         ("var x = function foo() { console.log('hello'); };", never.clone()),
         ("var outer = function inner() { function nested() { nested(); } };", never.clone()),
+        ("var a = function foo() { foo(); };", never.clone()),
+        (
+            "var factorial = function fact(n) { return n <= 1 ? 1 : n * fact(n - 1); };",
+            never.clone(),
+        ),
+        (
+            "const fibonacci = function fib(n) { if (n <= 1) return n; return fib(n - 1) + fib(n - 2); };",
+            never.clone(),
+        ),
+        // Multiple references, but only one is a call - still recursive
+        ("var a = function foo() { var x = foo; foo(); };", never.clone()),
+        // Direct recursive call in setTimeout - this is actually recursive
+        ("setTimeout(function ticker() { ticker(); }, 1000);", never.clone()),
+        ("setTimeout(function ticker() { setTimeout(ticker, 1000); }, 1000);", never.clone()),
+        // Mutual recursion doesn't count as self-recursion (would need different handling)
+        ("var a = function foo() { function bar() { foo(); } bar(); };", never.clone()),
+        // Critical test: function with multiple references where the recursive call is not the first reference
+        // This tests the fix for the control flow bug where early returns could miss later recursive calls
+        (
+            "var x = function foo() { var ref1 = foo.name; var ref2 = foo.length; foo(); };",
+            never.clone(),
+        ),
+        (
+            "var y = function bar() { if (false) { bar.toString(); } if (true) { bar(); } };",
+            never.clone(),
+        ),
         ("Foo.prototype.bar = function foo() {};", never.clone()),
         ("({foo: function foo() {}})", never.clone()),
         ("export default function() {}", always.clone()), // { "sourceType": "module", "ecmaVersion": 6 },
