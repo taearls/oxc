@@ -1,4 +1,4 @@
-js compatibility: 583/698 (83.52%)
+js compatibility: 583/699 (83.40%)
 
 # Failed
 
@@ -104,6 +104,7 @@ js compatibility: 583/698 (83.52%)
 | js/test-declarations/angular_waitForAsync.js | 💥💥 | 75.86% |
 | js/test-declarations/angularjs_inject.js | 💥💥 | 69.84% |
 | js/test-declarations/jest-each.js | 💥💥 | 94.29% |
+| js/test-declarations/test_declarations.js | 💥💥 | 93.88% |
 | js/throw_statement/binaryish.js | 💥 | 91.30% |
 | js/throw_statement/comment.js | 💥 | 91.30% |
 | js/top-level-await/in-expression.js | 💥 | 0.00% |
