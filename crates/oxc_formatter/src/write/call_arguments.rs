@@ -778,33 +778,10 @@ fn write_grouped_arguments<'a>(
             let break_type =
                 if is_grouped_argument { &mut grouped_breaks } else { &mut non_grouped_breaks };
 
-            // Don't mark grouped arrow chain arguments as breaking to prevent wrong variant selection
-            let should_mark_breaking = if is_grouped_argument && group_layout.is_grouped_first() {
-                // Check if this is an arrow chain that should stay compact
-                if let Some(arg) = argument.as_expression() {
-                    if let Expression::ArrowFunctionExpression(arrow) = arg {
-                        if arrow.expression && index == 0 {
-                            // For arrow chains as first argument, don't mark as breaking
-                            false
-                        } else {
-                            true
-                        }
-                    } else {
-                        true
-                    }
-                } else {
-                    true
-                }
-            } else {
-                true
-            };
-
-            if should_mark_breaking {
-                *break_type = *break_type
-                    || interned
-                        .as_ref()
-                        .is_ok_and(|i| i.as_ref().is_some_and(FormatElement::will_break));
-            }
+            *break_type = *break_type
+                || interned
+                    .as_ref()
+                    .is_ok_and(|i| i.as_ref().is_some_and(FormatElement::will_break));
 
             (interned, lines_before)
         })
@@ -969,11 +946,21 @@ fn write_grouped_arguments<'a>(
 
     // If the grouped content breaks, then we can skip the most_flat variant,
     // since we already know that it won't be fitting on a single line.
-    let variants = if grouped_breaks {
+    // Exception: For arrow chains in GroupedFirstArgument, include most_flat for proper indentation
+    let should_include_flat_variant = !grouped_breaks || {
+        // Special case for arrow chains as grouped first argument
+        group_layout.is_grouped_first() &&
+        node.first().and_then(|arg| arg.as_expression()).map_or(false, |expr| {
+            matches!(expr, Expression::ArrowFunctionExpression(arrow) if arrow.expression &&
+                arrow.get_expression().map_or(false, |body| matches!(body, Expression::ArrowFunctionExpression(_))))
+        })
+    };
+
+    let variants = if should_include_flat_variant {
+        vec![most_flat, middle_variant, most_expanded.into_boxed_slice()]
+    } else {
         write!(f, [expand_parent()])?;
         vec![middle_variant, most_expanded.into_boxed_slice()]
-    } else {
-        vec![most_flat, middle_variant, most_expanded.into_boxed_slice()]
     };
 
     // SAFETY: Safe because variants is guaranteed to contain exactly 3 entries:

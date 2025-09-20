@@ -96,7 +96,8 @@ impl<'a> Format<'a> for FormatJsArrowFunctionExpression<'a, '_> {
                                 arrow,
                                 self.options.call_arg_layout.is_some(),
                                 true,
-                                self.options.cache_mode
+                                self.options.cache_mode,
+                                self.options.call_arg_layout
                             ),
                             space(),
                             "=>"
@@ -311,9 +312,22 @@ impl<'a, 'b> ArrowFunctionLayout<'a, 'b> {
                             options.call_arg_layout,
                             None | Some(GroupedCallArgumentLayout::GroupedLastArgument) | Some(GroupedCallArgumentLayout::GroupedFirstArgument)
                         ) {
-                            should_break = should_break || Self::should_break_chain(current);
+                            // For grouped first arguments, be less aggressive about breaking chains
+                            // to maintain compact formatting
+                            let should_break_current = if matches!(options.call_arg_layout, Some(GroupedCallArgumentLayout::GroupedFirstArgument)) {
+                                Self::should_break_chain_conservative(current)
+                            } else {
+                                Self::should_break_chain(current)
+                            };
 
-                            should_break = should_break || Self::should_break_chain(next);
+                            let should_break_next = if matches!(options.call_arg_layout, Some(GroupedCallArgumentLayout::GroupedFirstArgument)) {
+                                Self::should_break_chain_conservative(next)
+                            } else {
+                                Self::should_break_chain(next)
+                            };
+
+                            should_break = should_break || should_break_current;
+                            should_break = should_break || should_break_next;
 
                             if head.is_none() {
                                 head = Some(current);
@@ -364,9 +378,44 @@ impl<'a, 'b> ArrowFunctionLayout<'a, 'b> {
             return true;
         }
 
-        let has_parameters = parameters.items.is_empty();
+        let has_parameters = !parameters.items.is_empty(); // Fixed: should be negated
         let has_type_and_parameters = arrow.return_type.is_some() && has_parameters;
         has_type_and_parameters || has_rest_object_or_array_parameter(parameters)
+    }
+
+    /// Conservative version of should_break_chain for grouped first arguments.
+    /// Only breaks for truly complex cases that would be unreadable if kept inline.
+    /// Allows simple default parameters to maintain compact formatting.
+    fn should_break_chain_conservative(arrow: &ArrowFunctionExpression<'a>) -> bool {
+        if arrow.type_parameters.is_some() {
+            return true;
+        }
+
+        let parameters = &arrow.params;
+
+        // For grouped first arguments, only break on truly complex patterns
+        // Allow simple default parameters (AssignmentPattern) to keep compact formatting
+        if has_rest_object_or_array_parameter(parameters) {
+            return true;
+        }
+
+        // Check for complex patterns beyond simple default parameters
+        let has_complex_patterns = parameters.items.iter().any(|param| {
+            match &param.pattern.kind {
+                // Simple identifiers and assignment patterns (defaults) are OK
+                BindingPatternKind::BindingIdentifier(_) | BindingPatternKind::AssignmentPattern(_) => false,
+                // Object and array destructuring are complex
+                BindingPatternKind::ObjectPattern(_) | BindingPatternKind::ArrayPattern(_) => true,
+            }
+        });
+
+        if has_complex_patterns {
+            return true;
+        }
+
+        // Only break if there are both parameters and return type
+        let has_parameters = !parameters.items.is_empty();
+        arrow.return_type.is_some() && has_parameters
     }
 }
 
@@ -540,7 +589,8 @@ impl<'a> Format<'a> for ArrowChain<'a, '_> {
                                 arrow,
                                 is_grouped_call_arg_layout,
                                 is_first,
-                                self.options.cache_mode
+                                self.options.cache_mode,
+                                self.options.call_arg_layout
                             )]
                         )
                     });
@@ -860,6 +910,7 @@ fn format_signature<'a, 'b>(
     is_first_or_last_call_argument: bool,
     is_first_in_chain: bool,
     cache_mode: FunctionBodyCacheMode,
+    call_arg_layout: Option<GroupedCallArgumentLayout>,
 ) -> impl Format<'a> + 'b {
     format_with(move |f| {
         let formatted_async_token =
@@ -899,13 +950,24 @@ fn format_signature<'a, 'b>(
         });
 
         if is_first_or_last_call_argument {
-            let mut buffer = RemoveSoftLinesBuffer::new(f);
-            let mut recording = buffer.start_recording();
+            // For grouped first arguments with arrow chains, be more lenient about breaking
+            // Allow parameters to break while maintaining compact arrow chain structure
+            let is_grouped_first_arrow = matches!(call_arg_layout, Some(GroupedCallArgumentLayout::GroupedFirstArgument));
 
-            write!(recording, cached_signature)?;
+            if is_grouped_first_arrow {
+                // For grouped first argument arrow chains, allow the signature to use normal formatting
+                // This allows parameters to break due to line length while keeping the chain compact
+                write!(f, cached_signature)?;
+            } else {
+                // For other grouped arguments, use the strict no-break policy
+                let mut buffer = RemoveSoftLinesBuffer::new(f);
+                let mut recording = buffer.start_recording();
 
-            if recording.stop().will_break() {
-                return Err(FormatError::PoorLayout);
+                write!(recording, cached_signature)?;
+
+                if recording.stop().will_break() {
+                    return Err(FormatError::PoorLayout);
+                }
             }
         } else {
             write!(
