@@ -30,6 +30,8 @@ pub struct FormatJsArrowFunctionExpressionOptions {
     pub call_arg_layout: Option<GroupedCallArgumentLayout>,
     // Determine whether the signature and body should be cached.
     pub cache_mode: FunctionBodyCacheMode,
+    // Whether to include a trailing comma (for call arguments)
+    pub with_trailing_comma: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -197,6 +199,7 @@ impl<'a> Format<'a> for FormatJsArrowFunctionExpression<'a, '_> {
                         self.options.call_arg_layout,
                         Some(GroupedCallArgumentLayout::GroupedLastArgument)
                     );
+
 
                     let should_add_soft_line = (is_last_call_arg
                         // if it's inside a JSXExpression (e.g. an attribute) we should align the expression's closing } with the line with the opening {.
@@ -666,7 +669,11 @@ impl<'a> Format<'a> for ArrowChain<'a, '_> {
             write!(f, [space(), "=>"])?;
 
             if is_grouped_call_arg_layout {
-                write!(f, [group(&format_tail_body)])?;
+                write!(f, [group(&format_args!(
+                    format_tail_body,
+                    // Add trailing comma if explicitly requested
+                    self.options.with_trailing_comma.then_some(",")
+                ))])?;
             } else {
                 write!(f, [indent_if_group_breaks(&format_tail_body, group_id)])?;
             }

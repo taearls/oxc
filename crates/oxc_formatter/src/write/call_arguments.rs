@@ -658,6 +658,7 @@ fn write_grouped_arguments<'a>(
         &f.source_text(),
     );
 
+
     // Pre-format the arguments to determine if they can be grouped.
     let mut elements = node
         .iter()
@@ -688,6 +689,7 @@ fn write_grouped_arguments<'a>(
                             return arrow.fmt_with_options(
                                 FormatJsArrowFunctionExpressionOptions {
                                     cache_mode: FunctionBodyCacheMode::Cache,
+                                    with_trailing_comma: false,
                                     ..FormatJsArrowFunctionExpressionOptions::default()
                                 },
                                 f,
@@ -771,14 +773,6 @@ fn write_grouped_arguments<'a>(
                 let argument = node.last().unwrap();
                 let mut last = grouped.last_mut().unwrap();
                 last.0 = f.intern(&format_once(|f| {
-                    // TODO: Fix comma positioning issue
-                    // Currently, when we reformat grouped arguments with trailing commas,
-                    // the comma appears on a separate line instead of inline with the argument.
-                    // This is because the comma gets treated as a separate formatting element
-                    // that can be broken away from the argument content.
-                    // The issue exists both in the original element formatting and the
-                    // grouped re-formatting, suggesting it's a fundamental issue with how
-                    // trailing commas are handled in the formatting system.
                     FormatGroupedLastArgument {
                         argument,
                         is_only: only_one_argument,
@@ -924,6 +918,7 @@ impl<'a> Format<'a> for FormatGroupedFirstArgument<'a, '_> {
                     FormatJsArrowFunctionExpressionOptions {
                         cache_mode: FunctionBodyCacheMode::Cache,
                         call_arg_layout: Some(GroupedCallArgumentLayout::GroupedFirstArgument),
+                        with_trailing_comma: false,
                         ..FormatJsArrowFunctionExpressionOptions::default()
                     },
                     f,
@@ -972,20 +967,21 @@ impl<'a> Format<'a> for FormatGroupedLastArgument<'a, '_> {
                 })
             }
 
-            AstNodes::ArrowFunctionExpression(arrow) => with_token_tracking_disabled(f, |f| {
-                arrow.fmt_with_options(
-                    FormatJsArrowFunctionExpressionOptions {
-                        cache_mode: FunctionBodyCacheMode::Cache,
-                        call_arg_layout: Some(GroupedCallArgumentLayout::GroupedLastArgument),
-                        ..FormatJsArrowFunctionExpressionOptions::default()
-                    },
-                    f,
-                )?;
-                if self.with_trailing_comma {
-                    write!(f, text(","))?;
-                }
-                Ok(())
-            }),
+            AstNodes::ArrowFunctionExpression(arrow) => {
+                // Arrow functions (including chains) now handle their own trailing commas
+                // when in grouped call argument layout
+                with_token_tracking_disabled(f, |f| {
+                    arrow.fmt_with_options(
+                        FormatJsArrowFunctionExpressionOptions {
+                            cache_mode: FunctionBodyCacheMode::Cache,
+                            call_arg_layout: Some(GroupedCallArgumentLayout::GroupedLastArgument),
+                            with_trailing_comma: self.with_trailing_comma,
+                            ..FormatJsArrowFunctionExpressionOptions::default()
+                        },
+                        f,
+                    )
+                })
+            },
             _ => {
                 self.argument.fmt(f)?;
                 if self.with_trailing_comma {
