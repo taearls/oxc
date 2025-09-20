@@ -506,6 +506,14 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ConditionalExpression<'a>> {
         ) {
             return true;
         }
+
+        // Conditional expressions need parentheses when used as the object of a member expression
+        if let AstNodes::StaticMemberExpression(member) = parent {
+            return member.object.span() == self.span();
+        }
+        if let AstNodes::ComputedMemberExpression(member) = parent {
+            return member.object.span() == self.span();
+        }
         if let AstNodes::ConditionalExpression(e) = parent {
             e.test.without_parentheses().span() == self.span()
         } else {
@@ -834,7 +842,10 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, TSInstantiationExpression<'a>> {
 }
 
 fn binary_like_needs_parens(binary_like: BinaryLikeExpression<'_, '_>) -> bool {
-    let parent = match binary_like.parent() {
+    let span = binary_like.span();
+    let parent_nodes = binary_like.parent();
+
+    let parent = match parent_nodes {
         AstNodes::TSAsExpression(_)
         | AstNodes::TSSatisfiesExpression(_)
         | AstNodes::TSTypeAssertion(_)
@@ -843,11 +854,23 @@ fn binary_like_needs_parens(binary_like: BinaryLikeExpression<'_, '_>) -> bool {
         | AstNodes::TSNonNullExpression(_)
         | AstNodes::SpreadElement(_)
         | AstNodes::JSXSpreadAttribute(_)
-        | AstNodes::CallExpression(_)
-        | AstNodes::NewExpression(_)
         | AstNodes::ChainExpression(_)
         | AstNodes::StaticMemberExpression(_)
         | AstNodes::TaggedTemplateExpression(_) => return true,
+        AstNodes::CallExpression(_) => {
+            // Binary expressions don't need parentheses when used as function arguments
+            if is_expression_used_as_call_argument(span, parent_nodes) {
+                return false;
+            }
+            return true;
+        }
+        AstNodes::NewExpression(_) => {
+            // Binary expressions don't need parentheses when used as constructor arguments
+            if is_expression_used_as_call_argument(span, parent_nodes) {
+                return false;
+            }
+            return true;
+        }
         AstNodes::ComputedMemberExpression(computed) => {
             return computed.object.span() == binary_like.span();
         }
@@ -948,13 +971,20 @@ fn update_or_lower_expression_needs_parens(span: Span, parent: &AstNodes<'_>) ->
     if matches!(
         parent,
         AstNodes::TSNonNullExpression(_)
-            | AstNodes::CallExpression(_)
-            | AstNodes::NewExpression(_)
             | AstNodes::StaticMemberExpression(_)
             | AstNodes::TaggedTemplateExpression(_)
             | AstNodes::ComputedMemberExpression(_)
     ) || is_class_extends(parent, span)
     {
+        return true;
+    }
+
+    // Check call expressions and new expressions, but allow expressions used as arguments
+    if matches!(parent, AstNodes::CallExpression(_) | AstNodes::NewExpression(_)) {
+        // Don't add parentheses when used as function/constructor arguments
+        if is_expression_used_as_call_argument(span, parent) {
+            return false;
+        }
         return true;
     }
 
@@ -1122,11 +1152,13 @@ fn jsx_element_or_fragment_needs_paren(span: Span, parent: &AstNodes<'_>) -> boo
         | AstNodes::UnaryExpression(_)
         | AstNodes::TSNonNullExpression(_)
         | AstNodes::SpreadElement(_)
-        | AstNodes::CallExpression(_)
-        | AstNodes::NewExpression(_)
         | AstNodes::TaggedTemplateExpression(_)
         | AstNodes::JSXSpreadAttribute(_)
         | AstNodes::JSXSpreadChild(_) => true,
+        AstNodes::CallExpression(_) | AstNodes::NewExpression(_) => {
+            // JSX elements don't need parentheses when used as function/constructor arguments
+            !is_expression_used_as_call_argument(span, parent)
+        }
         _ => false,
     }
 }

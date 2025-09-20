@@ -1,4 +1,4 @@
-ts compatibility: 387/573 (67.54%)
+ts compatibility: 391/573 (68.24%)
 
 # Failed
 
@@ -6,9 +6,7 @@ ts compatibility: 387/573 (67.54%)
 | :-------- | :--------------: | :---------: |
 | jsx/expression-with-types/expression.js | 💥💥💥💥 | 0.00% |
 | jsx/fbt/test.js | 💥 | 84.06% |
-| jsx/fragment/fragment.js | 💥 | 98.61% |
 | jsx/ignore/jsx_ignore.js | 💥 | 84.21% |
-| jsx/jsx/parens.js | 💥💥💥💥 | 84.21% |
 | jsx/jsx/quotes.js | 💥💥💥💥 | 79.41% |
 | jsx/single-attribute-per-line/single-attribute-per-line.js | 💥✨ | 43.37% |
 | jsx/stateless-arrow-fn/test.js | 💥 | 95.32% |
@@ -27,7 +25,6 @@ ts compatibility: 387/573 (67.54%)
 | typescript/as/expression-statement.ts | 💥 | 75.00% |
 | typescript/as/long-identifiers.ts | 💥 | 92.86% |
 | typescript/as/nested-await-and-as.ts | 💥 | 42.86% |
-| typescript/assert/index.ts | 💥 | 85.71% |
 | typescript/assignment/issue-10846.ts | 💥 | 63.16% |
 | typescript/assignment/issue-10848.tsx | 💥 | 52.12% |
 | typescript/assignment/issue-10850.ts | 💥 | 50.00% |
@@ -54,7 +51,7 @@ ts compatibility: 387/573 (67.54%)
 | typescript/comments/type_literals.ts | 💥 | 68.97% |
 | typescript/comments/union.ts | 💥 | 5.26% |
 | typescript/compiler/anyIsAssignableToObject.ts | 💥 | 75.00% |
-| typescript/compiler/castTest.ts | 💥 | 93.33% |
+| typescript/compiler/castTest.ts | 💥 | 96.67% |
 | typescript/compiler/contextualSignatureInstantiation2.ts | 💥 | 88.89% |
 | typescript/compiler/decrementAndIncrementOperators.ts | 💥 | 93.33% |
 | typescript/compiler/indexSignatureWithInitializer.ts | 💥 | 75.00% |
@@ -157,7 +154,6 @@ ts compatibility: 387/573 (67.54%)
 | typescript/satisfies-operators/lhs.ts | 💥✨ | 35.00% |
 | typescript/satisfies-operators/nested-await-and-satisfies.ts | 💥💥 | 42.86% |
 | typescript/satisfies-operators/satisfies.ts | 💥💥 | 95.45% |
-| typescript/static-blocks/multiple.ts | 💥 | 75.00% |
 | typescript/template-literal-types/template-literal-types.ts | 💥 | 80.00% |
 | typescript/ternaries/indent.ts | 💥 | 93.33% |
 | typescript/test-declarations/test_declarations.ts | 💥💥 | 50.00% |
