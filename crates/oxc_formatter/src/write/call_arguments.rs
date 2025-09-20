@@ -203,55 +203,6 @@ fn format_all_elements_broken_out<'a, 'b>(
     )
 }
 
-/// Format arguments containing arrow functions without extra indentation
-/// This avoids the soft_block_indent that causes wrong indentation for arrow chains
-fn format_args_with_arrow_functions_no_extra_indent<'a, 'b>(
-    node: &'b AstNode<'a, ArenaVec<'a, Argument<'a>>>,
-    expand: bool,
-    mut buffer: impl Buffer<'a>,
-) -> FormatResult<()> {
-    let last_index = node.len() - 1;
-    write!(
-        buffer,
-        [group(&format_args!(
-            "(",
-            format_once(move |f| {
-                for (index, argument) in node.iter().enumerate() {
-                    if index == 0 {
-                        write!(f, [soft_line_break_or_space()])?;
-                    } else {
-                        match f.source_text().get_lines_before(argument.span(), f.comments()) {
-                            0 | 1 => write!(f, [soft_line_break_or_space()])?,
-                            _ => write!(f, [empty_line()])?,
-                        }
-                    }
-
-                    // For arrow functions, format them with trailing comma inline
-                    if matches!(argument.as_ref(), Argument::ArrowFunctionExpression(_)) && index != last_index {
-                        use crate::write::arrow_function_expression::{FormatJsArrowFunctionExpressionOptions, FunctionBodyCacheMode};
-                        if let AstNodes::ArrowFunctionExpression(arrow) = argument.as_ast_nodes() {
-                            arrow.fmt_with_options(
-                                FormatJsArrowFunctionExpressionOptions {
-                                    with_trailing_comma: true,
-                                    ..FormatJsArrowFunctionExpressionOptions::default()
-                                },
-                                f,
-                            )?;
-                        } else {
-                            write!(f, [argument, ","])?;
-                        }
-                    } else {
-                        write!(f, [argument, (index != last_index).then_some(",")])?;
-                    }
-                }
-
-                write!(f, FormatTrailingCommas::All)
-            }),
-            ")",
-        ))
-        .should_expand(expand)]
-    )
-}
 
 fn format_all_args_broken_out<'a, 'b>(
     node: &'b AstNode<'a, ArenaVec<'a, Argument<'a>>>,
@@ -315,17 +266,7 @@ fn should_group_first_argument(
                 // with a block body can be grouped to collapse the braces.
                 Expression::ArrowFunctionExpression(arrow) => {
                     if arrow.expression {
-                        // Check if this is an arrow chain that needs special formatting
-                        let is_arrow_chain = if let Some(expr) = arrow.get_expression() {
-                            matches!(expr, Expression::ArrowFunctionExpression(_))
-                        } else {
-                            false
-                        };
-
-                        // Allow arrow chains to be grouped for proper formatting
-                        if !is_arrow_chain {
-                            return false;
-                        }
+                        return false;
                     }
                 }
                 _ => return false,
@@ -596,108 +537,11 @@ fn can_group_arrow_function_expression_argument(
         Expression::ChainExpression(chain) => {
             matches!(chain.expression, ChainElement::CallExpression(_)) && !is_arrow_recursion
         }
-        Expression::CallExpression(_) | Expression::ConditionalExpression(_) => {
-            // Allow simple call expressions in curried arrow functions to be groupable
-            // This ensures `foo(a => b => someFunc())` can be grouped
-            if is_arrow_recursion && matches!(expr, Expression::CallExpression(_)) {
-                // Only allow simple call expressions (not complex nested calls)
-                true
-            } else {
-                !is_arrow_recursion
-            }
-        }
+        Expression::CallExpression(_) | Expression::ConditionalExpression(_) => !is_arrow_recursion,
         _ => false,
     })
 }
 
-/// Check if there's a trailing comma after the last argument in the source code
-fn has_trailing_comma_after_arguments(
-    call_span: Span,
-    arguments: &[Argument],
-    source_text: &SourceText,
-) -> bool {
-    if arguments.is_empty() {
-        return false;
-    }
-
-    let last_arg = arguments.last().unwrap();
-    let search_start = last_arg.span().end;
-    let search_end = call_span.end;
-
-    // Look for a comma between the last argument and the closing parenthesis
-    let text_slice = source_text.slice_range(search_start, search_end);
-
-    // Check if there's a comma before the closing parenthesis, ignoring whitespace and comments
-    let mut found_comma = false;
-    let mut in_comment = false;
-    let mut comment_type = CommentType::None;
-
-    #[derive(PartialEq)]
-    enum CommentType {
-        None,
-        Line,
-        Block,
-    }
-
-    let bytes = text_slice.as_bytes();
-    let mut i = 0;
-
-    while i < bytes.len() {
-        let byte = bytes[i];
-
-        if in_comment {
-            match comment_type {
-                CommentType::Line => {
-                    if byte == b'\n' || byte == b'\r' {
-                        in_comment = false;
-                        comment_type = CommentType::None;
-                    }
-                }
-                CommentType::Block => {
-                    if byte == b'*' && i + 1 < bytes.len() && bytes[i + 1] == b'/' {
-                        in_comment = false;
-                        comment_type = CommentType::None;
-                        i += 1; // Skip the '/'
-                    }
-                }
-                CommentType::None => unreachable!(),
-            }
-        } else {
-            match byte {
-                b',' => found_comma = true,
-                b')' => break, // Reached the closing parenthesis
-                b'/' if i + 1 < bytes.len() => {
-                    match bytes[i + 1] {
-                        b'/' => {
-                            in_comment = true;
-                            comment_type = CommentType::Line;
-                            i += 1; // Skip the second '/'
-                        }
-                        b'*' => {
-                            in_comment = true;
-                            comment_type = CommentType::Block;
-                            i += 1; // Skip the '*'
-                        }
-                        _ => {}
-                    }
-                }
-                b' ' | b'\t' | b'\n' | b'\r' => {} // Skip whitespace
-                _ => {
-                    // Found non-whitespace, non-comment content after comma
-                    // This shouldn't happen in well-formed code, but if it does,
-                    // we don't have a trailing comma
-                    if !found_comma {
-                        return false;
-                    }
-                }
-            }
-        }
-
-        i += 1;
-    }
-
-    found_comma
-}
 
 fn write_grouped_arguments<'a>(
     node: &AstNode<'a, ArenaVec<'a, Argument<'a>>>,
@@ -710,13 +554,6 @@ fn write_grouped_arguments<'a>(
     let mut grouped_breaks = false;
     let mut has_cached = false;
 
-    // Check if there's a trailing comma in the source code
-    let call_span = node.parent.span();
-    let has_source_trailing_comma = has_trailing_comma_after_arguments(
-        call_span,
-        node.as_ref(),
-        &f.source_text(),
-    );
 
 
     // Pre-format the arguments to determine if they can be grouped.
@@ -749,7 +586,6 @@ fn write_grouped_arguments<'a>(
                             return arrow.fmt_with_options(
                                 FormatJsArrowFunctionExpressionOptions {
                                     cache_mode: FunctionBodyCacheMode::Cache,
-                                    with_trailing_comma: false,
                                     ..FormatJsArrowFunctionExpressionOptions::default()
                                 },
                                 f,
@@ -768,11 +604,7 @@ fn write_grouped_arguments<'a>(
 
             let interned = f.intern(&format_once(|f| {
                 format_argument.fmt(f)?;
-                // Add comma for non-last arguments, or for last argument if there's a trailing comma in source
-                if index != last_index || has_source_trailing_comma {
-                    write!(f, ",")?;
-                }
-                Ok(())
+                write!(f, (last_index != index).then_some(","))
             }));
 
             let break_type =
@@ -825,21 +657,15 @@ fn write_grouped_arguments<'a>(
                 let argument = node.first().unwrap();
                 let mut first = grouped.first_mut().unwrap();
                 first.0 = f.intern(&format_once(|f| {
-                    FormatGroupedFirstArgument {
-                        argument,
-                        with_trailing_comma: last_index != 0
-                    }.fmt(f)
+                    FormatGroupedFirstArgument { argument }.fmt(f)?;
+                    write!(f, (last_index != 0).then_some(","))
                 }));
             }
             GroupedCallArgumentLayout::GroupedLastArgument => {
                 let argument = node.last().unwrap();
                 let mut last = grouped.last_mut().unwrap();
                 last.0 = f.intern(&format_once(|f| {
-                    FormatGroupedLastArgument {
-                        argument,
-                        is_only: only_one_argument,
-                        with_trailing_comma: has_source_trailing_comma
-                    }.fmt(f)
+                    FormatGroupedLastArgument { argument, is_only: only_one_argument }.fmt(f)
                 }));
             }
         }
@@ -978,8 +804,6 @@ fn write_grouped_arguments<'a>(
 /// Helper for formatting the first grouped argument (see [should_group_first_argument]).
 struct FormatGroupedFirstArgument<'a, 'b> {
     argument: &'b AstNode<'a, Argument<'a>>,
-    /// Whether to include a trailing comma
-    with_trailing_comma: bool,
 }
 
 impl<'a> Format<'a> for FormatGroupedFirstArgument<'a, '_> {
@@ -992,7 +816,6 @@ impl<'a> Format<'a> for FormatGroupedFirstArgument<'a, '_> {
                     FormatJsArrowFunctionExpressionOptions {
                         cache_mode: FunctionBodyCacheMode::Cache,
                         call_arg_layout: Some(GroupedCallArgumentLayout::GroupedFirstArgument),
-                        with_trailing_comma: self.with_trailing_comma,
                         ..FormatJsArrowFunctionExpressionOptions::default()
                     },
                     f,
@@ -1000,13 +823,7 @@ impl<'a> Format<'a> for FormatGroupedFirstArgument<'a, '_> {
             }),
 
             // For all other nodes, use the normal formatting (which already has been cached)
-            _ => {
-                self.argument.fmt(f)?;
-                if self.with_trailing_comma {
-                    write!(f, ",")?;
-                }
-                Ok(())
-            }
+            _ => self.argument.fmt(f),
         }
     }
 }
@@ -1017,8 +834,6 @@ struct FormatGroupedLastArgument<'a, 'b> {
     argument: &'b AstNode<'a, Argument<'a>>,
     /// Is this the only argument in the arguments list
     is_only: bool,
-    /// Whether to include a trailing comma
-    with_trailing_comma: bool,
 }
 
 impl<'a> Format<'a> for FormatGroupedLastArgument<'a, '_> {
@@ -1039,36 +854,21 @@ impl<'a> Format<'a> for FormatGroupedLastArgument<'a, '_> {
                             ),
                         },
                         f,
-                    )?;
-                    if self.with_trailing_comma {
-                        write!(f, ",")?;
-                    }
-                    Ok(())
+                    )
                 })
             }
 
-            AstNodes::ArrowFunctionExpression(arrow) => {
-                // Arrow functions (including chains) now handle their own trailing commas
-                // when in grouped call argument layout
-                with_token_tracking_disabled(f, |f| {
-                    arrow.fmt_with_options(
-                        FormatJsArrowFunctionExpressionOptions {
-                            cache_mode: FunctionBodyCacheMode::Cache,
-                            call_arg_layout: Some(GroupedCallArgumentLayout::GroupedLastArgument),
-                            with_trailing_comma: self.with_trailing_comma,
-                            ..FormatJsArrowFunctionExpressionOptions::default()
-                        },
-                        f,
-                    )
-                })
-            },
-            _ => {
-                self.argument.fmt(f)?;
-                if self.with_trailing_comma {
-                    write!(f, ",")?;
-                }
-                Ok(())
-            }
+            AstNodes::ArrowFunctionExpression(arrow) => with_token_tracking_disabled(f, |f| {
+                arrow.fmt_with_options(
+                    FormatJsArrowFunctionExpressionOptions {
+                        cache_mode: FunctionBodyCacheMode::Cache,
+                        call_arg_layout: Some(GroupedCallArgumentLayout::GroupedLastArgument),
+                        ..FormatJsArrowFunctionExpressionOptions::default()
+                    },
+                    f,
+                )
+            }),
+            _ => self.argument.fmt(f),
         }
     }
 }

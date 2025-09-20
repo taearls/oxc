@@ -1,20 +1,22 @@
-js compatibility: 611/698 (87.54%)
+js compatibility: 610/698 (87.39%)
 
 # Failed
 
 | Spec path | Failed or Passed | Match ratio |
 | :-------- | :--------------: | :---------: |
+| js/arrows/call.js | 💥💥 | 99.48% |
 | js/arrows/chain-as-arg.js | 💥💥 | 43.59% |
 | js/arrows/comment.js | 💥💥 | 83.72% |
-| js/arrows/curried.js | 💥💥 | 81.67% |
+| js/arrows/curried.js | 💥💥 | 80.59% |
 | js/arrows/currying-2.js | 💥💥 | 59.08% |
 | js/arrows/currying-4.js | 💥💥 | 78.15% |
 | js/async/await-parse.js | 💥 | 93.75% |
+| js/break-calls/break.js | 💥 | 87.23% |
 | js/call/first-argument-expansion/expression-2nd-arg.js | 💥 | 68.42% |
 | js/call/first-argument-expansion/issue-13237.js | 💥 | 78.95% |
 | js/call/first-argument-expansion/issue-5172.js | 💥 | 82.61% |
 | js/call/first-argument-expansion/jsx.js | 💥 | 71.43% |
-| js/call/first-argument-expansion/test.js | 💥 | 88.82% |
+| js/call/first-argument-expansion/test.js | 💥 | 84.83% |
 | js/chain-expression/call-expression.js | 💥 | 90.48% |
 | js/chain-expression/issue-15785-1.js | 💥 | 84.62% |
 | js/chain-expression/issue-15912.js | 💥 | 0.00% |
@@ -47,7 +49,7 @@ js compatibility: 611/698 (87.54%)
 | js/last-argument-expansion/function-body-in-mode-break.js | 💥 | 86.67% |
 | js/last-argument-expansion/function-expression-issue-2239.js | 💥 | 66.67% |
 | js/last-argument-expansion/function-expression.js | 💥 | 80.00% |
-| js/last-argument-expansion/overflow.js | 💥 | 96.34% |
+| js/last-argument-expansion/overflow.js | 💥 | 97.56% |
 | js/logical_expressions/issue-7024.js | 💥 | 66.67% |
 | js/method-chain/multiple-members.js | 💥 | 76.00% |
 | js/method-chain/print-width-120/constructor.js | 💥 | 71.43% |
@@ -67,7 +69,6 @@ js compatibility: 611/698 (87.54%)
 | js/require-amd/require.js | 💥 | 90.70% |
 | js/return/comment.js | 💥 | 95.12% |
 | js/strings/template-literals.js | 💥💥 | 85.16% |
-| js/template/graphql.js | 💥 | 93.75% |
 | js/ternaries/binary.js | 💥💥💥💥✨✨✨✨ | 18.42% |
 | js/ternaries/func-call.js | 💥💥💥💥✨✨✨✨ | 25.00% |
 | js/ternaries/indent-after-paren.js | 💥💥💥💥✨✨✨✨ | 24.59% |

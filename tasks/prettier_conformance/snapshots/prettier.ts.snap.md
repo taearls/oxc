@@ -1,4 +1,4 @@
-ts compatibility: 390/573 (68.06%)
+ts compatibility: 391/573 (68.24%)
 
 # Failed
 
@@ -125,7 +125,6 @@ ts compatibility: 390/573 (68.06%)
 | typescript/keyword-types/conditional-types.ts | 💥 | 87.50% |
 | typescript/keywords/keywords-2.ts | 💥 | 79.41% |
 | typescript/last-argument-expansion/decorated-function.tsx | 💥 | 29.06% |
-| typescript/last-argument-expansion/edge_case.ts | 💥 | 90.00% |
 | typescript/last-argument-expansion/forward-ref.tsx | 💥 | 77.78% |
 | typescript/mapped-type/intersection.ts | 💥 | 0.00% |
 | typescript/mapped-type/issue-11098.ts | 💥 | 60.00% |

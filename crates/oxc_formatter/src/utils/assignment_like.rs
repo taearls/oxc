@@ -719,7 +719,6 @@ impl<'a> Format<'a> for WithAssignmentLayout<'a, '_> {
             AstNodes::ArrowFunctionExpression(arrow) => arrow.fmt_with_options(
                 FormatJsArrowFunctionExpressionOptions {
                     assignment_layout: self.layout,
-                    with_trailing_comma: false,
                     ..FormatJsArrowFunctionExpressionOptions::default()
                 },
                 f,
