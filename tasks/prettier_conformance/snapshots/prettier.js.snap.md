@@ -1,11 +1,9 @@
-js compatibility: 607/698 (86.96%)
+js compatibility: 611/698 (87.54%)
 
 # Failed
 
 | Spec path | Failed or Passed | Match ratio |
 | :-------- | :--------------: | :---------: |
-| js/arrow-call/arrow_call.js | 💥💥💥 | 97.96% |
-| js/arrows/call.js | 💥💥 | 99.48% |
 | js/arrows/chain-as-arg.js | 💥💥 | 43.59% |
 | js/arrows/comment.js | 💥💥 | 83.72% |
 | js/arrows/curried.js | 💥💥 | 81.67% |
@@ -19,11 +17,9 @@ js compatibility: 607/698 (86.96%)
 | js/call/first-argument-expansion/test.js | 💥 | 88.82% |
 | js/chain-expression/call-expression.js | 💥 | 90.48% |
 | js/chain-expression/issue-15785-1.js | 💥 | 84.62% |
-| js/chain-expression/issue-15785-2.js | 💥 | 66.67% |
 | js/chain-expression/issue-15912.js | 💥 | 0.00% |
 | js/chain-expression/issue-15916.js | 💥 | 80.00% |
 | js/chain-expression/member-expression.js | 💥 | 95.83% |
-| js/chain-expression/test-3.js | 💥 | 75.00% |
 | js/comments/15661.js | 💥💥 | 55.81% |
 | js/comments/call_comment.js | 💥💥 | 55.00% |
 | js/comments/empty-statements.js | 💥💥 | 90.91% |
@@ -32,7 +28,7 @@ js compatibility: 607/698 (86.96%)
 | js/comments/html-like/comment.js | 💥 | 0.00% |
 | js/comments-closure-typecast/comment-in-the-middle.js | 💥 | 90.91% |
 | js/conditional/comments.js | 💥✨ | 23.69% |
-| js/conditional/new-ternary-examples.js | 💥💥 | 69.81% |
+| js/conditional/new-ternary-examples.js | 💥✨ | 20.14% |
 | js/conditional/new-ternary-spec.js | 💥✨ | 24.35% |
 | js/conditional/postfix-ternary-regressions.js | 💥✨ | 20.77% |
 | js/decorators/member-expression.js | 💥 | 92.42% |
@@ -81,7 +77,7 @@ js compatibility: 607/698 (86.96%)
 | js/ternaries/parenthesis.js | 💥💥💥💥✨✨✨✨ | 12.50% |
 | js/ternaries/test.js | 💥💥💥💥✨✨✨✨ | 22.40% |
 | js/ternaries/parenthesis/await-expression.js | 💥✨ | 14.29% |
-| js/test-declarations/angular_async.js | 💥💥 | 79.31% |
+| js/test-declarations/angular_async.js | 💥💥 | 86.21% |
 | js/test-declarations/angular_fakeAsync.js | 💥💥 | 75.86% |
 | js/test-declarations/angular_waitForAsync.js | 💥💥 | 75.86% |
 | js/test-declarations/angularjs_inject.js | 💥💥 | 69.84% |

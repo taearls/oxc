@@ -97,13 +97,36 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
             );
         }
 
+        // DEBUG: Add extensive logging for chain-as-arg debugging
+        let source_text = f.source_text();
+        let span_end = (call_like_span.end as usize).min(call_like_span.start as usize + 100);
+        let span_text = &source_text[call_like_span.start as usize..span_end];
+        eprintln!("🔍 DEBUG: Format call arguments for: {}", span_text.chars().take(50).collect::<String>().replace('\n', "\\n"));
+        eprintln!("🔍 DEBUG: Number of arguments: {}", self.len());
+        for (i, arg) in self.iter().enumerate() {
+            let arg_span = arg.span();
+            let arg_end = (arg_span.end as usize).min(arg_span.start as usize + 50);
+            let arg_text = &source_text[arg_span.start as usize..arg_end];
+            eprintln!("🔍 DEBUG: Arg {}: {:?} - {}", i, std::mem::discriminant(arg.as_ref()), arg_text.chars().take(30).collect::<String>().replace('\n', "\\n"));
+        }
+
         let has_empty_line =
             self.iter().any(|arg| f.source_text().get_lines_before(arg.span(), f.comments()) > 1);
+        eprintln!("🔍 DEBUG: has_empty_line: {}", has_empty_line);
+        eprintln!("🔍 DEBUG: is_function_composition_args: {}", is_function_composition_args(self));
+
         if has_empty_line || is_function_composition_args(self) {
+            eprintln!("🔍 DEBUG: Taking format_all_args_broken_out path (empty line or composition)");
+            eprintln!("🔍 DEBUG: Stack trace: {}", std::backtrace::Backtrace::capture());
             return format_all_args_broken_out(self, true, f);
         }
 
-        if let Some(group_layout) = arguments_grouped_layout(call_like_span, self, f) {
+        let group_layout = arguments_grouped_layout(call_like_span, self, f);
+        eprintln!("🔍 DEBUG: arguments_grouped_layout result: {:?}", group_layout);
+
+        if let Some(group_layout) = group_layout {
+            eprintln!("🔍 DEBUG: Taking write_grouped_arguments path with layout: {:?}", group_layout);
+            eprintln!("🔍 DEBUG: Stack trace: {}", std::backtrace::Backtrace::capture());
             write_grouped_arguments(self, group_layout, f)
         } else if call_expression.is_some_and(|call| is_long_curried_call(call)) {
             write!(
@@ -203,6 +226,56 @@ fn format_all_elements_broken_out<'a, 'b>(
     )
 }
 
+/// Format arguments containing arrow functions without extra indentation
+/// This avoids the soft_block_indent that causes wrong indentation for arrow chains
+fn format_args_with_arrow_functions_no_extra_indent<'a, 'b>(
+    node: &'b AstNode<'a, ArenaVec<'a, Argument<'a>>>,
+    expand: bool,
+    mut buffer: impl Buffer<'a>,
+) -> FormatResult<()> {
+    let last_index = node.len() - 1;
+    write!(
+        buffer,
+        [group(&format_args!(
+            "(",
+            format_once(move |f| {
+                for (index, argument) in node.iter().enumerate() {
+                    if index == 0 {
+                        write!(f, [soft_line_break_or_space()])?;
+                    } else {
+                        match f.source_text().get_lines_before(argument.span(), f.comments()) {
+                            0 | 1 => write!(f, [soft_line_break_or_space()])?,
+                            _ => write!(f, [empty_line()])?,
+                        }
+                    }
+
+                    // For arrow functions, format them with trailing comma inline
+                    if matches!(argument.as_ref(), Argument::ArrowFunctionExpression(_)) && index != last_index {
+                        use crate::write::arrow_function_expression::{FormatJsArrowFunctionExpressionOptions, FunctionBodyCacheMode};
+                        if let AstNodes::ArrowFunctionExpression(arrow) = argument.as_ast_nodes() {
+                            arrow.fmt_with_options(
+                                FormatJsArrowFunctionExpressionOptions {
+                                    with_trailing_comma: true,
+                                    ..FormatJsArrowFunctionExpressionOptions::default()
+                                },
+                                f,
+                            )?;
+                        } else {
+                            write!(f, [argument, ","])?;
+                        }
+                    } else {
+                        write!(f, [argument, (index != last_index).then_some(",")])?;
+                    }
+                }
+
+                write!(f, FormatTrailingCommas::All)
+            }),
+            ")",
+        ))
+        .should_expand(expand)]
+    )
+}
+
 fn format_all_args_broken_out<'a, 'b>(
     node: &'b AstNode<'a, ArenaVec<'a, Argument<'a>>>,
     expand: bool,
@@ -238,11 +311,20 @@ pub fn arguments_grouped_layout(
     args: &[Argument],
     f: &Formatter<'_, '_>,
 ) -> Option<GroupedCallArgumentLayout> {
-    if should_group_first_argument(call_like_span, args, f) {
+    eprintln!("🔍 DEBUG: arguments_grouped_layout - checking grouping");
+    let should_group_first = should_group_first_argument(call_like_span, args, f);
+    let should_group_last = should_group_last_argument(call_like_span, args, f);
+    eprintln!("🔍 DEBUG: should_group_first_argument: {}", should_group_first);
+    eprintln!("🔍 DEBUG: should_group_last_argument: {}", should_group_last);
+
+    if should_group_first {
+        eprintln!("🔍 DEBUG: Returning GroupedFirstArgument");
         Some(GroupedCallArgumentLayout::GroupedFirstArgument)
-    } else if should_group_last_argument(call_like_span, args, f) {
+    } else if should_group_last {
+        eprintln!("🔍 DEBUG: Returning GroupedLastArgument");
         Some(GroupedCallArgumentLayout::GroupedLastArgument)
     } else {
+        eprintln!("🔍 DEBUG: No grouping");
         None
     }
 }
@@ -253,22 +335,45 @@ fn should_group_first_argument(
     args: &[Argument],
     f: &Formatter<'_, '_>,
 ) -> bool {
+    eprintln!("🔍 DEBUG: should_group_first_argument - args.len(): {}", args.len());
     let mut iter = args.iter();
     match (iter.next().and_then(|a| a.as_expression()), iter.next().and_then(|a| a.as_expression()))
     {
         (Some(first), Some(second)) if iter.next().is_none() => {
+            eprintln!("🔍 DEBUG: should_group_first_argument - checking two args");
+            eprintln!("🔍 DEBUG: first arg type: {:?}", std::mem::discriminant(first));
+            eprintln!("🔍 DEBUG: second arg type: {:?}", std::mem::discriminant(second));
+
             match &first {
-                Expression::FunctionExpression(_) => {}
+                Expression::FunctionExpression(_) => {
+                    eprintln!("🔍 DEBUG: first is FunctionExpression");
+                }
                 // Arrow expressions that are a plain expression or are a chain
                 // don't get grouped as the first argument, since they'll either
                 // fit entirely on the line or break fully. Only a single arrow
                 // with a block body can be grouped to collapse the braces.
                 Expression::ArrowFunctionExpression(arrow) => {
+                    eprintln!("🔍 DEBUG: first is ArrowFunctionExpression, arrow.expression: {}", arrow.expression);
                     if arrow.expression {
-                        return false;
+                        // Check if this is an arrow chain that needs special formatting
+                        let is_arrow_chain = if let Some(expr) = arrow.get_expression() {
+                            matches!(expr, Expression::ArrowFunctionExpression(_))
+                        } else {
+                            false
+                        };
+                        eprintln!("🔍 DEBUG: is_arrow_chain: {}", is_arrow_chain);
+
+                        // Allow arrow chains to be grouped for proper formatting
+                        if !is_arrow_chain {
+                            eprintln!("🔍 DEBUG: Not an arrow chain, returning false");
+                            return false;
+                        }
                     }
                 }
-                _ => return false,
+                _ => {
+                    eprintln!("🔍 DEBUG: first is not function/arrow, returning false");
+                    return false;
+                }
             }
 
             if matches!(
@@ -765,8 +870,10 @@ fn write_grouped_arguments<'a>(
                 let argument = node.first().unwrap();
                 let mut first = grouped.first_mut().unwrap();
                 first.0 = f.intern(&format_once(|f| {
-                    FormatGroupedFirstArgument { argument }.fmt(f)?;
-                    write!(f, (last_index != 0).then_some(","))
+                    FormatGroupedFirstArgument {
+                        argument,
+                        with_trailing_comma: last_index != 0
+                    }.fmt(f)
                 }));
             }
             GroupedCallArgumentLayout::GroupedLastArgument => {
@@ -906,6 +1013,8 @@ fn write_grouped_arguments<'a>(
 /// Helper for formatting the first grouped argument (see [should_group_first_argument]).
 struct FormatGroupedFirstArgument<'a, 'b> {
     argument: &'b AstNode<'a, Argument<'a>>,
+    /// Whether to include a trailing comma
+    with_trailing_comma: bool,
 }
 
 impl<'a> Format<'a> for FormatGroupedFirstArgument<'a, '_> {
@@ -918,7 +1027,7 @@ impl<'a> Format<'a> for FormatGroupedFirstArgument<'a, '_> {
                     FormatJsArrowFunctionExpressionOptions {
                         cache_mode: FunctionBodyCacheMode::Cache,
                         call_arg_layout: Some(GroupedCallArgumentLayout::GroupedFirstArgument),
-                        with_trailing_comma: false,
+                        with_trailing_comma: self.with_trailing_comma,
                         ..FormatJsArrowFunctionExpressionOptions::default()
                     },
                     f,
@@ -926,7 +1035,13 @@ impl<'a> Format<'a> for FormatGroupedFirstArgument<'a, '_> {
             }),
 
             // For all other nodes, use the normal formatting (which already has been cached)
-            _ => self.argument.fmt(f),
+            _ => {
+                self.argument.fmt(f)?;
+                if self.with_trailing_comma {
+                    write!(f, ",")?;
+                }
+                Ok(())
+            }
         }
     }
 }

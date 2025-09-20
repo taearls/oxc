@@ -309,7 +309,7 @@ impl<'a, 'b> ArrowFunctionLayout<'a, 'b> {
                     {
                         if matches!(
                             options.call_arg_layout,
-                            None | Some(GroupedCallArgumentLayout::GroupedLastArgument)
+                            None | Some(GroupedCallArgumentLayout::GroupedLastArgument) | Some(GroupedCallArgumentLayout::GroupedFirstArgument)
                         ) {
                             should_break = should_break || Self::should_break_chain(current);
 
