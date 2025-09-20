@@ -948,7 +948,7 @@ impl<'a> FormatWrite<'a> for AstNode<'a, FormalParameters<'a>> {
             && !has_any_decorated_parameter;
 
         // Check if parameters are in a test call
-        // After AstKind::Argument removal, parent chain is: FormalParameters -> Function -> CallExpression
+        // parent chain is: FormalParameters -> Function -> CallExpression
         let is_test_call = if let AstNodes::Function(func) = &self.parent {
             if let AstNodes::CallExpression(call) = &func.parent {
                 is_test_call_expression(call)
