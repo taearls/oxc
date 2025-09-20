@@ -12,6 +12,7 @@ use crate::{
         prelude::{
             FormatElements, FormatOnce, FormatWith, MemoizeFormat, Tag, empty_line, expand_parent,
             format_once, format_with, group, soft_block_indent, soft_line_break_or_space, space,
+            text,
         },
         separated::FormatSeparatedIter,
         trivia::{DanglingIndentMode, format_dangling_comments},
@@ -549,6 +550,95 @@ fn can_group_arrow_function_expression_argument(
     })
 }
 
+/// Check if there's a trailing comma after the last argument in the source code
+fn has_trailing_comma_after_arguments(
+    call_span: Span,
+    arguments: &[Argument],
+    source_text: &SourceText,
+) -> bool {
+    if arguments.is_empty() {
+        return false;
+    }
+
+    let last_arg = arguments.last().unwrap();
+    let search_start = last_arg.span().end;
+    let search_end = call_span.end;
+
+    // Look for a comma between the last argument and the closing parenthesis
+    let text_slice = source_text.slice_range(search_start, search_end);
+
+    // Check if there's a comma before the closing parenthesis, ignoring whitespace and comments
+    let mut found_comma = false;
+    let mut in_comment = false;
+    let mut comment_type = CommentType::None;
+
+    #[derive(PartialEq)]
+    enum CommentType {
+        None,
+        Line,
+        Block,
+    }
+
+    let bytes = text_slice.as_bytes();
+    let mut i = 0;
+
+    while i < bytes.len() {
+        let byte = bytes[i];
+
+        if in_comment {
+            match comment_type {
+                CommentType::Line => {
+                    if byte == b'\n' || byte == b'\r' {
+                        in_comment = false;
+                        comment_type = CommentType::None;
+                    }
+                }
+                CommentType::Block => {
+                    if byte == b'*' && i + 1 < bytes.len() && bytes[i + 1] == b'/' {
+                        in_comment = false;
+                        comment_type = CommentType::None;
+                        i += 1; // Skip the '/'
+                    }
+                }
+                CommentType::None => unreachable!(),
+            }
+        } else {
+            match byte {
+                b',' => found_comma = true,
+                b')' => break, // Reached the closing parenthesis
+                b'/' if i + 1 < bytes.len() => {
+                    match bytes[i + 1] {
+                        b'/' => {
+                            in_comment = true;
+                            comment_type = CommentType::Line;
+                            i += 1; // Skip the second '/'
+                        }
+                        b'*' => {
+                            in_comment = true;
+                            comment_type = CommentType::Block;
+                            i += 1; // Skip the '*'
+                        }
+                        _ => {}
+                    }
+                }
+                b' ' | b'\t' | b'\n' | b'\r' => {} // Skip whitespace
+                _ => {
+                    // Found non-whitespace, non-comment content after comma
+                    // This shouldn't happen in well-formed code, but if it does,
+                    // we don't have a trailing comma
+                    if !found_comma {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        i += 1;
+    }
+
+    found_comma
+}
+
 fn write_grouped_arguments<'a>(
     node: &AstNode<'a, ArenaVec<'a, Argument<'a>>>,
     group_layout: GroupedCallArgumentLayout,
@@ -559,6 +649,14 @@ fn write_grouped_arguments<'a>(
     let mut non_grouped_breaks = false;
     let mut grouped_breaks = false;
     let mut has_cached = false;
+
+    // Check if there's a trailing comma in the source code
+    let call_span = node.parent.span();
+    let has_source_trailing_comma = has_trailing_comma_after_arguments(
+        call_span,
+        node.as_ref(),
+        &f.source_text(),
+    );
 
     // Pre-format the arguments to determine if they can be grouped.
     let mut elements = node
@@ -608,7 +706,11 @@ fn write_grouped_arguments<'a>(
 
             let interned = f.intern(&format_once(|f| {
                 format_argument.fmt(f)?;
-                write!(f, (last_index != index).then_some(","))
+                // Add comma for non-last arguments, or for last argument if there's a trailing comma in source
+                if index != last_index || has_source_trailing_comma {
+                    write!(f, ",")?;
+                }
+                Ok(())
             }));
 
             let break_type =
@@ -668,7 +770,11 @@ fn write_grouped_arguments<'a>(
                 let argument = node.last().unwrap();
                 let mut last = grouped.last_mut().unwrap();
                 last.0 = f.intern(&format_once(|f| {
-                    FormatGroupedLastArgument { argument, is_only: only_one_argument }.fmt(f)
+                    FormatGroupedLastArgument {
+                        argument,
+                        is_only: only_one_argument,
+                        with_trailing_comma: has_source_trailing_comma
+                    }.fmt(f)
                 }));
             }
         }
@@ -827,6 +933,8 @@ struct FormatGroupedLastArgument<'a, 'b> {
     argument: &'b AstNode<'a, Argument<'a>>,
     /// Is this the only argument in the arguments list
     is_only: bool,
+    /// Whether to include a trailing comma
+    with_trailing_comma: bool,
 }
 
 impl<'a> Format<'a> for FormatGroupedLastArgument<'a, '_> {
@@ -847,7 +955,11 @@ impl<'a> Format<'a> for FormatGroupedLastArgument<'a, '_> {
                             ),
                         },
                         f,
-                    )
+                    )?;
+                    if self.with_trailing_comma {
+                        write!(f, ",")?;
+                    }
+                    Ok(())
                 })
             }
 
@@ -859,12 +971,23 @@ impl<'a> Format<'a> for FormatGroupedLastArgument<'a, '_> {
                         ..FormatJsArrowFunctionExpressionOptions::default()
                     },
                     f,
-                )
+                )?;
+                if self.with_trailing_comma {
+                    write!(f, ",")?;
+                }
+                Ok(())
             }),
-            _ => self.argument.fmt(f),
+            _ => {
+                self.argument.fmt(f)?;
+                if self.with_trailing_comma {
+                    write!(f, ",")?;
+                }
+                Ok(())
+            }
         }
     }
 }
+
 
 /// Disable the token tracking because it is necessary to format function/arrow expressions slightly different.
 fn with_token_tracking_disabled<'a, F: FnOnce(&mut Formatter<'_, 'a>) -> R, R>(
