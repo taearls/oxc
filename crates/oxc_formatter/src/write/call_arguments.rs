@@ -973,29 +973,18 @@ impl<'a> Format<'a> for FormatGroupedLastArgument<'a, '_> {
             }
 
             AstNodes::ArrowFunctionExpression(arrow) => with_token_tracking_disabled(f, |f| {
+                arrow.fmt_with_options(
+                    FormatJsArrowFunctionExpressionOptions {
+                        cache_mode: FunctionBodyCacheMode::Cache,
+                        call_arg_layout: Some(GroupedCallArgumentLayout::GroupedLastArgument),
+                        ..FormatJsArrowFunctionExpressionOptions::default()
+                    },
+                    f,
+                )?;
                 if self.with_trailing_comma {
-                    // Format arrow function and comma as a single unit to prevent line breaks
-                    write!(f, [
-                        format_once(|f| arrow.fmt_with_options(
-                            FormatJsArrowFunctionExpressionOptions {
-                                cache_mode: FunctionBodyCacheMode::Cache,
-                                call_arg_layout: Some(GroupedCallArgumentLayout::GroupedLastArgument),
-                                ..FormatJsArrowFunctionExpressionOptions::default()
-                            },
-                            f,
-                        )),
-                        ","
-                    ])
-                } else {
-                    arrow.fmt_with_options(
-                        FormatJsArrowFunctionExpressionOptions {
-                            cache_mode: FunctionBodyCacheMode::Cache,
-                            call_arg_layout: Some(GroupedCallArgumentLayout::GroupedLastArgument),
-                            ..FormatJsArrowFunctionExpressionOptions::default()
-                        },
-                        f,
-                    )
+                    write!(f, text(","))?;
                 }
+                Ok(())
             }),
             _ => {
                 self.argument.fmt(f)?;
