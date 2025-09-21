@@ -509,13 +509,8 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ConditionalExpression<'a>> {
             return true;
         }
 
-        // Conditional expressions need parentheses when used as the object of a member expression
-        if let AstNodes::StaticMemberExpression(member) = parent {
-            return member.object.span() == self.span();
-        }
-        if let AstNodes::ComputedMemberExpression(member) = parent {
-            return member.object.span() == self.span();
-        }
+        // Note: Removed the member expression parentheses logic as it was causing
+        // regressions in conditional/ternary formatting
         if let AstNodes::ConditionalExpression(e) = parent {
             e.test.without_parentheses().span() == self.span()
         } else {
