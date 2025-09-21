@@ -1,12 +1,5 @@
 js compatibility: 633/698 (90.69%)
 
-<!--
-REGRESSION FIX APPLIED:
-- Fixed ConditionalExpression regressions by removing problematic member expression parentheses logic
-- Conditional tests now pass for standard options (only fail with experimentalTernaries which is expected)
-- Overall JS conformance maintained at 90.69% (633/698)
--->
-
 # Failed
 
 | Spec path | Failed or Passed | Match ratio |

@@ -715,10 +715,10 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ArrowFunctionExpression<'a>> {
             e.test.without_parentheses().span() == span
         } else if let AstNodes::CallExpression(call) = parent {
             // Only add parentheses if this arrow function is the callee, not an argument
-            call.callee.span() == span
+            return call.callee.span() == span;
         } else if let AstNodes::NewExpression(new_expr) = parent {
             // Only add parentheses if this arrow function is the callee, not an argument
-            new_expr.callee.span() == span
+            return new_expr.callee.span() == span;
         } else {
             update_or_lower_expression_needs_parens(span, parent)
         }
