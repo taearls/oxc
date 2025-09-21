@@ -1,4 +1,4 @@
-ts compatibility: 391/573 (68.24%)
+ts compatibility: 393/573 (68.59%)
 
 # Failed
 
@@ -18,7 +18,7 @@ ts compatibility: 391/573 (68.24%)
 | typescript/argument-expansion/argument_expansion.ts | 💥 | 84.75% |
 | typescript/argument-expansion/arrow-with-return-type.ts | 💥 | 89.47% |
 | typescript/array/key.ts | 💥 | 75.00% |
-| typescript/arrow/16067.ts | 💥💥 | 90.91% |
+| typescript/arrow/16067.ts | 💥💥 | 89.80% |
 | typescript/arrow/comments.ts | 💥✨ | 44.44% |
 | typescript/as/as.ts | 💥 | 77.17% |
 | typescript/as/assignment2.ts | 💥 | 94.12% |
@@ -53,7 +53,6 @@ ts compatibility: 391/573 (68.24%)
 | typescript/compiler/anyIsAssignableToObject.ts | 💥 | 75.00% |
 | typescript/compiler/castTest.ts | 💥 | 96.67% |
 | typescript/compiler/contextualSignatureInstantiation2.ts | 💥 | 88.89% |
-| typescript/compiler/decrementAndIncrementOperators.ts | 💥 | 93.33% |
 | typescript/compiler/indexSignatureWithInitializer.ts | 💥 | 75.00% |
 | typescript/compiler/mappedTypeWithCombinedTypeMappers.ts | 💥 | 91.89% |
 | typescript/compiler/privacyGloImport.ts | 💥 | 99.32% |
@@ -125,7 +124,6 @@ ts compatibility: 391/573 (68.24%)
 | typescript/keyword-types/conditional-types.ts | 💥 | 87.50% |
 | typescript/keywords/keywords-2.ts | 💥 | 79.41% |
 | typescript/last-argument-expansion/decorated-function.tsx | 💥 | 29.06% |
-| typescript/last-argument-expansion/forward-ref.tsx | 💥 | 77.78% |
 | typescript/mapped-type/intersection.ts | 💥 | 0.00% |
 | typescript/mapped-type/issue-11098.ts | 💥 | 60.00% |
 | typescript/mapped-type/break-mode/break-mode.ts | 💥 | 40.00% |
@@ -171,7 +169,7 @@ ts compatibility: 391/573 (68.24%)
 | typescript/type-arguments-bit-shift-left-like/3.ts | 💥 | 0.00% |
 | typescript/type-arguments-bit-shift-left-like/5.tsx | 💥 | 0.00% |
 | typescript/typeof/typeof.ts | 💥 | 25.00% |
-| typescript/typeparams/class-method.ts | 💥 | 84.18% |
+| typescript/typeparams/class-method.ts | 💥 | 96.61% |
 | typescript/typeparams/const.ts | 💥 | 86.15% |
 | typescript/typeparams/line-breaking-after-extends-2.ts | 💥 | 21.74% |
 | typescript/typeparams/line-breaking-after-extends.ts | 💥 | 17.14% |

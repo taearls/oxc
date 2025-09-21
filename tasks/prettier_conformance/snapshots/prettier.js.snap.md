@@ -1,22 +1,16 @@
-js compatibility: 610/698 (87.39%)
+js compatibility: 633/698 (90.69%)
 
 # Failed
 
 | Spec path | Failed or Passed | Match ratio |
 | :-------- | :--------------: | :---------: |
-| js/arrows/call.js | 💥💥 | 99.48% |
-| js/arrows/chain-as-arg.js | 💥💥 | 43.59% |
-| js/arrows/comment.js | 💥💥 | 83.72% |
-| js/arrows/curried.js | 💥💥 | 80.59% |
+| js/arrows/chain-as-arg.js | 💥💥 | 35.14% |
+| js/arrows/comment.js | 💥💥 | 93.02% |
+| js/arrows/curried.js | 💥💥 | 83.01% |
 | js/arrows/currying-2.js | 💥💥 | 59.08% |
-| js/arrows/currying-4.js | 💥💥 | 78.15% |
-| js/async/await-parse.js | 💥 | 93.75% |
+| js/arrows/currying-4.js | 💥💥 | 91.82% |
 | js/break-calls/break.js | 💥 | 87.23% |
-| js/call/first-argument-expansion/expression-2nd-arg.js | 💥 | 68.42% |
-| js/call/first-argument-expansion/issue-13237.js | 💥 | 78.95% |
-| js/call/first-argument-expansion/issue-5172.js | 💥 | 82.61% |
-| js/call/first-argument-expansion/jsx.js | 💥 | 71.43% |
-| js/call/first-argument-expansion/test.js | 💥 | 84.83% |
+| js/call/first-argument-expansion/test.js | 💥 | 95.98% |
 | js/chain-expression/call-expression.js | 💥 | 90.48% |
 | js/chain-expression/issue-15785-1.js | 💥 | 84.62% |
 | js/chain-expression/issue-15912.js | 💥 | 0.00% |
@@ -37,37 +31,23 @@ js compatibility: 610/698 (87.39%)
 | js/decorators/parens.js | 💥 | 75.00% |
 | js/explicit-resource-management/valid-await-using-comments.js | 💥 | 91.89% |
 | js/for/for-in-with-initializer.js | 💥 | 37.50% |
-| js/for/parentheses.js | 💥 | 96.00% |
-| js/function/issue-10277.js | 💥 | 30.77% |
-| js/function-first-param/function_expression.js | 💥 | 93.33% |
+| js/for/parentheses.js | 💥 | 78.00% |
+| js/function/issue-10277.js | 💥 | 76.92% |
 | js/functional-composition/pipe-function-calls.js | 💥 | 87.80% |
 | js/identifier/for-of/let.js | 💥 | 76.92% |
 | js/identifier/parentheses/const.js | 💥💥 | 0.00% |
 | js/identifier/parentheses/let.js | 💥💥 | 72.73% |
 | js/last-argument-expansion/dangling-comment-in-arrow-function.js | 💥 | 22.22% |
-| js/last-argument-expansion/edge_case.js | 💥 | 94.12% |
-| js/last-argument-expansion/function-body-in-mode-break.js | 💥 | 86.67% |
-| js/last-argument-expansion/function-expression-issue-2239.js | 💥 | 66.67% |
-| js/last-argument-expansion/function-expression.js | 💥 | 80.00% |
-| js/last-argument-expansion/overflow.js | 💥 | 97.56% |
 | js/logical_expressions/issue-7024.js | 💥 | 66.67% |
-| js/method-chain/multiple-members.js | 💥 | 76.00% |
 | js/method-chain/print-width-120/constructor.js | 💥 | 71.43% |
 | js/new-expression/call.js | 💥 | 75.00% |
 | js/new-expression/new_expression.js | 💥 | 88.89% |
 | js/object-multiline/multiline.js | 💥✨ | 22.22% |
-| js/optional-chaining/chaining.js | 💥 | 97.70% |
-| js/performance/nested.js | 💥 | 3.45% |
-| js/preserve-line/argument-list.js | 💥 | 98.87% |
-| js/preserve-line/parameter-list.js | 💥 | 98.21% |
 | js/quote-props/classes.js | 💥💥✨✨ | 47.06% |
 | js/quote-props/objects.js | 💥💥✨✨ | 45.10% |
 | js/quote-props/with_numbers.js | 💥💥✨✨ | 46.43% |
 | js/quotes/objects.js | 💥💥 | 80.00% |
 | js/require/require.js | 💥 | 93.51% |
-| js/require-amd/named-amd-module.js | 💥 | 33.33% |
-| js/require-amd/require.js | 💥 | 90.70% |
-| js/return/comment.js | 💥 | 95.12% |
 | js/strings/template-literals.js | 💥💥 | 85.16% |
 | js/ternaries/binary.js | 💥💥💥💥✨✨✨✨ | 18.42% |
 | js/ternaries/func-call.js | 💥💥💥💥✨✨✨✨ | 25.00% |
@@ -82,9 +62,6 @@ js compatibility: 610/698 (87.39%)
 | js/test-declarations/angular_fakeAsync.js | 💥💥 | 75.86% |
 | js/test-declarations/angular_waitForAsync.js | 💥💥 | 75.86% |
 | js/test-declarations/angularjs_inject.js | 💥💥 | 69.84% |
-| js/throw_statement/comment.js | 💥 | 91.30% |
-| js/trailing-comma/trailing_whitespace.js | 💥💥💥 | 90.70% |
-| js/variable_declarator/multiple.js | 💥 | 92.00% |
 | jsx/expression-with-types/expression.js | 💥💥💥💥 | 0.00% |
 | jsx/fbt/test.js | 💥 | 84.06% |
 | jsx/ignore/jsx_ignore.js | 💥 | 84.21% |

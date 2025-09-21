@@ -486,6 +486,10 @@ impl<'a> Format<'a> for ArrowChain<'a, '_> {
         let is_assignment_rhs = self.options.assignment_layout.is_some();
         let is_grouped_call_arg_layout = self.options.call_arg_layout.is_some();
 
+        // Check if this arrow function is a call argument (even if not grouped)
+        let is_call_argument = is_grouped_call_arg_layout ||
+            crate::utils::is_expression_used_as_call_argument(self.head.span, &head_parent);
+
         // If this chain is the callee in a parent call expression, then we
         // want it to break onto a new line to clearly show that the arrow
         // chain is distinct and the _result_ is what's being called.
@@ -528,11 +532,14 @@ impl<'a> Format<'a> for ArrowChain<'a, '_> {
         // If the arrow chain will break onto multiple lines, either because
         // it's a callee or because the body is printed on its own line, then
         // the signatures should be expanded first.
-        let break_signatures = (is_callee && body_on_separate_line)
+        // However, for call arguments (grouped or not), keep signatures on one line
+        let break_signatures = !is_call_argument && (
+            (is_callee && body_on_separate_line)
             || matches!(
                 self.options.assignment_layout,
                 Some(AssignmentLikeLayout::ChainTailArrowFunction)
-            );
+            )
+        );
 
         // Arrow chains as callees or as the right side of an assignment
         // indent the entire signature chain a single level and do _not_
@@ -683,13 +690,24 @@ impl<'a> Format<'a> for ArrowChain<'a, '_> {
             let should_add_soft_line = matches!(head_parent, AstNodes::JSXExpressionContainer(_));
 
             if body_on_separate_line {
-                write!(
-                    f,
-                    [
-                        indent(&format_args!(soft_line_break_or_space(), format_tail_body_inner)),
-                        should_add_soft_line.then_some(soft_line_break())
-                    ]
-                )
+                // Use soft_block_indent for call arguments to match Prettier's 2-space indentation
+                if is_call_argument {
+                    write!(
+                        f,
+                        [
+                            soft_block_indent(&format_args!(soft_line_break_or_space(), format_tail_body_inner)),
+                            should_add_soft_line.then_some(soft_line_break())
+                        ]
+                    )
+                } else {
+                    write!(
+                        f,
+                        [
+                            indent(&format_args!(soft_line_break_or_space(), format_tail_body_inner)),
+                            should_add_soft_line.then_some(soft_line_break())
+                        ]
+                    )
+                }
             } else {
                 write!(f, [space(), format_tail_body_inner])
             }
@@ -716,7 +734,7 @@ impl<'a> Format<'a> for ArrowChain<'a, '_> {
 
             write!(f, [space(), "=>"])?;
 
-            if is_grouped_call_arg_layout {
+            if is_call_argument {
                 write!(f, [group(&format_tail_body)])?;
             } else {
                 write!(f, [indent_if_group_breaks(&format_tail_body, group_id)])?;

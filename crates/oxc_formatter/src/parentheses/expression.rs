@@ -455,7 +455,9 @@ fn is_in_for_initializer(expr: &AstNode<'_, BinaryExpression<'_>>) -> bool {
                     .is_some_and(|init| init.span().contains_inclusive(expr.span));
             }
             AstNodes::ForInStatement(stmt) => {
-                return stmt.left.span().contains_inclusive(expr.span);
+                // Need parentheses for in expressions on either side of for...in
+                return stmt.left.span().contains_inclusive(expr.span)
+                    || stmt.right.span().contains_inclusive(expr.span);
             }
             AstNodes::Program(_) => {
                 return false;
@@ -528,10 +530,17 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Function<'a>> {
             return false;
         }
         let parent = self.parent;
+
+        // Function expressions in call/new arguments don't need parentheses
+        // unless they are the callee
+        if let AstNodes::CallExpression(call) = parent {
+            // Only add parentheses if this function is the callee, not an argument
+            return call.callee.span() == self.span;
+        }
+
         matches!(
             parent,
-            AstNodes::CallExpression(_)
-                | AstNodes::NewExpression(_)
+            AstNodes::NewExpression(_)
                 | AstNodes::TaggedTemplateExpression(_)
         ) || is_first_in_statement(
             self.span,
@@ -973,10 +982,16 @@ fn update_or_lower_expression_needs_parens(span: Span, parent: &AstNodes<'_>) ->
         AstNodes::TSNonNullExpression(_)
             | AstNodes::StaticMemberExpression(_)
             | AstNodes::TaggedTemplateExpression(_)
-            | AstNodes::ComputedMemberExpression(_)
     ) || is_class_extends(parent, span)
     {
         return true;
+    }
+
+    // Special handling for computed member expressions
+    if let AstNodes::ComputedMemberExpression(computed) = parent {
+        // Only need parentheses if this expression is the object, not the property
+        // For a?.[++x], ++x is the property and doesn't need parentheses
+        return computed.object.span() == span;
     }
 
     // Check call expressions and new expressions, but allow expressions used as arguments
