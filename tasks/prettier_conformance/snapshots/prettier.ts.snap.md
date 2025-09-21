@@ -31,8 +31,8 @@ ts compatibility: 393/573 (68.59%)
 | typescript/cast/generic-cast.ts | 💥 | 37.54% |
 | typescript/cast/hug-args.ts | 💥 | 62.50% |
 | typescript/cast/tuple-and-record.ts | 💥 | 0.00% |
-| typescript/chain-expression/call-expression.ts | 💥 | 64.06% |
-| typescript/chain-expression/member-expression.ts | 💥 | 59.70% |
+| typescript/chain-expression/call-expression.ts | 💥 | 68.75% |
+| typescript/chain-expression/member-expression.ts | 💥 | 65.67% |
 | typescript/chain-expression/test.ts | 💥 | 0.00% |
 | typescript/chain-expression/test2.ts | 💥 | 56.25% |
 | typescript/class/constructor.ts | 💥 | 96.15% |

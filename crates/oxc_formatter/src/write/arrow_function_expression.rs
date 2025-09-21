@@ -199,7 +199,6 @@ impl<'a> Format<'a> for FormatJsArrowFunctionExpression<'a, '_> {
                         Some(GroupedCallArgumentLayout::GroupedLastArgument)
                     );
 
-
                     let should_add_soft_line = (is_last_call_arg
                         // if it's inside a JSXExpression (e.g. an attribute) we should align the expression's closing } with the line with the opening {.
                         || matches!(self.arrow.parent, AstNodes::JSXExpressionContainer(_)));
@@ -308,17 +307,24 @@ impl<'a, 'b> ArrowFunctionLayout<'a, 'b> {
                     {
                         if matches!(
                             options.call_arg_layout,
-                            None | Some(GroupedCallArgumentLayout::GroupedLastArgument) | Some(GroupedCallArgumentLayout::GroupedFirstArgument)
+                            None | Some(GroupedCallArgumentLayout::GroupedLastArgument)
+                                | Some(GroupedCallArgumentLayout::GroupedFirstArgument)
                         ) {
                             // For grouped first arguments, be less aggressive about breaking chains
                             // to maintain compact formatting
-                            let should_break_current = if matches!(options.call_arg_layout, Some(GroupedCallArgumentLayout::GroupedFirstArgument)) {
+                            let should_break_current = if matches!(
+                                options.call_arg_layout,
+                                Some(GroupedCallArgumentLayout::GroupedFirstArgument)
+                            ) {
                                 Self::should_break_chain_conservative(current)
                             } else {
                                 Self::should_break_chain(current)
                             };
 
-                            let should_break_next = if matches!(options.call_arg_layout, Some(GroupedCallArgumentLayout::GroupedFirstArgument)) {
+                            let should_break_next = if matches!(
+                                options.call_arg_layout,
+                                Some(GroupedCallArgumentLayout::GroupedFirstArgument)
+                            ) {
                                 Self::should_break_chain_conservative(next)
                             } else {
                                 Self::should_break_chain(next)
@@ -401,7 +407,8 @@ impl<'a, 'b> ArrowFunctionLayout<'a, 'b> {
         let has_complex_patterns = parameters.items.iter().any(|param| {
             match &param.pattern.kind {
                 // Simple identifiers and assignment patterns (defaults) are OK
-                BindingPatternKind::BindingIdentifier(_) | BindingPatternKind::AssignmentPattern(_) => false,
+                BindingPatternKind::BindingIdentifier(_)
+                | BindingPatternKind::AssignmentPattern(_) => false,
                 // Object and array destructuring are complex
                 BindingPatternKind::ObjectPattern(_) | BindingPatternKind::ArrayPattern(_) => true,
             }
@@ -487,8 +494,8 @@ impl<'a> Format<'a> for ArrowChain<'a, '_> {
         let is_grouped_call_arg_layout = self.options.call_arg_layout.is_some();
 
         // Check if this arrow function is a call argument (even if not grouped)
-        let is_call_argument = is_grouped_call_arg_layout ||
-            crate::utils::is_expression_used_as_call_argument(self.head.span, &head_parent);
+        let is_call_argument = is_grouped_call_arg_layout
+            || crate::utils::is_expression_used_as_call_argument(self.head.span, &head_parent);
 
         // If this chain is the callee in a parent call expression, then we
         // want it to break onto a new line to clearly show that the arrow
@@ -533,13 +540,12 @@ impl<'a> Format<'a> for ArrowChain<'a, '_> {
         // it's a callee or because the body is printed on its own line, then
         // the signatures should be expanded first.
         // However, for call arguments (grouped or not), keep signatures on one line
-        let break_signatures = !is_call_argument && (
-            (is_callee && body_on_separate_line)
-            || matches!(
-                self.options.assignment_layout,
-                Some(AssignmentLikeLayout::ChainTailArrowFunction)
-            )
-        );
+        let break_signatures = !is_call_argument
+            && ((is_callee && body_on_separate_line)
+                || matches!(
+                    self.options.assignment_layout,
+                    Some(AssignmentLikeLayout::ChainTailArrowFunction)
+                ));
 
         // Arrow chains as callees or as the right side of an assignment
         // indent the entire signature chain a single level and do _not_
@@ -695,7 +701,10 @@ impl<'a> Format<'a> for ArrowChain<'a, '_> {
                     write!(
                         f,
                         [
-                            soft_block_indent(&format_args!(soft_line_break_or_space(), format_tail_body_inner)),
+                            soft_block_indent(&format_args!(
+                                soft_line_break_or_space(),
+                                format_tail_body_inner
+                            )),
                             should_add_soft_line.then_some(soft_line_break())
                         ]
                     )
@@ -703,7 +712,10 @@ impl<'a> Format<'a> for ArrowChain<'a, '_> {
                     write!(
                         f,
                         [
-                            indent(&format_args!(soft_line_break_or_space(), format_tail_body_inner)),
+                            indent(&format_args!(
+                                soft_line_break_or_space(),
+                                format_tail_body_inner
+                            )),
                             should_add_soft_line.then_some(soft_line_break())
                         ]
                     )
@@ -962,24 +974,15 @@ fn format_signature<'a, 'b>(
         });
 
         if is_first_or_last_call_argument {
-            // For grouped first arguments with arrow chains, be more lenient about breaking
-            // Allow parameters to break while maintaining compact arrow chain structure
-            let is_grouped_first_arrow = matches!(call_arg_layout, Some(GroupedCallArgumentLayout::GroupedFirstArgument));
+            // For grouped arguments, use the strict no-break policy for signatures
+            // This ensures parameters stay on one line to match Prettier behavior
+            let mut buffer = RemoveSoftLinesBuffer::new(f);
+            let mut recording = buffer.start_recording();
 
-            if is_grouped_first_arrow {
-                // For grouped first argument arrow chains, allow the signature to use normal formatting
-                // This allows parameters to break due to line length while keeping the chain compact
-                write!(f, cached_signature)?;
-            } else {
-                // For other grouped arguments, use the strict no-break policy
-                let mut buffer = RemoveSoftLinesBuffer::new(f);
-                let mut recording = buffer.start_recording();
+            write!(recording, cached_signature)?;
 
-                write!(recording, cached_signature)?;
-
-                if recording.stop().will_break() {
-                    return Err(FormatError::PoorLayout);
-                }
+            if recording.stop().will_break() {
+                return Err(FormatError::PoorLayout);
             }
         } else {
             write!(

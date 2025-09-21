@@ -203,7 +203,6 @@ fn format_all_elements_broken_out<'a, 'b>(
     )
 }
 
-
 fn format_all_args_broken_out<'a, 'b>(
     node: &'b AstNode<'a, ArenaVec<'a, Argument<'a>>>,
     expand: bool,
@@ -542,7 +541,6 @@ fn can_group_arrow_function_expression_argument(
     })
 }
 
-
 fn write_grouped_arguments<'a>(
     node: &AstNode<'a, ArenaVec<'a, Argument<'a>>>,
     group_layout: GroupedCallArgumentLayout,
@@ -553,8 +551,6 @@ fn write_grouped_arguments<'a>(
     let mut non_grouped_breaks = false;
     let mut grouped_breaks = false;
     let mut has_cached = false;
-
-
 
     // Pre-format the arguments to determine if they can be grouped.
     let mut elements = node
@@ -773,14 +769,15 @@ fn write_grouped_arguments<'a>(
     // If the grouped content breaks, then we can skip the most_flat variant,
     // since we already know that it won't be fitting on a single line.
     // Exception: For arrow chains in GroupedFirstArgument, include most_flat for proper indentation
-    let should_include_flat_variant = !grouped_breaks || {
-        // Special case for arrow chains as grouped first argument
-        group_layout.is_grouped_first() &&
+    let should_include_flat_variant = !grouped_breaks
+        || {
+            // Special case for arrow chains as grouped first argument
+            group_layout.is_grouped_first() &&
         node.first().and_then(|arg| arg.as_expression()).map_or(false, |expr| {
             matches!(expr, Expression::ArrowFunctionExpression(arrow) if arrow.expression &&
                 arrow.get_expression().map_or(false, |body| matches!(body, Expression::ArrowFunctionExpression(_))))
         })
-    };
+        };
 
     let variants = if should_include_flat_variant {
         vec![most_flat, middle_variant, most_expanded.into_boxed_slice()]
@@ -872,7 +869,6 @@ impl<'a> Format<'a> for FormatGroupedLastArgument<'a, '_> {
         }
     }
 }
-
 
 /// Disable the token tracking because it is necessary to format function/arrow expressions slightly different.
 fn with_token_tracking_disabled<'a, F: FnOnce(&mut Formatter<'_, 'a>) -> R, R>(

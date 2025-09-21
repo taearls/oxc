@@ -533,15 +533,12 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, Function<'a>> {
             return call.callee.span() == self.span;
         }
 
-        matches!(
-            parent,
-            AstNodes::NewExpression(_)
-                | AstNodes::TaggedTemplateExpression(_)
-        ) || is_first_in_statement(
-            self.span,
-            parent,
-            FirstInStatementMode::ExpressionOrExportDefault,
-        )
+        matches!(parent, AstNodes::NewExpression(_) | AstNodes::TaggedTemplateExpression(_))
+            || is_first_in_statement(
+                self.span,
+                parent,
+                FirstInStatementMode::ExpressionOrExportDefault,
+            )
     }
 }
 
@@ -650,6 +647,12 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, AwaitExpression<'a>> {
 impl<'a> NeedsParentheses<'a> for AstNode<'a, ChainExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
         let span = self.span();
+
+        // Chain expressions don't need parentheses when used as call arguments
+        if is_expression_used_as_call_argument(span, &self.parent) {
+            return false;
+        }
+
         match self.parent {
             AstNodes::NewExpression(_) => true,
             AstNodes::CallExpression(call) => !call.optional,

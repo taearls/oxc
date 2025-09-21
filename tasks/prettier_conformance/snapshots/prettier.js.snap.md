@@ -1,4 +1,4 @@
-js compatibility: 633/698 (90.69%)
+js compatibility: 640/698 (91.69%)
 
 # Failed
 
@@ -9,13 +9,6 @@ js compatibility: 633/698 (90.69%)
 | js/arrows/curried.js | 💥💥 | 83.01% |
 | js/arrows/currying-2.js | 💥💥 | 59.08% |
 | js/arrows/currying-4.js | 💥💥 | 91.82% |
-| js/break-calls/break.js | 💥 | 87.23% |
-| js/call/first-argument-expansion/test.js | 💥 | 95.98% |
-| js/chain-expression/call-expression.js | 💥 | 90.48% |
-| js/chain-expression/issue-15785-1.js | 💥 | 84.62% |
-| js/chain-expression/issue-15912.js | 💥 | 0.00% |
-| js/chain-expression/issue-15916.js | 💥 | 80.00% |
-| js/chain-expression/member-expression.js | 💥 | 95.83% |
 | js/comments/15661.js | 💥💥 | 55.81% |
 | js/comments/call_comment.js | 💥💥 | 55.00% |
 | js/comments/empty-statements.js | 💥💥 | 90.91% |
