@@ -1,14 +1,13 @@
-js compatibility: 640/698 (91.69%)
+js compatibility: 642/698 (91.98%)
 
 # Failed
 
 | Spec path | Failed or Passed | Match ratio |
 | :-------- | :--------------: | :---------: |
 | js/arrows/chain-as-arg.js | 💥💥 | 35.14% |
-| js/arrows/comment.js | 💥💥 | 93.02% |
-| js/arrows/curried.js | 💥💥 | 83.01% |
+| js/arrows/curried.js | 💥💥 | 83.70% |
 | js/arrows/currying-2.js | 💥💥 | 59.08% |
-| js/arrows/currying-4.js | 💥💥 | 91.82% |
+| js/arrows/currying-4.js | 💥💥 | 94.50% |
 | js/comments/15661.js | 💥💥 | 55.81% |
 | js/comments/call_comment.js | 💥💥 | 55.00% |
 | js/comments/empty-statements.js | 💥💥 | 90.91% |
@@ -25,7 +24,6 @@ js compatibility: 640/698 (91.69%)
 | js/explicit-resource-management/valid-await-using-comments.js | 💥 | 91.89% |
 | js/for/for-in-with-initializer.js | 💥 | 37.50% |
 | js/for/parentheses.js | 💥 | 78.00% |
-| js/function/issue-10277.js | 💥 | 76.92% |
 | js/functional-composition/pipe-function-calls.js | 💥 | 87.80% |
 | js/identifier/for-of/await.js | 💥 | 83.33% |
 | js/identifier/for-of/let.js | 💥 | 84.62% |

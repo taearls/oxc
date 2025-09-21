@@ -696,30 +696,14 @@ impl<'a> Format<'a> for ArrowChain<'a, '_> {
             let should_add_soft_line = matches!(head_parent, AstNodes::JSXExpressionContainer(_));
 
             if body_on_separate_line {
-                // Use soft_block_indent for call arguments to match Prettier's 2-space indentation
-                if is_call_argument {
-                    write!(
-                        f,
-                        [
-                            soft_block_indent(&format_args!(
-                                soft_line_break_or_space(),
-                                format_tail_body_inner
-                            )),
-                            should_add_soft_line.then_some(soft_line_break())
-                        ]
-                    )
-                } else {
-                    write!(
-                        f,
-                        [
-                            indent(&format_args!(
-                                soft_line_break_or_space(),
-                                format_tail_body_inner
-                            )),
-                            should_add_soft_line.then_some(soft_line_break())
-                        ]
-                    )
-                }
+                // Use normal indent for arrow chains to match Prettier
+                write!(
+                    f,
+                    [
+                        indent(&format_args!(soft_line_break_or_space(), format_tail_body_inner)),
+                        should_add_soft_line.then_some(soft_line_break())
+                    ]
+                )
             } else {
                 write!(f, [space(), format_tail_body_inner])
             }
