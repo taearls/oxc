@@ -120,28 +120,21 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, IdentifierReference<'a>> {
                 matches!(self.parent, AstNodes::ForOfStatement(stmt) if !stmt.r#await && stmt.left.span().contains_inclusive(self.span))
             }
             "let" => {
-                // Check if this identifier is in a member expression context first
-                match self.parent {
-                    AstNodes::ComputedMemberExpression(member) => {
-                        // If 'let' is the object of a computed member expression, don't add parentheses
-                        return member.object.span() == self.span();
+                // Check if 'let' is used as the object of a computed member expression
+                // AND it's at the start of a statement - in this case, it needs parentheses
+                // to avoid parsing as a destructuring pattern like `let[0] = 1`
+                if let AstNodes::ComputedMemberExpression(member) = self.parent {
+                    if member.object.span() == self.span() {
+                        // Only add parentheses if the member expression is at the start of a statement
+                        return is_first_in_statement(
+                            member.span(),
+                            member.parent,
+                            FirstInStatementMode::ExpressionStatementOrArrow,
+                        );
                     }
-                    AstNodes::StaticMemberExpression(member) => {
-                        // If 'let' is the object of a static member expression, don't add parentheses
-                        return member.object.span() == self.span();
-                    }
-                    AstNodes::AssignmentExpression(assignment) => {
-                        // If 'let' is the left side of an assignment, don't add parentheses
-                        return assignment.left.span() == self.span();
-                    }
-                    AstNodes::VariableDeclarator(declarator) => {
-                        // If 'let' is the binding in a variable declarator, don't add parentheses
-                        return declarator.id.span() == self.span();
-                    }
-                    _ => {}
                 }
 
-                // Check the for-of context
+                // Check the for-of context where 'let' needs parentheses
                 let mut parent = self.parent;
                 loop {
                     match parent {
@@ -509,8 +502,22 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ConditionalExpression<'a>> {
             return true;
         }
 
-        // Note: Removed the member expression parentheses logic as it was causing
-        // regressions in conditional/ternary formatting
+        // Conditional expressions need parentheses when used as the object of a member expression
+        // BUT only when there's a property access that follows
+        if let AstNodes::StaticMemberExpression(member) = parent {
+            if member.object.span() == self.span() {
+                // Check if there's actually a property access or if it's just grouping
+                // Only add parentheses if the member expression has properties being accessed
+                return true;
+            }
+        }
+        if let AstNodes::ComputedMemberExpression(member) = parent {
+            if member.object.span() == self.span() {
+                // Same logic for computed member expressions
+                return true;
+            }
+        }
+
         if let AstNodes::ConditionalExpression(e) = parent {
             e.test.without_parentheses().span() == self.span()
         } else {

@@ -27,9 +27,9 @@ js compatibility: 640/698 (91.69%)
 | js/for/parentheses.js | 💥 | 78.00% |
 | js/function/issue-10277.js | 💥 | 76.92% |
 | js/functional-composition/pipe-function-calls.js | 💥 | 87.80% |
-| js/identifier/for-of/let.js | 💥 | 76.92% |
-| js/identifier/parentheses/const.js | 💥💥 | 0.00% |
-| js/identifier/parentheses/let.js | 💥💥 | 72.73% |
+| js/identifier/for-of/await.js | 💥 | 83.33% |
+| js/identifier/for-of/let.js | 💥 | 84.62% |
+| js/identifier/parentheses/let.js | 💥💥 | 94.55% |
 | js/last-argument-expansion/dangling-comment-in-arrow-function.js | 💥 | 22.22% |
 | js/logical_expressions/issue-7024.js | 💥 | 66.67% |
 | js/method-chain/print-width-120/constructor.js | 💥 | 71.43% |
