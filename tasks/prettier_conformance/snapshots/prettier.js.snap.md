@@ -1,4 +1,4 @@
-js compatibility: 642/698 (91.98%)
+js compatibility: 643/698 (92.12%)
 
 # Failed
 
@@ -23,11 +23,10 @@ js compatibility: 642/698 (91.98%)
 | js/decorators/parens.js | 💥 | 75.00% |
 | js/explicit-resource-management/valid-await-using-comments.js | 💥 | 91.89% |
 | js/for/for-in-with-initializer.js | 💥 | 37.50% |
-| js/for/parentheses.js | 💥 | 78.00% |
+| js/for/parentheses.js | 💥 | 96.00% |
 | js/functional-composition/pipe-function-calls.js | 💥 | 87.80% |
-| js/identifier/for-of/await.js | 💥 | 83.33% |
 | js/identifier/for-of/let.js | 💥 | 84.62% |
-| js/identifier/parentheses/let.js | 💥💥 | 94.55% |
+| js/identifier/parentheses/let.js | 💥💥 | 97.73% |
 | js/last-argument-expansion/dangling-comment-in-arrow-function.js | 💥 | 22.22% |
 | js/logical_expressions/issue-7024.js | 💥 | 66.67% |
 | js/method-chain/print-width-120/constructor.js | 💥 | 71.43% |

@@ -121,26 +121,54 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, IdentifierReference<'a>> {
             }
             "let" => {
                 // Check if 'let' is used as the object of a computed member expression
-                // AND it's at the start of a statement - in this case, it needs parentheses
-                // to avoid parsing as a destructuring pattern like `let[0] = 1`
                 if let AstNodes::ComputedMemberExpression(member) = self.parent {
                     if member.object.span() == self.span() {
-                        // Only add parentheses if the member expression is at the start of a statement
-                        return is_first_in_statement(
-                            member.span(),
-                            member.parent,
-                            FirstInStatementMode::ExpressionStatementOrArrow,
-                        );
+                        // Check various contexts where 'let' needs or doesn't need parentheses
+                        let mut parent = member.parent;
+
+                        // Walk up to find the context
+                        loop {
+                            match parent {
+                                // In call arguments, don't add extra parentheses
+                                AstNodes::CallExpression(_) | AstNodes::NewExpression(_) => {
+                                    return false;
+                                }
+                                // In for-statement contexts, need parentheses
+                                AstNodes::ForStatement(_)
+                                | AstNodes::ForInStatement(_)
+                                | AstNodes::ForOfStatement(_) => {
+                                    return true;
+                                }
+                                // At the start of a statement, need parentheses
+                                AstNodes::ExpressionStatement(_) | AstNodes::Program(_) => {
+                                    return is_first_in_statement(
+                                        member.span(),
+                                        member.parent,
+                                        FirstInStatementMode::ExpressionStatementOrArrow,
+                                    );
+                                }
+                                _ => parent = parent.parent(),
+                            }
+                        }
                     }
                 }
 
-                // Check the for-of context where 'let' needs parentheses
+                // Check for-statement contexts where 'let' needs parentheses
                 let mut parent = self.parent;
                 loop {
                     match parent {
                         AstNodes::Program(_) | AstNodes::ExpressionStatement(_) => return false,
                         AstNodes::ForOfStatement(stmt) => {
                             return stmt.left.span().contains_inclusive(self.span);
+                        }
+                        AstNodes::ForInStatement(stmt) => {
+                            return stmt.left.span().contains_inclusive(self.span);
+                        }
+                        AstNodes::ForStatement(stmt) => {
+                            return stmt
+                                .init
+                                .as_ref()
+                                .is_some_and(|init| init.span().contains_inclusive(self.span));
                         }
                         _ => parent = parent.parent(),
                     }
@@ -448,9 +476,9 @@ fn is_in_for_initializer(expr: &AstNode<'_, BinaryExpression<'_>>) -> bool {
                     .is_some_and(|init| init.span().contains_inclusive(expr.span));
             }
             AstNodes::ForInStatement(stmt) => {
-                // Need parentheses for in expressions on either side of for...in
-                return stmt.left.span().contains_inclusive(expr.span)
-                    || stmt.right.span().contains_inclusive(expr.span);
+                // Only add parentheses for in expressions on the LEFT side of for-in
+                // The right side doesn't need parentheses for disambiguation
+                return stmt.left.span().contains_inclusive(expr.span);
             }
             AstNodes::Program(_) => {
                 return false;
