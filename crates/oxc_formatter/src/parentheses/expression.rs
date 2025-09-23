@@ -350,11 +350,8 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, ComputedMemberExpression<'a>> {
             }
         }
 
-        // Computed member expressions need parentheses in decorators
-        // Example: @(decorators[0]) and @(decorators?.[0])
-        if let AstNodes::Decorator(_) = self.parent {
-            return true;
-        }
+        // Note: Decorator parentheses are handled by the decorator formatter itself
+        // No additional parentheses needed here for decorators
 
         false
     }
@@ -383,7 +380,7 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, CallExpression<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
         match self.parent {
             AstNodes::NewExpression(_) => true,
-            AstNodes::Decorator(_) => !is_decorator_member_expression(&self.callee),
+            // Note: Decorator parentheses are handled by the decorator formatter itself
             AstNodes::ExportDefaultDeclaration(_) => {
                 let callee = &self.callee();
                 let callee_span = callee.span();

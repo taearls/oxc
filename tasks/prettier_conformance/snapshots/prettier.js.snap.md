@@ -1,4 +1,4 @@
-js compatibility: 643/698 (92.12%)
+js compatibility: 645/698 (92.41%)
 
 # Failed
 
@@ -20,8 +20,6 @@ js compatibility: 643/698 (92.12%)
 | js/conditional/new-ternary-examples.js | 💥✨ | 20.14% |
 | js/conditional/new-ternary-spec.js | 💥✨ | 24.35% |
 | js/conditional/postfix-ternary-regressions.js | 💥💥 | 70.34% |
-| js/decorators/member-expression.js | 💥 | 92.42% |
-| js/decorators/parens.js | 💥 | 75.00% |
 | js/explicit-resource-management/valid-await-using-comments.js | 💥 | 91.89% |
 | js/for/for-in-with-initializer.js | 💥 | 37.50% |
 | js/for/parentheses.js | 💥 | 96.00% |
