@@ -311,28 +311,8 @@ impl<'a, 'b> ArrowFunctionLayout<'a, 'b> {
                     )
                 )
             {
-                // For grouped first arguments, be less aggressive about breaking chains
-                // to maintain compact formatting
-                let should_break_current = if matches!(
-                    options.call_arg_layout,
-                    Some(GroupedCallArgumentLayout::GroupedFirstArgument)
-                ) {
-                    Self::should_break_chain_conservative(current)
-                } else {
-                    Self::should_break_chain(current)
-                };
-
-                let should_break_next = if matches!(
-                    options.call_arg_layout,
-                    Some(GroupedCallArgumentLayout::GroupedFirstArgument)
-                ) {
-                    Self::should_break_chain_conservative(next)
-                } else {
-                    Self::should_break_chain(next)
-                };
-
-                should_break = should_break || should_break_current;
-                should_break = should_break || should_break_next;
+                should_break = should_break || Self::should_break_chain(current);
+                should_break = should_break || Self::should_break_chain(next);
 
                 if head.is_none() {
                     head = Some(current);
@@ -385,41 +365,6 @@ impl<'a, 'b> ArrowFunctionLayout<'a, 'b> {
         has_type_and_parameters || has_rest_object_or_array_parameter(parameters)
     }
 
-    /// Conservative version of should_break_chain for grouped first arguments.
-    /// Only breaks for truly complex cases that would be unreadable if kept inline.
-    /// Allows simple default parameters to maintain compact formatting.
-    fn should_break_chain_conservative(arrow: &ArrowFunctionExpression<'a>) -> bool {
-        if arrow.type_parameters.is_some() {
-            return true;
-        }
-
-        let parameters = &arrow.params;
-
-        // For grouped first arguments, only break on truly complex patterns
-        // Allow simple default parameters (AssignmentPattern) to keep compact formatting
-        if has_rest_object_or_array_parameter(parameters) {
-            return true;
-        }
-
-        // Check for complex patterns beyond simple default parameters
-        let has_complex_patterns = parameters.items.iter().any(|param| {
-            match &param.pattern.kind {
-                // Simple identifiers and assignment patterns (defaults) are OK
-                BindingPatternKind::BindingIdentifier(_)
-                | BindingPatternKind::AssignmentPattern(_) => false,
-                // Object and array destructuring are complex
-                BindingPatternKind::ObjectPattern(_) | BindingPatternKind::ArrayPattern(_) => true,
-            }
-        });
-
-        if has_complex_patterns {
-            return true;
-        }
-
-        // Only break if there are both parameters and return type
-        let has_parameters = !parameters.items.is_empty();
-        arrow.return_type.is_some() && has_parameters
-    }
 }
 
 /// Returns `true` for a template that starts on the same line as the previous token and contains a line break.
