@@ -1,4 +1,4 @@
-ts compatibility: 453/573 (79.06%)
+ts compatibility: 454/573 (79.23%)
 
 # Failed
 
@@ -47,7 +47,7 @@ ts compatibility: 453/573 (79.06%)
 | typescript/compiler/contextualSignatureInstantiation2.ts | 💥 | 88.89% |
 | typescript/compiler/indexSignatureWithInitializer.ts | 💥 | 75.00% |
 | typescript/conditional-types/comments.ts | 💥💥 | 60.21% |
-| typescript/conditional-types/conditonal-types.ts | 💥💥 | 82.25% |
+| typescript/conditional-types/conditonal-types.ts | 💥✨ | 34.48% |
 | typescript/conditional-types/infer-type.ts | 💥💥 | 43.22% |
 | typescript/conditional-types/nested-in-condition.ts | 💥✨ | 15.79% |
 | typescript/conditional-types/new-ternary-spec.ts | 💥💥 | 52.64% |
@@ -82,6 +82,7 @@ ts compatibility: 453/573 (79.06%)
 | typescript/intersection/intersection-parens.ts | 💥💥 | 72.25% |
 | typescript/intersection/consistent-with-flow/intersection-parens.ts | 💥 | 69.77% |
 | typescript/key-remapping-in-mapped-types/key-remapping.ts | 💥 | 55.56% |
+| typescript/keyof/keyof.ts | 💥 | 60.00% |
 | typescript/last-argument-expansion/decorated-function.tsx | 💥 | 29.06% |
 | typescript/mapped-type/intersection.ts | 💥 | 0.00% |
 | typescript/mapped-type/issue-11098.ts | 💥 | 60.00% |
@@ -93,8 +94,6 @@ ts compatibility: 453/573 (79.06%)
 | typescript/non-null/parens.ts | 💥 | 96.00% |
 | typescript/nosemi/index-signature.ts | 💥 | 75.00% |
 | typescript/optional-type/complex.ts | 💥 | 0.00% |
-| typescript/optional-variance/basic.ts | 💥 | 98.36% |
-| typescript/optional-variance/with-jsx.tsx | 💥 | 98.36% |
 | typescript/override-modifiers/override-modifier.ts | 💥 | 25.00% |
 | typescript/prettier-ignore/mapped-types.ts | 💥 | 54.72% |
 | typescript/prettier-ignore/prettier-ignore-nested-unions.ts | 💥 | 29.17% |

@@ -106,9 +106,8 @@ impl<'a> NeedsParentheses<'a> for AstNode<'a, TSTypeOperator<'a>> {
     fn needs_parentheses(&self, f: &Formatter<'_, 'a>) -> bool {
         matches!(
             self.parent,
-            AstNodes::TSArrayType(_)
-                | AstNodes::TSTypeOperator(_)
-                | AstNodes::TSIndexedAccessType(_)
+            AstNodes::TSArrayType(_) | AstNodes::TSTypeOperator(_)
         )
+        // Note: Removed TSIndexedAccessType to allow T[keyof T] without extra parentheses
     }
 }
