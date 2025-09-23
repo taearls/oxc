@@ -25,8 +25,8 @@ js compatibility: 643/698 (92.12%)
 | js/for/for-in-with-initializer.js | 💥 | 37.50% |
 | js/for/parentheses.js | 💥 | 96.00% |
 | js/functional-composition/pipe-function-calls.js | 💥 | 87.80% |
-| js/identifier/for-of/let.js | 💥 | 84.62% |
-| js/identifier/parentheses/let.js | 💥💥 | 97.73% |
+| js/identifier/for-of/let.js | 💥 | 92.31% |
+| js/identifier/parentheses/let.js | 💥💥 | 99.09% |
 | js/last-argument-expansion/dangling-comment-in-arrow-function.js | 💥 | 22.22% |
 | js/logical_expressions/issue-7024.js | 💥 | 66.67% |
 | js/method-chain/print-width-120/constructor.js | 💥 | 71.43% |

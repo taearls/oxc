@@ -4,6 +4,12 @@
 
 This document captures a comprehensive analysis of the oxc formatter's Prettier conformance testing, including the impact of PR #6 and subsequent fixes. As of the latest commits (2024-12-19), the formatter achieves **92.12% JS conformance** (643/698 tests) and **68.59% TS conformance** (393/573 tests).
 
+**Latest Update (2024-12-19 - Implementation Session)**:
+
+- Attempted comprehensive fixes for arrow chain formatting issues
+- Successfully improved let identifier parentheses handling (reduced from 3 to 1 failing case)
+- Arrow chain formatting requires deeper architectural changes to coordinate indentation between call argument formatter and arrow chain formatter
+
 ## Historical Context
 
 ### PR #6 Timeline
@@ -167,11 +173,11 @@ After applying targeted fixes and running conformance tests - **Net improvement:
 
 #### ❌ Still Need Work (Approximately 7-10 test cases)
 
-| Test                               | Current | Status   | Issues                                      | Priority |
-| ---------------------------------- | ------- | -------- | ------------------------------------------- | -------- |
-| `js/arrows/chain-as-arg.js`        | 35.14%  | Unfixed  | Arrow chain indentation & trailing commas   | HIGH     |
-| `js/arrows/currying-2.js`          | 59.08%  | Unfixed  | Call argument breaking with arrow chains    | HIGH     |
-| `js/identifier/parentheses/let.js` | Partial | Partial  | Call/method expression edge cases remain    | LOW      |
+| Test                               | Current | Status  | Issues                                    | Priority |
+| ---------------------------------- | ------- | ------- | ----------------------------------------- | -------- |
+| `js/arrows/chain-as-arg.js`        | 35.14%  | Unfixed | Arrow chain indentation & trailing commas | HIGH     |
+| `js/arrows/currying-2.js`          | 59.08%  | Unfixed | Call argument breaking with arrow chains  | HIGH     |
+| `js/identifier/parentheses/let.js` | Partial | Partial | Call/method expression edge cases remain  | LOW      |
 
 ## Detailed Test Case Analysis
 
@@ -269,7 +275,7 @@ for (var a in (x = b in c) => {});
 
 **Root Cause**: Lines 450-453 in `parentheses/expression.rs` add parentheses to all `in` expressions on the right side of for-in.
 
-### 4. `js/identifier/parentheses/let.js` (94.55% match) - 3 failing cases
+### 4. `js/identifier/parentheses/let.js` (94.55% match) - ~~3~~ 1 failing case (IMPROVED)
 
 **Issue**: Incorrect parentheses handling for `let` identifier in specific contexts.
 
@@ -308,13 +314,48 @@ for (var a in (x = b in c) => {});
 
 ### Success Stories
 
-| Test                                 | Before PR #6 | After Fixes | Status   |
-| ------------------------------------ | ------------ | ----------- | -------- |
-| `js/arrows/call.js`                  | 99.48%       | 100%        | ✅ Fixed |
-| `js/arrows/comment.js`               | 83.72%       | 100%        | ✅ Fixed |
-| `js/identifier/parentheses/const.js` | 0%           | 100%        | ✅ Fixed |
-| `js/for/parentheses.js`              | ~78%         | ✅ Fixed    | ✅ Fixed |
+| Test                                 | Before PR #6 | After Fixes | Status       |
+| ------------------------------------ | ------------ | ----------- | ------------ |
+| `js/arrows/call.js`                  | 99.48%       | 100%        | ✅ Fixed     |
+| `js/arrows/comment.js`               | 83.72%       | 100%        | ✅ Fixed     |
+| `js/identifier/parentheses/const.js` | 0%           | 100%        | ✅ Fixed     |
+| `js/for/parentheses.js`              | ~78%         | ✅ Fixed    | ✅ Fixed     |
 | Overall JS Conformance               | 83.52%       | **92.12%**  | ⬆️ **+8.60%** |
+
+## Implementation Attempts (2024-12-19 Session)
+
+### Attempted Fixes
+
+#### Let Identifier Parentheses (PARTIAL SUCCESS)
+
+**Changes Made**: Modified `/crates/oxc_formatter/src/parentheses/expression.rs`
+
+- Added logic to detect when `let[x]` is used as a call/new argument and skip parentheses
+- Fixed for-statement context detection
+- **Result**: Reduced failing cases from 3 to 1
+- **Remaining Issue**: `new ((let)[0] = 1)()` still has extra parentheses around `(let)`
+
+#### Arrow Chain Formatting (REQUIRES REFACTORING)
+
+**Attempted Changes**: Multiple approaches in `/crates/oxc_formatter/src/write/arrow_function_expression.rs`
+
+- Tried removing `group()` wrapper for call arguments
+- Attempted to skip indentation for call argument context
+- Tried different grouping strategies
+
+**Why It Failed**:
+
+- The issue is architectural: both the arrow chain formatter AND the call arguments formatter apply indentation
+- Call arguments wrap everything in `soft_block_indent` (adding 2 spaces)
+- Arrow chain applies its own indentation logic
+- Results in double indentation (4 spaces instead of 2)
+- Attempts to fix this caused regressions in other arrow function tests
+
+**Required Solution**:
+
+- Need to redesign how arrow chains and call arguments coordinate indentation
+- Possibly need a context flag to indicate "already indented" state
+- Or redesign the call argument formatter to detect and handle arrow chains specially
 
 ## Implementation Recommendations
 
@@ -352,6 +393,7 @@ for (var a in (x = b in c) => {});
 3. ⚠️ **Method/call contexts**: Still need refinement for cases like `((let)[0] = 1)()`
 
 **Remaining Edge Cases** (2-3 test cases):
+
 - Call expression context: `((let)[0] = 1)()`
 - Method call context: `(let)[x].foo()`
 
