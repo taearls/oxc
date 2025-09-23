@@ -357,7 +357,7 @@ impl<'a, 'b> ArrowFunctionLayout<'a, 'b> {
             return true;
         }
 
-        let has_parameters = parameters.items.is_empty();
+        let has_parameters = !parameters.items.is_empty(); // Fixed: should be negated
         let has_type_and_parameters = arrow.return_type.is_some() && has_parameters;
         has_type_and_parameters || has_rest_object_or_array_parameter(parameters)
     }
