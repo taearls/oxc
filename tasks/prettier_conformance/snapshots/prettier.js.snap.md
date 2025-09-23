@@ -1,16 +1,10 @@
-js compatibility: 645/698 (92.41%)
+js compatibility: 661/698 (94.70%)
 
 # Failed
 
 | Spec path | Failed or Passed | Match ratio |
 | :-------- | :--------------: | :---------: |
-| js/arrows/call.js | 💥💥 | 99.35% |
-| js/arrows/chain-as-arg.js | 💥💥 | 35.14% |
-| js/arrows/curried.js | 💥💥 | 82.70% |
-| js/arrows/currying-2.js | 💥💥 | 59.08% |
-| js/arrows/currying-4.js | 💥💥 | 94.50% |
 | js/comments/15661.js | 💥💥 | 55.81% |
-| js/comments/call_comment.js | 💥💥 | 55.00% |
 | js/comments/empty-statements.js | 💥💥 | 90.91% |
 | js/comments/function-declaration.js | 💥💥 | 92.80% |
 | js/comments/return-statement.js | 💥💥 | 98.85% |
@@ -19,24 +13,19 @@ js compatibility: 645/698 (92.41%)
 | js/conditional/comments.js | 💥✨ | 23.69% |
 | js/conditional/new-ternary-examples.js | 💥✨ | 20.14% |
 | js/conditional/new-ternary-spec.js | 💥✨ | 24.35% |
-| js/conditional/postfix-ternary-regressions.js | 💥💥 | 70.34% |
+| js/conditional/postfix-ternary-regressions.js | 💥✨ | 20.77% |
 | js/explicit-resource-management/valid-await-using-comments.js | 💥 | 91.89% |
 | js/for/for-in-with-initializer.js | 💥 | 37.50% |
 | js/for/parentheses.js | 💥 | 96.00% |
-| js/functional-composition/pipe-function-calls.js | 💥 | 87.80% |
 | js/identifier/for-of/let.js | 💥 | 92.31% |
-| js/identifier/parentheses/let.js | 💥💥 | 99.09% |
+| js/identifier/parentheses/let.js | 💥💥 | 82.27% |
 | js/last-argument-expansion/dangling-comment-in-arrow-function.js | 💥 | 22.22% |
 | js/logical_expressions/issue-7024.js | 💥 | 66.67% |
-| js/method-chain/print-width-120/constructor.js | 💥 | 71.43% |
-| js/new-expression/call.js | 💥 | 75.00% |
-| js/new-expression/new_expression.js | 💥 | 88.89% |
+| js/object-multiline/multiline.js | 💥✨ | 22.22% |
 | js/quote-props/classes.js | 💥💥✨✨ | 47.06% |
 | js/quote-props/objects.js | 💥💥✨✨ | 45.10% |
 | js/quote-props/with_numbers.js | 💥💥✨✨ | 46.43% |
 | js/quotes/objects.js | 💥💥 | 80.00% |
-| js/require/require.js | 💥 | 93.51% |
-| js/strings/template-literals.js | 💥💥 | 85.16% |
 | js/ternaries/binary.js | 💥💥💥💥✨✨✨✨ | 18.42% |
 | js/ternaries/func-call.js | 💥💥💥💥✨✨✨✨ | 25.00% |
 | js/ternaries/indent-after-paren.js | 💥💥💥💥✨✨✨✨ | 24.59% |
@@ -46,14 +35,9 @@ js compatibility: 645/698 (92.41%)
 | js/ternaries/parenthesis.js | 💥💥💥💥✨✨✨✨ | 12.50% |
 | js/ternaries/test.js | 💥💥💥💥✨✨✨✨ | 22.40% |
 | js/ternaries/parenthesis/await-expression.js | 💥✨ | 14.29% |
-| js/test-declarations/angular_async.js | 💥💥 | 86.21% |
-| js/test-declarations/angular_fakeAsync.js | 💥💥 | 75.86% |
-| js/test-declarations/angular_waitForAsync.js | 💥💥 | 75.86% |
-| js/test-declarations/angularjs_inject.js | 💥💥 | 69.84% |
+| js/test-declarations/angularjs_inject.js | 💥💥 | 91.53% |
 | jsx/expression-with-types/expression.js | 💥💥💥💥 | 0.00% |
 | jsx/fbt/test.js | 💥 | 84.06% |
-| jsx/ignore/jsx_ignore.js | 💥 | 84.21% |
 | jsx/jsx/quotes.js | 💥💥💥💥 | 79.41% |
 | jsx/single-attribute-per-line/single-attribute-per-line.js | 💥✨ | 43.37% |
-| jsx/stateless-arrow-fn/test.js | 💥 | 95.32% |
-| jsx/text-wrap/test.js | 💥 | 98.68% |
+| jsx/text-wrap/test.js | 💥 | 99.56% |
