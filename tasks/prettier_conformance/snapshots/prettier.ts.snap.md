@@ -1,4 +1,4 @@
-ts compatibility: 452/573 (78.88%)
+ts compatibility: 453/573 (79.06%)
 
 # Failed
 
@@ -92,7 +92,6 @@ ts compatibility: 452/573 (78.88%)
 | typescript/non-null/optional-chain.ts | 💥 | 72.22% |
 | typescript/non-null/parens.ts | 💥 | 96.00% |
 | typescript/nosemi/index-signature.ts | 💥 | 75.00% |
-| typescript/object-multiline/multiline.ts | 💥✨ | 23.21% |
 | typescript/optional-type/complex.ts | 💥 | 0.00% |
 | typescript/optional-variance/basic.ts | 💥 | 98.36% |
 | typescript/optional-variance/with-jsx.tsx | 💥 | 98.36% |

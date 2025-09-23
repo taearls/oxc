@@ -1,4 +1,4 @@
-js compatibility: 642/698 (91.98%)
+js compatibility: 643/698 (92.12%)
 
 # Failed
 
@@ -19,7 +19,7 @@ js compatibility: 642/698 (91.98%)
 | js/conditional/comments.js | 💥✨ | 23.69% |
 | js/conditional/new-ternary-examples.js | 💥✨ | 20.14% |
 | js/conditional/new-ternary-spec.js | 💥✨ | 24.35% |
-| js/conditional/postfix-ternary-regressions.js | 💥✨ | 20.77% |
+| js/conditional/postfix-ternary-regressions.js | 💥💥 | 70.34% |
 | js/decorators/member-expression.js | 💥 | 92.42% |
 | js/decorators/parens.js | 💥 | 75.00% |
 | js/explicit-resource-management/valid-await-using-comments.js | 💥 | 91.89% |
@@ -33,7 +33,6 @@ js compatibility: 642/698 (91.98%)
 | js/method-chain/print-width-120/constructor.js | 💥 | 71.43% |
 | js/new-expression/call.js | 💥 | 75.00% |
 | js/new-expression/new_expression.js | 💥 | 88.89% |
-| js/object-multiline/multiline.js | 💥✨ | 22.22% |
 | js/quote-props/classes.js | 💥💥✨✨ | 47.06% |
 | js/quote-props/objects.js | 💥💥✨✨ | 45.10% |
 | js/quote-props/with_numbers.js | 💥💥✨✨ | 46.43% |
