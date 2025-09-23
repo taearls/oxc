@@ -298,16 +298,17 @@ impl<'a, 'b> ArrowFunctionLayout<'a, 'b> {
         let mut should_break = false;
 
         loop {
-            if current.expression() {
-                if let Some(AstNodes::ExpressionStatement(expr_stmt)) =
+            if current.expression()
+                && let Some(AstNodes::ExpressionStatement(expr_stmt)) =
                     current.body().statements().first().map(AstNode::<Statement>::as_ast_nodes)
-                {
-                    if let AstNodes::ArrowFunctionExpression(next) =
+                    && let AstNodes::ArrowFunctionExpression(next) =
                         &expr_stmt.expression().as_ast_nodes()
-                    {
-                        if matches!(
+                        && matches!(
                             options.call_arg_layout,
-                            None | Some(GroupedCallArgumentLayout::GroupedLastArgument | GroupedCallArgumentLayout::GroupedFirstArgument)
+                            None | Some(
+                                GroupedCallArgumentLayout::GroupedLastArgument
+                                    | GroupedCallArgumentLayout::GroupedFirstArgument
+                            )
                         ) {
                             // For grouped first arguments, be less aggressive about breaking chains
                             // to maintain compact formatting
@@ -341,9 +342,6 @@ impl<'a, 'b> ArrowFunctionLayout<'a, 'b> {
                             current = next;
                             continue;
                         }
-                    }
-                }
-            }
             break match head {
                 None => ArrowFunctionLayout::Single(current),
                 Some(head) => ArrowFunctionLayout::Chain(ArrowChain {
@@ -494,7 +492,7 @@ impl<'a> Format<'a> for ArrowChain<'a, '_> {
 
         // Check if this arrow function is a call argument (even if not grouped)
         let is_call_argument = is_grouped_call_arg_layout
-            || crate::utils::is_expression_used_as_call_argument(self.head.span, &head_parent);
+            || crate::utils::is_expression_used_as_call_argument(self.head.span, head_parent);
 
         // If this chain is the callee in a parent call expression, then we
         // want it to break onto a new line to clearly show that the arrow
@@ -1004,13 +1002,12 @@ pub struct FormatMaybeCachedFunctionBody<'a, 'b> {
 
 impl<'a> FormatMaybeCachedFunctionBody<'a, '_> {
     fn format(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
-        if self.expression {
-            if let AstNodes::ExpressionStatement(s) =
+        if self.expression
+            && let AstNodes::ExpressionStatement(s) =
                 &self.body.statements().first().unwrap().as_ast_nodes()
             {
                 return s.expression().fmt(f);
             }
-        }
         self.body.fmt(f)
     }
 }
