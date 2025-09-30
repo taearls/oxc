@@ -1,6 +1,9 @@
 semantic_misc Summary:
 AST Parsed     : 49/49 (100.00%)
-Positive Passed: 31/49 (63.27%)
+Positive Passed: 30/49 (61.22%)
+semantic Error: tasks/coverage/misc/pass/oxc-11487.cjs
+Cannot use `await` as an identifier in an async context
+
 semantic Error: tasks/coverage/misc/pass/oxc-11593.ts
 Scope children mismatch:
 after transform: ScopeId(0): [ScopeId(1)]
@@ -171,17 +174,17 @@ Symbol reference IDs mismatch for "_decorateMetadata":
 after transform: SymbolId(166): [ReferenceId(68), ReferenceId(72), ReferenceId(76), ReferenceId(80), ReferenceId(84), ReferenceId(85), ReferenceId(86), ReferenceId(90), ReferenceId(91), ReferenceId(92), ReferenceId(106), ReferenceId(108), ReferenceId(110), ReferenceId(111), ReferenceId(112), ReferenceId(120), ReferenceId(122), ReferenceId(124), ReferenceId(125), ReferenceId(126), ReferenceId(134), ReferenceId(136), ReferenceId(138), ReferenceId(139), ReferenceId(140), ReferenceId(148), ReferenceId(150), ReferenceId(152), ReferenceId(153), ReferenceId(154), ReferenceId(162), ReferenceId(166), ReferenceId(170), ReferenceId(171), ReferenceId(172), ReferenceId(182), ReferenceId(184), ReferenceId(186), ReferenceId(187), ReferenceId(188), ReferenceId(196), ReferenceId(200), ReferenceId(204), ReferenceId(205), ReferenceId(206), ReferenceId(216), ReferenceId(218), ReferenceId(220), ReferenceId(221), ReferenceId(222), ReferenceId(230), ReferenceId(234), ReferenceId(238), ReferenceId(239), ReferenceId(240), ReferenceId(250), ReferenceId(252), ReferenceId(254), ReferenceId(255), ReferenceId(256), ReferenceId(264), ReferenceId(268), ReferenceId(272), ReferenceId(273), ReferenceId(274), ReferenceId(284), ReferenceId(286), ReferenceId(288), ReferenceId(289), ReferenceId(290), ReferenceId(395), ReferenceId(399), ReferenceId(403), ReferenceId(404), ReferenceId(405), ReferenceId(415), ReferenceId(419), ReferenceId(423), ReferenceId(427), ReferenceId(431), ReferenceId(432), ReferenceId(433), ReferenceId(437), ReferenceId(438), ReferenceId(439), ReferenceId(445), ReferenceId(446), ReferenceId(447), ReferenceId(449), ReferenceId(450), ReferenceId(451), ReferenceId(453), ReferenceId(454), ReferenceId(455), ReferenceId(459), ReferenceId(460), ReferenceId(461), ReferenceId(463), ReferenceId(464), ReferenceId(465), ReferenceId(467), ReferenceId(468), ReferenceId(469), ReferenceId(473), ReferenceId(474), ReferenceId(475), ReferenceId(477), ReferenceId(478), ReferenceId(479), ReferenceId(481), ReferenceId(482), ReferenceId(483)]
 rebuilt        : SymbolId(3): [ReferenceId(63), ReferenceId(67), ReferenceId(71), ReferenceId(75), ReferenceId(79), ReferenceId(81), ReferenceId(82), ReferenceId(85), ReferenceId(87), ReferenceId(88), ReferenceId(113), ReferenceId(117), ReferenceId(121), ReferenceId(123), ReferenceId(124), ReferenceId(139), ReferenceId(143), ReferenceId(147), ReferenceId(149), ReferenceId(150), ReferenceId(165), ReferenceId(169), ReferenceId(173), ReferenceId(175), ReferenceId(176), ReferenceId(258), ReferenceId(265), ReferenceId(272), ReferenceId(274), ReferenceId(275), ReferenceId(331), ReferenceId(335), ReferenceId(339), ReferenceId(341), ReferenceId(342), ReferenceId(351), ReferenceId(355), ReferenceId(359), ReferenceId(363), ReferenceId(367), ReferenceId(369), ReferenceId(370), ReferenceId(373), ReferenceId(375), ReferenceId(376), ReferenceId(380), ReferenceId(382), ReferenceId(383), ReferenceId(386), ReferenceId(388), ReferenceId(389), ReferenceId(393), ReferenceId(395), ReferenceId(396)]
 Symbol span mismatch for "Inner5":
-after transform: SymbolId(57): Span { start: 4573, end: 4579 }
+after transform: SymbolId(57): Span { start: 5603, end: 5609 }
 rebuilt        : SymbolId(69): Span { start: 0, end: 0 }
 Symbol span mismatch for "Inner5":
 after transform: SymbolId(164): Span { start: 0, end: 0 }
-rebuilt        : SymbolId(70): Span { start: 4573, end: 4579 }
+rebuilt        : SymbolId(70): Span { start: 5603, end: 5609 }
 Symbol span mismatch for "Inner4":
-after transform: SymbolId(126): Span { start: 12166, end: 12172 }
+after transform: SymbolId(126): Span { start: 14652, end: 14658 }
 rebuilt        : SymbolId(164): Span { start: 0, end: 0 }
 Symbol span mismatch for "Inner4":
 after transform: SymbolId(195): Span { start: 0, end: 0 }
-rebuilt        : SymbolId(165): Span { start: 12166, end: 12172 }
+rebuilt        : SymbolId(165): Span { start: 14652, end: 14658 }
 Unresolved reference IDs mismatch for "Object":
 after transform: [ReferenceId(67), ReferenceId(71), ReferenceId(75), ReferenceId(79), ReferenceId(105), ReferenceId(107), ReferenceId(119), ReferenceId(121), ReferenceId(133), ReferenceId(135), ReferenceId(147), ReferenceId(149), ReferenceId(161), ReferenceId(165), ReferenceId(181), ReferenceId(183), ReferenceId(195), ReferenceId(199), ReferenceId(215), ReferenceId(217), ReferenceId(229), ReferenceId(233), ReferenceId(249), ReferenceId(251), ReferenceId(263), ReferenceId(267), ReferenceId(283), ReferenceId(285), ReferenceId(394), ReferenceId(398), ReferenceId(414), ReferenceId(418), ReferenceId(422), ReferenceId(426)]
 rebuilt        : [ReferenceId(64), ReferenceId(68), ReferenceId(72), ReferenceId(76), ReferenceId(114), ReferenceId(118), ReferenceId(140), ReferenceId(144), ReferenceId(166), ReferenceId(170), ReferenceId(259), ReferenceId(266), ReferenceId(332), ReferenceId(336), ReferenceId(352), ReferenceId(356), ReferenceId(360), ReferenceId(364)]
@@ -209,11 +212,11 @@ rebuilt        : ScopeId(0): []
 
 semantic Error: tasks/coverage/misc/pass/oxc-2562.ts
 Symbol span mismatch for "HooksController":
-after transform: SymbolId(0): Span { start: 67, end: 82 }
+after transform: SymbolId(0): Span { start: 69, end: 84 }
 rebuilt        : SymbolId(1): Span { start: 0, end: 0 }
 Symbol span mismatch for "HooksController":
 after transform: SymbolId(1): Span { start: 0, end: 0 }
-rebuilt        : SymbolId(2): Span { start: 67, end: 82 }
+rebuilt        : SymbolId(2): Span { start: 69, end: 84 }
 
 semantic Error: tasks/coverage/misc/pass/oxc-2592.ts
 Scope children mismatch:
@@ -277,14 +280,14 @@ Symbol reference IDs mismatch for "IWorkingCopyEditorService":
 after transform: SymbolId(32): [ReferenceId(21), ReferenceId(22), ReferenceId(365), ReferenceId(366)]
 rebuilt        : SymbolId(26): [ReferenceId(36), ReferenceId(68), ReferenceId(69)]
 Symbol span mismatch for "TestWorkingCopyBackupTracker":
-after transform: SymbolId(39): Span { start: 3208, end: 3236 }
+after transform: SymbolId(39): Span { start: 3253, end: 3281 }
 rebuilt        : SymbolId(46): Span { start: 0, end: 0 }
 Symbol reference IDs mismatch for "TestWorkingCopyBackupTracker":
 after transform: SymbolId(39): [ReferenceId(42), ReferenceId(74), ReferenceId(154), ReferenceId(215), ReferenceId(392), ReferenceId(394)]
 rebuilt        : SymbolId(46): [ReferenceId(23), ReferenceId(82), ReferenceId(118), ReferenceId(270)]
 Symbol span mismatch for "TestWorkingCopyBackupTracker":
 after transform: SymbolId(144): Span { start: 0, end: 0 }
-rebuilt        : SymbolId(47): Span { start: 3208, end: 3236 }
+rebuilt        : SymbolId(47): Span { start: 3253, end: 3281 }
 Unresolved reference IDs mismatch for "Promise":
 after transform: [ReferenceId(36), ReferenceId(39), ReferenceId(82), ReferenceId(114), ReferenceId(153), ReferenceId(282)]
 rebuilt        : [ReferenceId(343)]

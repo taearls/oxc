@@ -1,4 +1,4 @@
-ts compatibility: 530/573 (92.50%)
+ts compatibility: 531/573 (92.67%)
 
 # Failed
 
@@ -21,7 +21,6 @@ ts compatibility: 530/573 (92.50%)
 | typescript/class/empty-method-body.ts | 💥 | 80.00% |
 | typescript/class/quoted-property.ts | 💥 | 66.67% |
 | typescript/comments/method_types.ts | 💥 | 84.62% |
-| typescript/comments/type-parameters.ts | 💥 | 73.33% |
 | typescript/conditional-types/comments.ts | 💥✨ | 31.51% |
 | typescript/conditional-types/conditonal-types.ts | 💥✨ | 34.48% |
 | typescript/conditional-types/infer-type.ts | 💥✨ | 4.76% |

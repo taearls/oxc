@@ -160,9 +160,9 @@ fn should_keep_nested_call_compact(
     let call_span = call.span;
     for (i, arg) in args.iter().enumerate() {
         let previous_end = if i == 0 {
-            call.callee.span().end  // Check from after callee to first arg
+            call.callee.span().end // Check from after callee to first arg
         } else {
-            args[i - 1].span().end  // Check between args
+            args[i - 1].span().end // Check between args
         };
 
         let current_span = arg.span();
