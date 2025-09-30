@@ -44,26 +44,6 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
         let r_paren_token = ")";
         let call_like_span = self.parent.span();
 
-        // Check if we're within a TSTypeAssertion context
-        let is_within_type_assertion = {
-            let mut current = Some(self.parent);
-            let mut depth = 0;
-            while let Some(parent) = current {
-                if depth > 10 {
-                    break;
-                } // Prevent infinite loops
-                if matches!(parent, AstNodes::TSTypeAssertion(_)) {
-                    break;
-                }
-                current = match parent {
-                    AstNodes::Dummy() => None,
-                    _ => Some(parent.parent()),
-                };
-                depth += 1;
-            }
-            current.is_some() && matches!(current.unwrap(), AstNodes::TSTypeAssertion(_))
-        };
-
         if self.is_empty() {
             return write!(
                 f,
@@ -119,41 +99,10 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
         let has_empty_line =
             self.iter().any(|arg| f.source_text().get_lines_before(arg.span(), f.comments()) > 1);
         if has_empty_line
-            || is_function_composition_args(self)
-            || is_pipe_function_call(self, self.parent)
+            || (!matches!(self.parent.parent(), AstNodes::Decorator(_))
+                && is_function_composition_args(self))
         {
             return format_all_args_broken_out(self, true, f);
-        }
-
-        // For type assertions, prefer inline formatting to avoid unnecessary expansion,
-        // but still allow breaking for very long call expressions
-        if is_within_type_assertion {
-            // Calculate the estimated width of the inline version
-            #[expect(clippy::cast_possible_truncation)]
-            let estimated_width = call_like_span.size()
-                + self.iter().map(|arg| arg.span().size()).sum::<u32>()
-                + self.len().saturating_sub(1) as u32 * 2; // commas and spaces
-
-            // Only force inline if it's reasonably short (under 80 characters)
-            if estimated_width <= 80 {
-                return write!(
-                    f,
-                    [
-                        l_paren_token,
-                        format_with(|f| {
-                            f.join_with(space())
-                                .entries_with_trailing_separator(
-                                    self.iter(),
-                                    ",",
-                                    TrailingSeparator::Omit,
-                                )
-                                .finish()
-                        }),
-                        r_paren_token
-                    ]
-                );
-            }
-            // If too long, fall through to normal breaking logic
         }
 
         if let Some(group_layout) = arguments_grouped_layout(call_like_span, self, f) {
@@ -179,63 +128,6 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
             format_all_args_broken_out(self, false, f)
         }
     }
-}
-
-/// Tests if this call has a long curried arrow function argument that should be broken out
-fn is_long_curried_arrow_argument(args: &[Argument<'_>], call_like_span: Span) -> bool {
-    // Only applies to single argument cases
-    if args.len() != 1 {
-        return false;
-    }
-
-    if let Some(Argument::ArrowFunctionExpression(arrow)) = args.first() {
-        // Check if it's a curried arrow (arrow expression that returns another arrow)
-        if arrow.expression
-            && let Some(Expression::ArrowFunctionExpression(_)) = arrow.get_expression()
-        {
-            // Use a more conservative threshold since span-based width estimation
-            // includes whitespace and comments, making it overly aggressive.
-            // Simple curried arrows like `(a) => (b) => (1, 2, 3)` should stay inline.
-            let estimated_width = call_like_span.size() + arrow.span.size() + 2; // 2 for parentheses
-
-            // Only break for genuinely long expressions - be much more conservative
-            return estimated_width > 120;
-        }
-    }
-
-    false
-}
-
-/// Tests if this is a pipe function call that should have expanded arguments
-fn is_pipe_function_call(args: &[Argument<'_>], parent: &AstNodes) -> bool {
-    // Check if parent is a call expression with pipe-like function name
-    if let AstNodes::CallExpression(call) = parent
-        && let Expression::Identifier(id) = &call.callee
-    {
-        let name = id.name.as_str();
-        // Only expand pipe functions when they have nested call expressions
-        // that would benefit from multi-line formatting
-        if matches!(name, "pipe" | "flow") {
-            // Count nested call expressions
-            let nested_calls = args
-                .iter()
-                .filter(|arg| {
-                    if let Argument::CallExpression(call) = arg {
-                        // Check if this call has nested calls as arguments
-                        call.arguments
-                            .iter()
-                            .any(|inner| matches!(inner, Argument::CallExpression(_)))
-                    } else {
-                        false
-                    }
-                })
-                .count();
-
-            // Expand if we have nested complexity
-            return nested_calls > 0;
-        }
-    }
-    false
 }
 
 /// Tests if a call has multiple anonymous function like (arrow or function expression) arguments.
@@ -548,10 +440,6 @@ fn is_relatively_short_argument(argument: &Expression<'_>) -> bool {
             is_simple_ts_type(&expr.type_annotation)
                 && SimpleArgument::from(&expr.expression).is_simple()
         }
-        Expression::TSTypeAssertion(expr) => {
-            is_simple_ts_type(&expr.type_annotation)
-                && SimpleArgument::from(&expr.expression).is_simple()
-        }
         Expression::RegExpLiteral(_) => true,
         Expression::CallExpression(call) => match call.arguments.len() {
             0 => true,
@@ -653,16 +541,7 @@ fn can_group_arrow_function_expression_argument(
         Expression::ChainExpression(chain) => {
             matches!(chain.expression, ChainElement::CallExpression(_)) && !is_arrow_recursion
         }
-        Expression::CallExpression(_) | Expression::ConditionalExpression(_) => {
-            // Allow simple call expressions in curried arrow functions to be groupable
-            // This ensures `foo(a => b => someFunc())` can be grouped
-            if is_arrow_recursion && matches!(expr, Expression::CallExpression(_)) {
-                // Only allow simple call expressions (not complex nested calls)
-                true
-            } else {
-                !is_arrow_recursion
-            }
-        }
+        Expression::CallExpression(_) | Expression::ConditionalExpression(_) => !is_arrow_recursion,
         _ => false,
     })
 }
@@ -893,22 +772,11 @@ fn write_grouped_arguments<'a>(
 
     // If the grouped content breaks, then we can skip the most_flat variant,
     // since we already know that it won't be fitting on a single line.
-    // Exception: For arrow chains in GroupedFirstArgument, include most_flat for proper indentation
-    let should_include_flat_variant = !grouped_breaks
-        || {
-            // Special case for arrow chains as grouped first argument
-            group_layout.is_grouped_first() &&
-        node.first().and_then(|arg| arg.as_expression()).is_some_and(|expr| {
-            matches!(expr, Expression::ArrowFunctionExpression(arrow) if arrow.expression &&
-                arrow.get_expression().is_some_and(|body| matches!(body, Expression::ArrowFunctionExpression(_))))
-        })
-        };
-
-    let variants = if should_include_flat_variant {
-        vec![most_flat, middle_variant, most_expanded.into_boxed_slice()]
-    } else {
+    let variants = if grouped_breaks {
         write!(f, [expand_parent()])?;
         vec![middle_variant, most_expanded.into_boxed_slice()]
+    } else {
+        vec![most_flat, middle_variant, most_expanded.into_boxed_slice()]
     };
 
     // SAFETY: Safe because variants is guaranteed to contain exactly 3 entries:

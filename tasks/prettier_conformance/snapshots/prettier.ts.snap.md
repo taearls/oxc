@@ -1,4 +1,4 @@
-ts compatibility: 527/573 (91.97%)
+ts compatibility: 528/573 (92.15%)
 
 # Failed
 
@@ -12,9 +12,9 @@ ts compatibility: 527/573 (91.97%)
 | typescript/angular-component-examples/15934-computed.component.ts | 💥💥 | 76.92% |
 | typescript/angular-component-examples/15934.component.ts | 💥💥 | 53.85% |
 | typescript/angular-component-examples/test.component.ts | 💥💥 | 41.18% |
-| typescript/arrow/16067.ts | 💥💥 | 93.88% |
 | typescript/arrow/comments.ts | 💥✨ | 44.44% |
 | typescript/as/nested-await-and-as.ts | 💥 | 42.86% |
+| typescript/cast/generic-cast.ts | 💥 | 97.37% |
 | typescript/cast/tuple-and-record.ts | 💥 | 0.00% |
 | typescript/chain-expression/call-expression.ts | 💥 | 82.81% |
 | typescript/chain-expression/member-expression.ts | 💥 | 82.09% |
@@ -31,7 +31,6 @@ ts compatibility: 527/573 (91.97%)
 | typescript/conditional-types/parentheses.ts | 💥✨ | 15.22% |
 | typescript/conformance/types/functions/functionOverloadErrorsSyntax.ts | 💥 | 0.00% |
 | typescript/decorators-ts/angular.ts | 💥 | 87.50% |
-| typescript/decorators-ts/typeorm.ts | 💥 | 88.37% |
 | typescript/definite/without-annotation.ts | 💥 | 83.33% |
 | typescript/enum/computed-members.ts | 💥 | 0.00% |
 | typescript/functional-composition/pipe-function-calls.ts | 💥 | 82.76% |
