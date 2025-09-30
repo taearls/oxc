@@ -29,7 +29,9 @@ describe('jquery', async () => {
 describe('d3', async () => {
   const modules = await getModules('d3/dist/', 'd3.js', 'cjs');
   test.each(modules)(info, ({ module: D3 }) => {
-    expect(D3.select('body').append('div').text('rendered').text()).toBe('rendered');
+    expect(D3.select('body').append('div').text('rendered').text()).toBe(
+      'rendered',
+    );
   });
 });
 

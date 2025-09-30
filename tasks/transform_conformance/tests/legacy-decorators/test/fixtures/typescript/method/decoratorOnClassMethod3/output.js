@@ -1,7 +1,5 @@
 class C {
-    public;
-    method() { }
+  public;
+  method() {}
 }
-babelHelpers.decorate([
-    dec
-], C.prototype, "method", null);
+babelHelpers.decorate([dec], C.prototype, "method", null);

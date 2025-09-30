@@ -64,8 +64,14 @@ function generateNativePackage(target) {
   fs.writeFileSync(manifestPath, JSON.stringify(manifest));
 
   // Copy the binaries
-  const oxlintBinSource = resolve(REPO_ROOT, `${OXLINT_BIN_NAME}.${target}.node`);
-  const oxlintBinTarget = resolve(packageRoot, `${OXLINT_BIN_NAME}.${target}.node`);
+  const oxlintBinSource = resolve(
+    REPO_ROOT,
+    `${OXLINT_BIN_NAME}.${target}.node`,
+  );
+  const oxlintBinTarget = resolve(
+    packageRoot,
+    `${OXLINT_BIN_NAME}.${target}.node`,
+  );
 
   const ext = platform === 'win32' ? '.exe' : '';
   const oxlsBinSource = resolve(REPO_ROOT, `${OXLS_BIN_NAME}-${target}${ext}`);
@@ -101,7 +107,7 @@ function writeManifest() {
   };
   manifestData.peerDependenciesMeta = {
     'oxlint-tsgolint': {
-      'optional': true,
+      optional: true,
     },
   };
 

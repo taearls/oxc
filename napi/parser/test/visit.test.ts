@@ -13,15 +13,21 @@ describe('visit', () => {
   describe('invalid visitor', () => {
     it('undefined visitor object', () => {
       // @ts-ignore
-      expect(() => new Visitor()).toThrow(new TypeError('Visitor must be an object'));
+      expect(() => new Visitor()).toThrow(
+        new TypeError('Visitor must be an object'),
+      );
     });
 
     it('null visitor object', () => {
-      expect(() => new Visitor(null)).toThrow(new TypeError('Visitor must be an object'));
+      expect(() => new Visitor(null)).toThrow(
+        new TypeError('Visitor must be an object'),
+      );
     });
 
     it('boolean visitor object', () => {
-      expect(() => new Visitor(true as unknown as VisitorObject)).toThrow(new TypeError('Visitor must be an object'));
+      expect(() => new Visitor(true as unknown as VisitorObject)).toThrow(
+        new TypeError('Visitor must be an object'),
+      );
     });
 
     it('unknown type in entry', () => {
@@ -37,7 +43,9 @@ describe('visit', () => {
     });
 
     it('invalid postfix', () => {
-      expect(() => new Visitor({ 'Identifier:foo'() {} } as VisitorObject)).toThrow(
+      expect(
+        () => new Visitor({ 'Identifier:foo'() {} } as VisitorObject),
+      ).toThrow(
         new Error("Unknown node type 'Identifier:foo' in visitor object"),
       );
     });
@@ -256,7 +264,11 @@ describe('visit', () => {
 it('visitor keys', () => {
   expect(visitorKeys.Literal).toEqual([]);
   expect(visitorKeys.VariableDeclaration).toEqual(['declarations']);
-  expect(visitorKeys.ObjectPattern).toEqual(['decorators', 'properties', 'typeAnnotation']);
+  expect(visitorKeys.ObjectPattern).toEqual([
+    'decorators',
+    'properties',
+    'typeAnnotation',
+  ]);
   expect(visitorKeys.ParenthesizedExpression).toEqual(['expression']);
   expect(visitorKeys.V8IntrinsicExpression).toEqual(['name', 'arguments']);
 });

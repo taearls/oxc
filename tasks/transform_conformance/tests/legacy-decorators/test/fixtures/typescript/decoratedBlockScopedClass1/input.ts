@@ -4,13 +4,13 @@
 // @filename: a.ts
 
 function decorator() {
-    return (target: new (...args: any[]) => any) => {}
+  return (target: new (...args: any[]) => any) => {};
 }
 
 @decorator()
 class Foo {
-    public static func(): Foo {
-        return new Foo();
-    }
+  public static func(): Foo {
+    return new Foo();
+  }
 }
 Foo.func();

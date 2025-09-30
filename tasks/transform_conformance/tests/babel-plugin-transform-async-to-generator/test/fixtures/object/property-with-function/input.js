@@ -1,23 +1,22 @@
 const Normal = {
   foo: async () => {
-    console.log(log)
-  }
-}
+    console.log(log);
+  },
+};
 
 const StringLiteralKey = {
-  ['bar']: async () => {
-  }
-}
+  ["bar"]: async () => {},
+};
 
 const EmptyStringLiteralKey = {
-  ['']: async () => {
-    console.log(this)
-  }
-}
+  [""]: async () => {
+    console.log(this);
+  },
+};
 
 const InvalidStringLiteralKey = {
-  ['#']: async () => {},
-  ['this']: async () => {},
-  ['#default']: async () => {},
-  ['O X C']: async () => {}
-}
+  ["#"]: async () => {},
+  ["this"]: async () => {},
+  ["#default"]: async () => {},
+  ["O X C"]: async () => {},
+};

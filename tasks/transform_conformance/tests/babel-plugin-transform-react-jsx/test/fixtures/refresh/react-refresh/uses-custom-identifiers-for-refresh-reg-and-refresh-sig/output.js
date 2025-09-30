@@ -7,6 +7,5 @@ export default function Bar() {
 }
 _s(Bar, "useContext{}");
 _c = Bar;
-;
 var _c;
 import.meta.refreshReg(_c, "Bar");

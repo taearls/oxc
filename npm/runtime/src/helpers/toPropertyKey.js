@@ -4,4 +4,6 @@ function toPropertyKey(t) {
   var i = toPrimitive(t, "string");
   return "symbol" == _typeof(i) ? i : i + "";
 }
-module.exports = toPropertyKey, module.exports.__esModule = true, module.exports["default"] = module.exports;
+(module.exports = toPropertyKey),
+  (module.exports.__esModule = true),
+  (module.exports["default"] = module.exports);

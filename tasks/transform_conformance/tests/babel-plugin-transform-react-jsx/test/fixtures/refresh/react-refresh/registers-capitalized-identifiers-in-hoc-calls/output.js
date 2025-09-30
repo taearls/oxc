@@ -3,7 +3,7 @@ function Foo() {
   return /* @__PURE__ */ _jsx("h1", { children: "Hi" });
 }
 _c = Foo;
-export default _c2 = hoc(Foo);
+export default (_c2 = hoc(Foo));
 export const A = hoc(Foo);
 _c3 = A;
 const B = hoc(Foo);

@@ -78,7 +78,10 @@ async function runTest262Case(path, lazy, expect) {
   }
 
   // @ts-ignore
-  const { program } = parseSync(filename, sourceText, { sourceType, experimentalRawTransfer: true });
+  const { program } = parseSync(filename, sourceText, {
+    sourceType,
+    experimentalRawTransfer: true,
+  });
   const json = stringifyAcornTest262Style(program);
   expect(json).toEqual(acornJson);
 }
@@ -100,7 +103,10 @@ async function runJsxCase(filename, lazy, expect) {
   }
 
   // @ts-ignore
-  const { program } = parseSync(filename, sourceText, { sourceType, experimentalRawTransfer: true });
+  const { program } = parseSync(filename, sourceText, {
+    sourceType,
+    experimentalRawTransfer: true,
+  });
   const json = stringifyAcornTest262Style(program);
   expect(json).toEqual(acornJson);
 }
@@ -118,12 +124,13 @@ async function runTsCase(path, lazy, expect) {
   ]);
 
   // Trim off UTF-8 BOM
-  if (sourceText.charCodeAt(0) === 0xFEFF) sourceText = sourceText.slice(1);
+  if (sourceText.charCodeAt(0) === 0xfeff) sourceText = sourceText.slice(1);
 
   const { tests } = makeUnitsFromTest(tsPath, sourceText);
-  const estreeJsons = casesJson.split(TS_CASE_HEADER)
+  const estreeJsons = casesJson
+    .split(TS_CASE_HEADER)
     .slice(1)
-    .map(part => part.slice(0, -TS_CASE_FOOTER_LEN));
+    .map((part) => part.slice(0, -TS_CASE_FOOTER_LEN));
   expect(estreeJsons.length).toEqual(tests.length);
 
   for (let i = 0; i < tests.length; i++) {
@@ -154,13 +161,20 @@ async function runTsCase(path, lazy, expect) {
       // We can fail to match the TS-ESLint snapshots where there are syntax errors,
       // because our parser is not recoverable.
       // @ts-ignore
-      const standard = parseSync(filename, code, { ...options, experimentalRawTransfer: false });
+      const standard = parseSync(filename, code, {
+        ...options,
+        experimentalRawTransfer: false,
+      });
       const standardJson = stringifyAcornTest262Style(standard.program);
       const errorsStandard = standard.errors;
 
       expect(oxcJson).toEqual(standardJson);
 
-      const errorsRawJson = JSON.stringify(removeNullProperties(errors), null, 2);
+      const errorsRawJson = JSON.stringify(
+        removeNullProperties(errors),
+        null,
+        2,
+      );
       const errorsStandardJson = JSON.stringify(errorsStandard, null, 2);
       expect(errorsRawJson).toEqual(errorsStandardJson);
     }
@@ -180,7 +194,12 @@ async function runFixture(path, lazy, pretty, expect) {
 }
 
 // Test raw transfer output matches standard (via JSON) output for a fixture, with provided source text
-async function runInlineFixture({ filename, sourceText }, lazy, pretty, expect) {
+async function runInlineFixture(
+  { filename, sourceText },
+  lazy,
+  pretty,
+  expect,
+) {
   if (lazy) {
     testLazy(filename, sourceText);
   } else {
@@ -206,8 +225,12 @@ function testLazy(filename, sourceText, options) {
 // Assert raw transfer output matches standard (via JSON) output
 function assertRawAndStandardMatch(filename, sourceText, pretty, expect) {
   const retStandard = parseSync(filename, sourceText);
-  const { program: programStandard, comments: commentsStandard, module: moduleStandard, errors: errorsStandard } =
-    retStandard;
+  const {
+    program: programStandard,
+    comments: commentsStandard,
+    module: moduleStandard,
+    errors: errorsStandard,
+  } = retStandard;
 
   // Re-arrange fields to match raw transfer.
   // We don't want to change field order of the Rust structs, but want `start` and `end` last.
@@ -217,7 +240,9 @@ function assertRawAndStandardMatch(filename, sourceText, pretty, expect) {
   moveStartAndEndToLast(moduleStandard.dynamicImports, false);
 
   // @ts-ignore
-  const retRaw = parseSync(filename, sourceText, { experimentalRawTransfer: true });
+  const retRaw = parseSync(filename, sourceText, {
+    experimentalRawTransfer: true,
+  });
   const { program: programRaw, comments: commentsRaw } = retRaw;
   // Remove `null` values, to match what NAPI-RS does
   const moduleRaw = removeNullProperties(retRaw.module);
@@ -225,11 +250,21 @@ function assertRawAndStandardMatch(filename, sourceText, pretty, expect) {
 
   // Compare as JSON (to ensure same field order)
   const jsonStandard = stringify(
-    { program: programStandard, comments: commentsStandard, module: moduleStandard, errors: errorsStandard },
+    {
+      program: programStandard,
+      comments: commentsStandard,
+      module: moduleStandard,
+      errors: errorsStandard,
+    },
     pretty,
   );
   const jsonRaw = stringify(
-    { program: programRaw, comments: commentsRaw, module: moduleRaw, errors: errorsRaw },
+    {
+      program: programRaw,
+      comments: commentsRaw,
+      module: moduleRaw,
+      errors: errorsRaw,
+    },
     pretty,
   );
   expect(jsonRaw).toEqual(jsonStandard);
@@ -263,12 +298,18 @@ function getSourceTypeFromJSON(json) {
 // Stringify to JSON, replacing values which are invalid in JSON.
 // If `pretty === true`, JSON is pretty-printed.
 function stringify(obj, pretty) {
-  return JSON.stringify(obj, (_key, value) => {
-    if (typeof value === 'bigint') return `__BIGINT__: ${value}`;
-    if (typeof value === 'object' && value instanceof RegExp) return `__REGEXP__: ${value}`;
-    if (value === Infinity) return `__INFINITY__`;
-    return value;
-  }, pretty ? 2 : undefined);
+  return JSON.stringify(
+    obj,
+    (_key, value) => {
+      if (typeof value === 'bigint') return `__BIGINT__: ${value}`;
+      if (typeof value === 'object' && value instanceof RegExp) {
+        return `__REGEXP__: ${value}`;
+      }
+      if (value === Infinity) return `__INFINITY__`;
+      return value;
+    },
+    pretty ? 2 : undefined,
+  );
 }
 
 // Stringify to JSON, removing values which are invalid in JSON,
@@ -278,21 +319,32 @@ const INFINITY_REGEXP = new RegExp(`"${INFINITY_PLACEHOLDER}"`, 'g');
 
 function stringifyAcornTest262Style(obj) {
   let containsInfinity = false;
-  const json = JSON.stringify(obj, (_key, value) => {
-    if (typeof value === 'bigint' || (typeof value === 'object' && value instanceof RegExp)) return null;
-    if (value === Infinity) {
-      containsInfinity = true;
-      return INFINITY_PLACEHOLDER;
-    }
-    return value;
-  }, 2);
+  const json = JSON.stringify(
+    obj,
+    (_key, value) => {
+      if (
+        typeof value === 'bigint' ||
+        (typeof value === 'object' && value instanceof RegExp)
+      ) {
+        return null;
+      }
+      if (value === Infinity) {
+        containsInfinity = true;
+        return INFINITY_PLACEHOLDER;
+      }
+      return value;
+    },
+    2,
+  );
 
   return containsInfinity ? json.replace(INFINITY_REGEXP, '1e+400') : json;
 }
 
 // Remove `null` values, to match what NAPI-RS does
 function removeNullProperties(obj) {
-  return JSON.parse(JSON.stringify(obj, (_key, value) => value === null ? undefined : value));
+  return JSON.parse(
+    JSON.stringify(obj, (_key, value) => (value === null ? undefined : value)),
+  );
 }
 
 // Very simple `expect` implementation.

@@ -30,12 +30,14 @@ import {
 
 const [describeLazy, itLazy] = process.env.RUN_LAZY_TESTS === 'true'
   ? [describe, it]
-  : (noop => [noop, noop])(Object.assign(() => {}, { concurrent() {} }));
+  : ((noop) => [noop, noop])(Object.assign(() => {}, { concurrent() {} }));
 
 // Worker pool for running test cases.
 // Vitest provides parallelism across test files, but not across cases within a single test file.
 // So we run each case in a worker to achieve parallelism.
-const pool = new Tinypool({ filename: new URL('./parse-raw-worker.js', import.meta.url).href });
+const pool = new Tinypool({
+  filename: new URL('./parse-raw-worker.js', import.meta.url).href,
+});
 
 let runCase;
 
@@ -71,61 +73,75 @@ const benchFixtureUrls = [
 
 await mkdir(TARGET_DIR_PATH, { recursive: true });
 
-const benchFixturePaths = await Promise.all(benchFixtureUrls.map(async (url) => {
-  const filename = url.split('/').at(-1),
-    path = pathJoin(TARGET_DIR_PATH, filename);
-  try {
-    await stat(path);
-  } catch {
-    const res = await fetch(url);
-    const sourceText = await res.text();
-    await writeFile(path, sourceText);
-  }
-  return path.slice(ROOT_DIR_PATH.length + 1);
-}));
+const benchFixturePaths = await Promise.all(
+  benchFixtureUrls.map(async (url) => {
+    const filename = url.split('/').at(-1),
+      path = pathJoin(TARGET_DIR_PATH, filename);
+    try {
+      await stat(path);
+    } catch {
+      const res = await fetch(url);
+      const sourceText = await res.text();
+      await writeFile(path, sourceText);
+    }
+    return path.slice(ROOT_DIR_PATH.length + 1);
+  }),
+);
 
 // Test raw transfer output matches JSON snapshots for Test262 test cases.
 //
 // Only test Test262 fixtures which Acorn is able to parse.
 // Skip tests which we know we can't pass (listed as failing in `estree_test262.snap` snapshot file),
 // and skip tests related to hashbangs (where output is correct, but Acorn doesn't parse hashbangs).
-const test262FailPaths = await getTestFailurePaths(TEST262_SNAPSHOT_PATH, TEST262_SHORT_DIR_PATH);
+const test262FailPaths = await getTestFailurePaths(
+  TEST262_SNAPSHOT_PATH,
+  TEST262_SHORT_DIR_PATH,
+);
 const test262FixturePaths = [];
 for (let path of await readdir(ACORN_TEST262_DIR_PATH, { recursive: true })) {
   if (!path.endsWith('.json')) continue;
   path = path.slice(0, -2);
-  if (test262FailPaths.has(path) || path.startsWith('language/comments/hashbang/')) continue;
+  if (
+    test262FailPaths.has(path) ||
+    path.startsWith('language/comments/hashbang/')
+  ) {
+    continue;
+  }
   test262FixturePaths.push(path);
 }
 
 describe.concurrent('test262', () => {
   // oxlint-disable-next-line jest/expect-expect
-  it.each(test262FixturePaths)('%s', path => runCaseInWorker(TEST_TYPE_TEST262, path));
+  it.each(test262FixturePaths)('%s', (path) => runCaseInWorker(TEST_TYPE_TEST262, path));
 });
 
 // Check lazy deserialization doesn't throw
 describeLazy.concurrent('lazy test262', () => {
   // oxlint-disable-next-line jest/expect-expect
-  it.each(test262FixturePaths)('%s', path => runCaseInWorker(TEST_TYPE_TEST262 | TEST_TYPE_LAZY, path));
+  it.each(test262FixturePaths)('%s', (path) => runCaseInWorker(TEST_TYPE_TEST262 | TEST_TYPE_LAZY, path));
 });
 
 // Test raw transfer output matches JSON snapshots for Acorn-JSX test cases.
 //
 // Only test Acorn-JSX fixtures which Acorn is able to parse.
 // Skip tests which we know we can't pass (listed as failing in `estree_acorn_jsx.snap` snapshot file).
-const jsxFailPaths = await getTestFailurePaths(JSX_SNAPSHOT_PATH, JSX_SHORT_DIR_PATH);
-const jsxFixturePaths = (await readdir(JSX_DIR_PATH, { recursive: true }))
-  .filter(path => path.endsWith('.jsx') && !jsxFailPaths.has(path));
+const jsxFailPaths = await getTestFailurePaths(
+  JSX_SNAPSHOT_PATH,
+  JSX_SHORT_DIR_PATH,
+);
+const jsxFixturePaths = (
+  await readdir(JSX_DIR_PATH, { recursive: true })
+).filter((path) => path.endsWith('.jsx') && !jsxFailPaths.has(path));
 
 describe.concurrent('JSX', () => {
   // oxlint-disable-next-line jest/expect-expect
-  it.each(jsxFixturePaths)('%s', filename => runCaseInWorker(TEST_TYPE_JSX, filename));
+  it.each(jsxFixturePaths)('%s', (filename) => runCaseInWorker(TEST_TYPE_JSX, filename));
 });
 
 // Check lazy deserialization doesn't throw
 describeLazy.concurrent('lazy JSX', () => {
   // oxlint-disable-next-line jest/expect-expect
-  it.each(jsxFixturePaths)('%s', filename => runCaseInWorker(TEST_TYPE_JSX | TEST_TYPE_LAZY, filename));
+  it.each(jsxFixturePaths)('%s', (filename) => runCaseInWorker(TEST_TYPE_JSX | TEST_TYPE_LAZY, filename));
 });
 
 // Test raw transfer output matches JSON snapshots for TypeScript test cases.
@@ -136,19 +152,23 @@ describeLazy.concurrent('lazy JSX', () => {
 // Where output does not match snapshot, fallback to comparing to "standard" transfer method instead.
 // We can fail to match the TS-ESLint snapshots where there are syntax errors, because our parser
 // is not recoverable.
-const tsFailPaths = await getTestFailurePaths(TS_SNAPSHOT_PATH, TS_SHORT_DIR_PATH);
-const tsFixturePaths = (await readdir(TS_ESTREE_DIR_PATH, { recursive: true }))
-  .filter(path => path.endsWith('.md') && !tsFailPaths.has(path.slice(0, -3)));
+const tsFailPaths = await getTestFailurePaths(
+  TS_SNAPSHOT_PATH,
+  TS_SHORT_DIR_PATH,
+);
+const tsFixturePaths = (
+  await readdir(TS_ESTREE_DIR_PATH, { recursive: true })
+).filter((path) => path.endsWith('.md') && !tsFailPaths.has(path.slice(0, -3)));
 
 describe.concurrent('TypeScript', () => {
   // oxlint-disable-next-line jest/expect-expect
-  it.each(tsFixturePaths)('%s', path => runCaseInWorker(TEST_TYPE_TS, path));
+  it.each(tsFixturePaths)('%s', (path) => runCaseInWorker(TEST_TYPE_TS, path));
 });
 
 // Check lazy deserialization doesn't throw
 describeLazy.concurrent('lazy TypeScript', () => {
   // oxlint-disable-next-line jest/expect-expect
-  it.each(tsFixturePaths)('%s', path => runCaseInWorker(TEST_TYPE_TS | TEST_TYPE_LAZY, path));
+  it.each(tsFixturePaths)('%s', (path) => runCaseInWorker(TEST_TYPE_TS | TEST_TYPE_LAZY, path));
 });
 
 // Test raw transfer output matches standard (via JSON) output for edge cases not covered by Test262
@@ -172,31 +192,41 @@ describe.concurrent('edge cases', () => {
     '#!/usr/bin/env node\nlet x;\n// foo',
   ])('%s', (sourceText) => {
     // oxlint-disable-next-line jest/expect-expect
-    it('JS', () => runCaseInWorker(TEST_TYPE_INLINE_FIXTURE, { filename: 'dummy.js', sourceText }));
+    it('JS', () =>
+      runCaseInWorker(TEST_TYPE_INLINE_FIXTURE, {
+        filename: 'dummy.js',
+        sourceText,
+      }));
     // oxlint-disable-next-line jest/expect-expect
-    it('TS', () => runCaseInWorker(TEST_TYPE_INLINE_FIXTURE, { filename: 'dummy.ts', sourceText }));
+    it('TS', () =>
+      runCaseInWorker(TEST_TYPE_INLINE_FIXTURE, {
+        filename: 'dummy.ts',
+        sourceText,
+      }));
 
-    itLazy(
-      'JS',
-      () => runCaseInWorker(TEST_TYPE_INLINE_FIXTURE | TEST_TYPE_LAZY, { filename: 'dummy.js', sourceText }),
-    );
-    itLazy(
-      'TS',
-      () => runCaseInWorker(TEST_TYPE_INLINE_FIXTURE | TEST_TYPE_LAZY, { filename: 'dummy.ts', sourceText }),
-    );
+    itLazy('JS', () =>
+      runCaseInWorker(TEST_TYPE_INLINE_FIXTURE | TEST_TYPE_LAZY, {
+        filename: 'dummy.js',
+        sourceText,
+      }));
+    itLazy('TS', () =>
+      runCaseInWorker(TEST_TYPE_INLINE_FIXTURE | TEST_TYPE_LAZY, {
+        filename: 'dummy.ts',
+        sourceText,
+      }));
   });
 });
 
 // Test raw transfer output matches standard (via JSON) output for some large files
 describe.concurrent('fixtures', () => {
   // oxlint-disable-next-line jest/expect-expect
-  it.each(benchFixturePaths)('%s', path => runCaseInWorker(TEST_TYPE_FIXTURE, path));
+  it.each(benchFixturePaths)('%s', (path) => runCaseInWorker(TEST_TYPE_FIXTURE, path));
 });
 
 // Check lazy deserialization doesn't throw
 describeLazy.concurrent('lazy fixtures', () => {
   // oxlint-disable-next-line jest/expect-expect
-  it.each(benchFixturePaths)('%s', path => runCaseInWorker(TEST_TYPE_FIXTURE | TEST_TYPE_LAZY, path));
+  it.each(benchFixturePaths)('%s', (path) => runCaseInWorker(TEST_TYPE_FIXTURE | TEST_TYPE_LAZY, path));
 });
 
 // Get `Set` containing test paths which failed from snapshot file
@@ -206,9 +236,10 @@ async function getTestFailurePaths(snapshotPath, pathPrefix) {
 
   const snapshot = await readFile(snapshotPath, 'utf8');
   return new Set(
-    snapshot.split('\n')
-      .filter(line => line.startsWith(mismatchPrefix))
-      .map(line => line.slice(mismatchPrefixLen)),
+    snapshot
+      .split('\n')
+      .filter((line) => line.startsWith(mismatchPrefix))
+      .map((line) => line.slice(mismatchPrefixLen)),
   );
 }
 
@@ -219,7 +250,9 @@ describe.concurrent('`parseAsync`', () => {
       sourceText = await readFile(pathJoin(ROOT_DIR_PATH, path), 'utf8');
     const programStandard = parseSync(filename, sourceText).program;
     // @ts-ignore
-    const programRaw = (await parseAsync(filename, sourceText, { experimentalRawTransfer: true })).program;
+    const programRaw = (
+      await parseAsync(filename, sourceText, { experimentalRawTransfer: true })
+    ).program;
     expect(programRaw).toEqual(programStandard);
   });
 
@@ -241,7 +274,9 @@ describe.concurrent('`parseAsync`', () => {
     for (let i = 0; i < iterations; i++) {
       const code = `let x = ${i}`;
       // @ts-ignore
-      promises.push(parseAsync('test.js', code, { experimentalRawTransfer: true }));
+      promises.push(
+        parseAsync('test.js', code, { experimentalRawTransfer: true }),
+      );
     }
     const results = await Promise.all(promises);
 
@@ -261,7 +296,10 @@ it.concurrent('checks semantic', async () => {
   expect(ret.errors.length).toBe(0);
 
   // @ts-ignore
-  ret = parseSync('test.js', code, { experimentalRawTransfer: true, showSemanticErrors: true });
+  ret = parseSync('test.js', code, {
+    experimentalRawTransfer: true,
+    showSemanticErrors: true,
+  });
   expect(ret.errors.length).toBe(1);
 });
 
@@ -271,7 +309,10 @@ describe.concurrent('`preserveParens` option', () => {
       const code = 'let x = (1 + 2);';
 
       // @ts-ignore
-      let ret = parseSync('test.js', code, { experimentalRawTransfer: true, preserveParens: false });
+      let ret = parseSync('test.js', code, {
+        experimentalRawTransfer: true,
+        preserveParens: false,
+      });
       expect(ret.errors.length).toBe(0);
       const firstStatement = ret.program.body[0] as VariableDeclaration;
       expect(firstStatement.declarations[0].init.type).toBe('BinaryExpression');
@@ -281,7 +322,10 @@ describe.concurrent('`preserveParens` option', () => {
       const code = 'let x = (1 + 2); type T = (string);';
 
       // @ts-ignore
-      let ret = parseSync('test.ts', code, { experimentalRawTransfer: true, preserveParens: false });
+      let ret = parseSync('test.ts', code, {
+        experimentalRawTransfer: true,
+        preserveParens: false,
+      });
       expect(ret.errors.length).toBe(0);
       const firstStatement = ret.program.body[0] as VariableDeclaration;
       expect(firstStatement.declarations[0].init.type).toBe('BinaryExpression');
@@ -295,20 +339,30 @@ describe.concurrent('`preserveParens` option', () => {
       const code = 'let x = (1 + 2);';
 
       // @ts-ignore
-      let ret = parseSync('test.js', code, { experimentalRawTransfer: true, preserveParens: true });
+      let ret = parseSync('test.js', code, {
+        experimentalRawTransfer: true,
+        preserveParens: true,
+      });
       expect(ret.errors.length).toBe(0);
       const firstStatement = ret.program.body[0] as VariableDeclaration;
-      expect(firstStatement.declarations[0].init.type).toBe('ParenthesizedExpression');
+      expect(firstStatement.declarations[0].init.type).toBe(
+        'ParenthesizedExpression',
+      );
     });
 
     it.concurrent('TS', async () => {
       const code = 'let x = (1 + 2); type T = (string);';
 
       // @ts-ignore
-      let ret = parseSync('test.ts', code, { experimentalRawTransfer: true, preserveParens: true });
+      let ret = parseSync('test.ts', code, {
+        experimentalRawTransfer: true,
+        preserveParens: true,
+      });
       expect(ret.errors.length).toBe(0);
       const firstStatement = ret.program.body[0] as VariableDeclaration;
-      expect(firstStatement.declarations[0].init.type).toBe('ParenthesizedExpression');
+      expect(firstStatement.declarations[0].init.type).toBe(
+        'ParenthesizedExpression',
+      );
       const secondStatement = ret.program.body[1] as TSTypeAliasDeclaration;
       expect(secondStatement.typeAnnotation.type).toBe('TSParenthesizedType');
     });

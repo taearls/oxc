@@ -21,4 +21,4 @@ repro.x?.y.f?.();
 repro.x.y?.f?.();
 repro.x?.y?.f?.();
 repro["x"].f?.();
-(0, repro).f?.()
+(0, repro).f?.();

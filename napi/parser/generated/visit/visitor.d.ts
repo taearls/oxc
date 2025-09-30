@@ -81,7 +81,9 @@ export interface VisitorObject {
   ArrayPattern?: (node: ESTree.ArrayPattern) => void;
   'ArrayPattern:exit'?: (node: ESTree.ArrayPattern) => void;
   ArrowFunctionExpression?: (node: ESTree.ArrowFunctionExpression) => void;
-  'ArrowFunctionExpression:exit'?: (node: ESTree.ArrowFunctionExpression) => void;
+  'ArrowFunctionExpression:exit'?: (
+    node: ESTree.ArrowFunctionExpression,
+  ) => void;
   AssignmentExpression?: (node: ESTree.AssignmentExpression) => void;
   'AssignmentExpression:exit'?: (node: ESTree.AssignmentExpression) => void;
   AssignmentPattern?: (node: ESTree.AssignmentPattern) => void;
@@ -117,7 +119,9 @@ export interface VisitorObject {
   ExportAllDeclaration?: (node: ESTree.ExportAllDeclaration) => void;
   'ExportAllDeclaration:exit'?: (node: ESTree.ExportAllDeclaration) => void;
   ExportDefaultDeclaration?: (node: ESTree.ExportDefaultDeclaration) => void;
-  'ExportDefaultDeclaration:exit'?: (node: ESTree.ExportDefaultDeclaration) => void;
+  'ExportDefaultDeclaration:exit'?: (
+    node: ESTree.ExportDefaultDeclaration,
+  ) => void;
   ExportNamedDeclaration?: (node: ESTree.ExportNamedDeclaration) => void;
   'ExportNamedDeclaration:exit'?: (node: ESTree.ExportNamedDeclaration) => void;
   ExportSpecifier?: (node: ESTree.ExportSpecifier) => void;
@@ -163,7 +167,9 @@ export interface VisitorObject {
   ImportExpression?: (node: ESTree.ImportExpression) => void;
   'ImportExpression:exit'?: (node: ESTree.ImportExpression) => void;
   ImportNamespaceSpecifier?: (node: ESTree.ImportNamespaceSpecifier) => void;
-  'ImportNamespaceSpecifier:exit'?: (node: ESTree.ImportNamespaceSpecifier) => void;
+  'ImportNamespaceSpecifier:exit'?: (
+    node: ESTree.ImportNamespaceSpecifier,
+  ) => void;
   ImportSpecifier?: (node: ESTree.ImportSpecifier) => void;
   'ImportSpecifier:exit'?: (node: ESTree.ImportSpecifier) => void;
   LabeledStatement?: (node: ESTree.LabeledStatement) => void;
@@ -183,7 +189,9 @@ export interface VisitorObject {
   ObjectPattern?: (node: ESTree.ObjectPattern) => void;
   'ObjectPattern:exit'?: (node: ESTree.ObjectPattern) => void;
   ParenthesizedExpression?: (node: ESTree.ParenthesizedExpression) => void;
-  'ParenthesizedExpression:exit'?: (node: ESTree.ParenthesizedExpression) => void;
+  'ParenthesizedExpression:exit'?: (
+    node: ESTree.ParenthesizedExpression,
+  ) => void;
   Program?: (node: ESTree.Program) => void;
   'Program:exit'?: (node: ESTree.Program) => void;
   Property?: (
@@ -202,9 +210,17 @@ export interface VisitorObject {
   ) => void;
   PropertyDefinition?: (node: ESTree.PropertyDefinition) => void;
   'PropertyDefinition:exit'?: (node: ESTree.PropertyDefinition) => void;
-  RestElement?: (node: ESTree.AssignmentTargetRest | ESTree.BindingRestElement | ESTree.FormalParameterRest) => void;
+  RestElement?: (
+    node:
+      | ESTree.AssignmentTargetRest
+      | ESTree.BindingRestElement
+      | ESTree.FormalParameterRest,
+  ) => void;
   'RestElement:exit'?: (
-    node: ESTree.AssignmentTargetRest | ESTree.BindingRestElement | ESTree.FormalParameterRest,
+    node:
+      | ESTree.AssignmentTargetRest
+      | ESTree.BindingRestElement
+      | ESTree.FormalParameterRest,
   ) => void;
   ReturnStatement?: (node: ESTree.ReturnStatement) => void;
   'ReturnStatement:exit'?: (node: ESTree.ReturnStatement) => void;
@@ -219,7 +235,9 @@ export interface VisitorObject {
   SwitchStatement?: (node: ESTree.SwitchStatement) => void;
   'SwitchStatement:exit'?: (node: ESTree.SwitchStatement) => void;
   TaggedTemplateExpression?: (node: ESTree.TaggedTemplateExpression) => void;
-  'TaggedTemplateExpression:exit'?: (node: ESTree.TaggedTemplateExpression) => void;
+  'TaggedTemplateExpression:exit'?: (
+    node: ESTree.TaggedTemplateExpression,
+  ) => void;
   TemplateLiteral?: (node: ESTree.TemplateLiteral) => void;
   'TemplateLiteral:exit'?: (node: ESTree.TemplateLiteral) => void;
   ThrowStatement?: (node: ESTree.ThrowStatement) => void;
@@ -267,19 +285,29 @@ export interface VisitorObject {
   TSAbstractMethodDefinition?: (node: ESTree.MethodDefinition) => void;
   'TSAbstractMethodDefinition:exit'?: (node: ESTree.MethodDefinition) => void;
   TSAbstractPropertyDefinition?: (node: ESTree.PropertyDefinition) => void;
-  'TSAbstractPropertyDefinition:exit'?: (node: ESTree.PropertyDefinition) => void;
+  'TSAbstractPropertyDefinition:exit'?: (
+    node: ESTree.PropertyDefinition,
+  ) => void;
   TSArrayType?: (node: ESTree.TSArrayType) => void;
   'TSArrayType:exit'?: (node: ESTree.TSArrayType) => void;
   TSAsExpression?: (node: ESTree.TSAsExpression) => void;
   'TSAsExpression:exit'?: (node: ESTree.TSAsExpression) => void;
-  TSCallSignatureDeclaration?: (node: ESTree.TSCallSignatureDeclaration) => void;
-  'TSCallSignatureDeclaration:exit'?: (node: ESTree.TSCallSignatureDeclaration) => void;
+  TSCallSignatureDeclaration?: (
+    node: ESTree.TSCallSignatureDeclaration,
+  ) => void;
+  'TSCallSignatureDeclaration:exit'?: (
+    node: ESTree.TSCallSignatureDeclaration,
+  ) => void;
   TSClassImplements?: (node: ESTree.TSClassImplements) => void;
   'TSClassImplements:exit'?: (node: ESTree.TSClassImplements) => void;
   TSConditionalType?: (node: ESTree.TSConditionalType) => void;
   'TSConditionalType:exit'?: (node: ESTree.TSConditionalType) => void;
-  TSConstructSignatureDeclaration?: (node: ESTree.TSConstructSignatureDeclaration) => void;
-  'TSConstructSignatureDeclaration:exit'?: (node: ESTree.TSConstructSignatureDeclaration) => void;
+  TSConstructSignatureDeclaration?: (
+    node: ESTree.TSConstructSignatureDeclaration,
+  ) => void;
+  'TSConstructSignatureDeclaration:exit'?: (
+    node: ESTree.TSConstructSignatureDeclaration,
+  ) => void;
   TSConstructorType?: (node: ESTree.TSConstructorType) => void;
   'TSConstructorType:exit'?: (node: ESTree.TSConstructorType) => void;
   TSDeclareFunction?: (node: ESTree.Function) => void;
@@ -295,11 +323,15 @@ export interface VisitorObject {
   TSExportAssignment?: (node: ESTree.TSExportAssignment) => void;
   'TSExportAssignment:exit'?: (node: ESTree.TSExportAssignment) => void;
   TSExternalModuleReference?: (node: ESTree.TSExternalModuleReference) => void;
-  'TSExternalModuleReference:exit'?: (node: ESTree.TSExternalModuleReference) => void;
+  'TSExternalModuleReference:exit'?: (
+    node: ESTree.TSExternalModuleReference,
+  ) => void;
   TSFunctionType?: (node: ESTree.TSFunctionType) => void;
   'TSFunctionType:exit'?: (node: ESTree.TSFunctionType) => void;
   TSImportEqualsDeclaration?: (node: ESTree.TSImportEqualsDeclaration) => void;
-  'TSImportEqualsDeclaration:exit'?: (node: ESTree.TSImportEqualsDeclaration) => void;
+  'TSImportEqualsDeclaration:exit'?: (
+    node: ESTree.TSImportEqualsDeclaration,
+  ) => void;
   TSImportType?: (node: ESTree.TSImportType) => void;
   'TSImportType:exit'?: (node: ESTree.TSImportType) => void;
   TSIndexSignature?: (node: ESTree.TSIndexSignature) => void;
@@ -309,7 +341,9 @@ export interface VisitorObject {
   TSInferType?: (node: ESTree.TSInferType) => void;
   'TSInferType:exit'?: (node: ESTree.TSInferType) => void;
   TSInstantiationExpression?: (node: ESTree.TSInstantiationExpression) => void;
-  'TSInstantiationExpression:exit'?: (node: ESTree.TSInstantiationExpression) => void;
+  'TSInstantiationExpression:exit'?: (
+    node: ESTree.TSInstantiationExpression,
+  ) => void;
   TSInterfaceBody?: (node: ESTree.TSInterfaceBody) => void;
   'TSInterfaceBody:exit'?: (node: ESTree.TSInterfaceBody) => void;
   TSInterfaceDeclaration?: (node: ESTree.TSInterfaceDeclaration) => void;
@@ -334,8 +368,12 @@ export interface VisitorObject {
   'TSModuleDeclaration:exit'?: (node: ESTree.TSModuleDeclaration) => void;
   TSNamedTupleMember?: (node: ESTree.TSNamedTupleMember) => void;
   'TSNamedTupleMember:exit'?: (node: ESTree.TSNamedTupleMember) => void;
-  TSNamespaceExportDeclaration?: (node: ESTree.TSNamespaceExportDeclaration) => void;
-  'TSNamespaceExportDeclaration:exit'?: (node: ESTree.TSNamespaceExportDeclaration) => void;
+  TSNamespaceExportDeclaration?: (
+    node: ESTree.TSNamespaceExportDeclaration,
+  ) => void;
+  'TSNamespaceExportDeclaration:exit'?: (
+    node: ESTree.TSNamespaceExportDeclaration,
+  ) => void;
   TSNonNullExpression?: (node: ESTree.TSNonNullExpression) => void;
   'TSNonNullExpression:exit'?: (node: ESTree.TSNonNullExpression) => void;
   TSOptionalType?: (node: ESTree.TSOptionalType) => void;
@@ -368,10 +406,18 @@ export interface VisitorObject {
   'TSTypeOperator:exit'?: (node: ESTree.TSTypeOperator) => void;
   TSTypeParameter?: (node: ESTree.TSTypeParameter) => void;
   'TSTypeParameter:exit'?: (node: ESTree.TSTypeParameter) => void;
-  TSTypeParameterDeclaration?: (node: ESTree.TSTypeParameterDeclaration) => void;
-  'TSTypeParameterDeclaration:exit'?: (node: ESTree.TSTypeParameterDeclaration) => void;
-  TSTypeParameterInstantiation?: (node: ESTree.TSTypeParameterInstantiation) => void;
-  'TSTypeParameterInstantiation:exit'?: (node: ESTree.TSTypeParameterInstantiation) => void;
+  TSTypeParameterDeclaration?: (
+    node: ESTree.TSTypeParameterDeclaration,
+  ) => void;
+  'TSTypeParameterDeclaration:exit'?: (
+    node: ESTree.TSTypeParameterDeclaration,
+  ) => void;
+  TSTypeParameterInstantiation?: (
+    node: ESTree.TSTypeParameterInstantiation,
+  ) => void;
+  'TSTypeParameterInstantiation:exit'?: (
+    node: ESTree.TSTypeParameterInstantiation,
+  ) => void;
   TSTypePredicate?: (node: ESTree.TSTypePredicate) => void;
   'TSTypePredicate:exit'?: (node: ESTree.TSTypePredicate) => void;
   TSTypeQuery?: (node: ESTree.TSTypeQuery) => void;

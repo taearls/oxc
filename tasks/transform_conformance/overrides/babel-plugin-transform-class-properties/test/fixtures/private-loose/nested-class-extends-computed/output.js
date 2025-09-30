@@ -3,13 +3,17 @@ class Foo {
   constructor() {
     Object.defineProperty(this, _foo, {
       writable: true,
-      value: 1
+      value: 1,
     });
   }
   test() {
     let _this$foo;
     var _foo2 = /* @__PURE__ */ babelHelpers.classPrivateFieldLooseKey("foo");
-    class Nested extends (_this$foo = babelHelpers.classPrivateFieldLooseBase(this, _foo)[_foo], class {
+    class Nested extends ((_this$foo = babelHelpers.classPrivateFieldLooseBase(
+      this,
+      _foo,
+    )[_foo]),
+    class {
       constructor() {
         this[_this$foo] = 2;
       }
@@ -18,7 +22,7 @@ class Foo {
         super(..._args);
         Object.defineProperty(this, _foo2, {
           writable: true,
-          value: 3
+          value: 3,
         });
       }
     }

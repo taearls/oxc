@@ -7,7 +7,13 @@ export type { Fix, Fixer, FixFn, NodeOrToken, Range } from './plugins/fix.ts';
 export type { CreateOnceRule, CreateRule, Plugin, Rule } from './plugins/load.ts';
 export type { AfterHook, BeforeHook, RuleMeta, Visitor, VisitorWithHooks } from './plugins/types.ts';
 
-const { defineProperty, getPrototypeOf, hasOwn, setPrototypeOf, create: ObjectCreate } = Object;
+const {
+  defineProperty,
+  getPrototypeOf,
+  hasOwn,
+  setPrototypeOf,
+  create: ObjectCreate,
+} = Object;
 
 /**
  * Define a plugin.
@@ -24,10 +30,14 @@ const { defineProperty, getPrototypeOf, hasOwn, setPrototypeOf, create: ObjectCr
  */
 export function definePlugin(plugin: Plugin): Plugin {
   // Validate type of `plugin`
-  if (plugin === null || typeof plugin !== 'object') throw new Error('Plugin must be an object');
+  if (plugin === null || typeof plugin !== 'object') {
+    throw new Error('Plugin must be an object');
+  }
 
   const { rules } = plugin;
-  if (rules === null || typeof rules !== 'object') throw new Error('Plugin must have an object as `rules` property');
+  if (rules === null || typeof rules !== 'object') {
+    throw new Error('Plugin must have an object as `rules` property');
+  }
 
   // Make each rule in the plugin ESLint-compatible by calling `defineRule` on it
   for (const ruleName in rules) {
@@ -54,13 +64,17 @@ export function definePlugin(plugin: Plugin): Plugin {
  */
 export function defineRule(rule: Rule): Rule {
   // Validate type of `rule`
-  if (rule === null || typeof rule !== 'object') throw new Error('Rule must be an object');
+  if (rule === null || typeof rule !== 'object') {
+    throw new Error('Rule must be an object');
+  }
 
   // If rule already has `create` method, return it as is
   if ('create' in rule) return rule;
 
   // Add `create` function to `rule`
-  let context: Context = null, visitor: Visitor, beforeHook: BeforeHook | null;
+  let context: Context = null,
+    visitor: Visitor,
+    beforeHook: BeforeHook | null;
 
   rule.create = (eslintContext) => {
     // Lazily call `createOnce` on first invocation of `create`
@@ -102,8 +116,14 @@ function createContextAndVisitor(rule: CreateOnceRule): {
 } {
   // Validate type of `createOnce`
   const { createOnce } = rule;
-  if (createOnce == null) throw new Error('Rules must define either a `create` or `createOnce` method');
-  if (typeof createOnce !== 'function') throw new Error('Rule `createOnce` property must be a function');
+  if (createOnce == null) {
+    throw new Error(
+      'Rules must define either a `create` or `createOnce` method',
+    );
+  }
+  if (typeof createOnce !== 'function') {
+    throw new Error('Rule `createOnce` property must be a function');
+  }
 
   // Call `createOnce` with empty context object.
   // Really, `context` should be an instance of `Context`, which would throw error on accessing e.g. `id`
@@ -115,17 +135,26 @@ function createContextAndVisitor(rule: CreateOnceRule): {
     report: { value: null, enumerable: true, configurable: true },
   });
 
-  let { before: beforeHook, after: afterHook, ...visitor } = createOnce.call(rule, context) as VisitorWithHooks;
+  let { before: beforeHook, after: afterHook, ...visitor } = createOnce.call(
+    rule,
+    context,
+  ) as VisitorWithHooks;
 
   if (beforeHook === void 0) {
     beforeHook = null;
   } else if (beforeHook !== null && typeof beforeHook !== 'function') {
-    throw new Error('`before` property of visitor must be a function if defined');
+    throw new Error(
+      '`before` property of visitor must be a function if defined',
+    );
   }
 
   // Add `after` hook to `Program:exit` visit fn
   if (afterHook != null) {
-    if (typeof afterHook !== 'function') throw new Error('`after` property of visitor must be a function if defined');
+    if (typeof afterHook !== 'function') {
+      throw new Error(
+        '`after` property of visitor must be a function if defined',
+      );
+    }
 
     const programExit = visitor['Program:exit'];
     visitor['Program:exit'] = programExit == null

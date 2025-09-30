@@ -1,7 +1,7 @@
 "use strict";
 import { jsx as _jsx } from "react/jsx-runtime";
 Object.defineProperty(exports, "__esModule", { value: true });
-(exports.default = App);
+exports.default = App;
 var _hooks = require("./hooks");
 var _s = $RefreshSig$();
 function App() {
@@ -9,7 +9,7 @@ function App() {
   const bar = (0, _hooks.useFancyState)();
   return _jsx("h1", { children: bar });
 }
-_s(App, "useFancyState{bar}", false, function() {
+_s(App, "useFancyState{bar}", false, function () {
   return [_hooks.useFancyState];
 });
 _c = App;

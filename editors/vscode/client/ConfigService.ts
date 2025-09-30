@@ -33,7 +33,10 @@ export class ConfigService implements IDisposable {
     this._disposables.push(disposeChangeListener);
   }
 
-  public get languageServerConfig(): { workspaceUri: string; options: WorkspaceConfigInterface }[] {
+  public get languageServerConfig(): {
+    workspaceUri: string;
+    options: WorkspaceConfigInterface;
+  }[] {
     return [...this.workspaceConfigs.entries()].map(([path, config]) => ({
       workspaceUri: Uri.file(path).toString(),
       options: config.toLanguageServerConfig(),
@@ -41,7 +44,10 @@ export class ConfigService implements IDisposable {
   }
 
   public addWorkspaceConfig(workspace: WorkspaceFolder): void {
-    this.workspaceConfigs.set(workspace.uri.path, new WorkspaceConfig(workspace));
+    this.workspaceConfigs.set(
+      workspace.uri.path,
+      new WorkspaceConfig(workspace),
+    );
   }
 
   public removeWorkspaceConfig(workspace: WorkspaceFolder): void {
@@ -52,7 +58,9 @@ export class ConfigService implements IDisposable {
     return this.workspaceConfigs.get(workspace.path);
   }
 
-  public effectsWorkspaceConfigChange(event: ConfigurationChangeEvent): boolean {
+  public effectsWorkspaceConfigChange(
+    event: ConfigurationChangeEvent,
+  ): boolean {
     for (const workspaceConfig of this.workspaceConfigs.values()) {
       if (workspaceConfig.effectsConfigChange(event)) {
         return true;
@@ -88,7 +96,9 @@ export class ConfigService implements IDisposable {
     return bin;
   }
 
-  private async onVscodeConfigChange(event: ConfigurationChangeEvent): Promise<void> {
+  private async onVscodeConfigChange(
+    event: ConfigurationChangeEvent,
+  ): Promise<void> {
     let isConfigChanged = false;
 
     if (event.affectsConfiguration(ConfigService.namespace)) {

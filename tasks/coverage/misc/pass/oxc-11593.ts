@@ -1,13 +1,13 @@
 export class C extends B {
-  @convert(val => {
-    if (['rect', 'triangle'].includes(val)) {
+  @convert((val) => {
+    if (["rect", "triangle"].includes(val)) {
       return val;
     }
 
-    return 'rect';
+    return "rect";
   })
-  @derive(val => {
-    if (val === 'triangle') {
+  @derive((val) => {
+    if (val === "triangle") {
       return {
         rotate: 0,
       };
@@ -15,5 +15,5 @@ export class C extends B {
     return {};
   })
   @field()
-  accessor shapeType: 'rect' | 'triangle' = 'rect';
+  accessor shapeType: "rect" | "triangle" = "rect";
 }

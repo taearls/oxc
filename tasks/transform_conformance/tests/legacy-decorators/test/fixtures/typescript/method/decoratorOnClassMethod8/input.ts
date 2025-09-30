@@ -3,5 +3,5 @@
 declare function dec<T>(target: T): T;
 
 class C {
-    @dec method() {}
+  @dec method() {}
 }

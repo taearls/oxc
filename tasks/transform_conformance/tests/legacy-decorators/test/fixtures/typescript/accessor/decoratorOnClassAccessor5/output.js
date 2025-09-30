@@ -1,6 +1,4 @@
 class C {
-    set accessor(value) { }
+  set accessor(value) {}
 }
-babelHelpers.decorate([
-    dec
-], C.prototype, "accessor", null);
+babelHelpers.decorate([dec], C.prototype, "accessor", null);

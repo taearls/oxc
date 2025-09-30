@@ -97,7 +97,9 @@ export async function loadPlugin(path: string): Promise<string> {
  */
 async function loadPluginImpl(path: string): Promise<PluginDetails> {
   if (registeredPluginPaths.has(path)) {
-    throw new Error('This plugin has already been registered. This is a bug in Oxlint. Please report it.');
+    throw new Error(
+      'This plugin has already been registered. This is a bug in Oxlint. Please report it.',
+    );
   }
 
   const { default: plugin } = (await import(path)) as { default: Plugin };
@@ -123,7 +125,9 @@ async function loadPluginImpl(path: string): Promise<PluginDetails> {
 
       const { fixable } = ruleMeta;
       if (fixable != null) {
-        if (fixable !== 'code' && fixable !== 'whitespace') throw new TypeError('Invalid `meta.fixable`');
+        if (fixable !== 'code' && fixable !== 'whitespace') {
+          throw new TypeError('Invalid `meta.fixable`');
+        }
         isFixable = true;
       }
     }
@@ -146,7 +150,13 @@ async function loadPluginImpl(path: string): Promise<PluginDetails> {
 
       ruleAndContext = { rule, context, visitor, beforeHook, afterHook };
     } else {
-      ruleAndContext = { rule, context, visitor: null, beforeHook: null, afterHook: null };
+      ruleAndContext = {
+        rule,
+        context,
+        visitor: null,
+        beforeHook: null,
+        afterHook: null,
+      };
     }
 
     registeredRules.push(ruleAndContext);
@@ -162,8 +172,13 @@ async function loadPluginImpl(path: string): Promise<PluginDetails> {
  * @returns Hook function, or null
  * @throws {TypeError} If `hookFn` is not a function, `null`, or `undefined`
  */
-function conformHookFn<H>(hookFn: H | null | undefined, hookName: string): H | null {
+function conformHookFn<H>(
+  hookFn: H | null | undefined,
+  hookName: string,
+): H | null {
   if (hookFn == null) return null;
-  if (typeof hookFn !== 'function') throw new TypeError(`\`${hookName}\` hook must be a function if provided`);
+  if (typeof hookFn !== 'function') {
+    throw new TypeError(`\`${hookName}\` hook must be a function if provided`);
+  }
   return hookFn;
 }

@@ -7,7 +7,12 @@ declare function dec(
 ): void;
 
 class Cls {
-  constructor(@dec param: Foo, param2: Foo | Bar, param3: Zoo, param4: Zoo.o.o) {
+  constructor(
+    @dec param: Foo,
+    param2: Foo | Bar,
+    param3: Zoo,
+    param4: Zoo.o.o,
+  ) {
     console.log(param, param2, param3, param4);
   }
 }

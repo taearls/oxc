@@ -1,4 +1,8 @@
 function foo() {
-  { let f = () => this; }
-  { let f2 = () => this; }
+  {
+    let f = () => this;
+  }
+  {
+    let f2 = () => this;
+  }
 }

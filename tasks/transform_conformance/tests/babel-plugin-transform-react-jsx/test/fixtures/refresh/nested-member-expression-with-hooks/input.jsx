@@ -1,3 +1,3 @@
-export function Bar () {
-  A.B.C.useHook()
+export function Bar() {
+  A.B.C.useHook();
 }

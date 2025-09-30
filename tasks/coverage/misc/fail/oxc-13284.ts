@@ -3,17 +3,17 @@
 
 // `super()`
 class C extends Super {
-  [keys: string]: typeof import('x', { with: super() }).y;
+  [keys: string]: typeof import("x", { with: super() }).y;
 }
 
 class D extends Super {
-  [keys: typeof import('x', { with: super() }).y]: string;
+  [keys: typeof import("x", { with: super() }).y]: string;
 }
 
 class Outer extends Super {
   constructor() {
     class Inner {
-      [keys: string]: typeof import('x', { with: super() }).y;
+      [keys: string]: typeof import("x", { with: super() }).y;
     }
   }
 }
@@ -21,7 +21,7 @@ class Outer extends Super {
 class Outer2 {
   constructor() {
     class Inner extends Super {
-      [keys: typeof import('x', { with: super() }).y]: string;
+      [keys: typeof import("x", { with: super() }).y]: string;
     }
   }
 }
@@ -32,5 +32,5 @@ class E {
 }
 
 class F {
-  [keys: typeof import('x', { with: super.foo }).y]: string;
+  [keys: typeof import("x", { with: super.foo }).y]: string;
 }

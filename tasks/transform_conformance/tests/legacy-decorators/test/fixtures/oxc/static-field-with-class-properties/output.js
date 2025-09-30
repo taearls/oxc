@@ -4,6 +4,6 @@ function Bar() {
     console.log(Bar.name);
   };
 }
-let Foo = _Foo = class Foo {};
+let Foo = (_Foo = class Foo {});
 babelHelpers.defineProperty(Foo, "foo", `${_Foo.name}`);
 Foo = _Foo = babelHelpers.decorate([Bar()], Foo);

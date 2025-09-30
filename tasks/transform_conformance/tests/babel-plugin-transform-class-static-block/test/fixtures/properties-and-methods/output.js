@@ -1,4 +1,4 @@
-function foo() { }
+function foo() {}
 
 export class C {
   #_ = 1;
@@ -11,6 +11,6 @@ export class C {
   static _8 = 8;
   _9() {}
   static _10() {}
-  
+
   static #_7 = foo();
 }

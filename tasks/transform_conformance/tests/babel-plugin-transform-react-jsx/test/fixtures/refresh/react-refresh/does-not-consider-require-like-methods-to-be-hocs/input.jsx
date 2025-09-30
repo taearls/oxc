@@ -4,10 +4,10 @@
 // So we expect the transform to skip all of them even though
 // they are used in JSX.
 
-const A = require('A');
-const B = foo ? require('X') : require('Y');
-const C = requireCond(gk, 'C');
-const D = import('D');
+const A = require("A");
+const B = foo ? require("X") : require("Y");
+const C = requireCond(gk, "C");
+const D = import("D");
 
 export default function App() {
   return (

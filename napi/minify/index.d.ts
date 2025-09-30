@@ -6,7 +6,7 @@ export interface CodegenOptions {
    *
    * @default true
    */
-  removeWhitespace?: boolean
+  removeWhitespace?: boolean;
 }
 
 export interface CompressOptions {
@@ -24,27 +24,27 @@ export interface CompressOptions {
    *
    * @see [esbuild#target](https://esbuild.github.io/api/#target)
    */
-  target?: string | Array<string>
+  target?: string | Array<string>;
   /**
    * Pass true to discard calls to `console.*`.
    *
    * @default false
    */
-  dropConsole?: boolean
+  dropConsole?: boolean;
   /**
    * Remove `debugger;` statements.
    *
    * @default true
    */
-  dropDebugger?: boolean
+  dropDebugger?: boolean;
   /**
    * Drop unreferenced functions and variables.
    *
    * Simple direct variable assignments do not count as references unless set to "keep_assign".
    */
-  unused?: true | false | 'keep_assign'
+  unused?: true | false | "keep_assign";
   /** Keep function / class names. */
-  keepNames?: CompressOptionsKeepNames
+  keepNames?: CompressOptionsKeepNames;
 }
 
 export interface CompressOptionsKeepNames {
@@ -55,7 +55,7 @@ export interface CompressOptionsKeepNames {
    *
    * @default false
    */
-  function: boolean
+  function: boolean;
   /**
    * Keep class names so that `Class.prototype.name` is preserved.
    *
@@ -63,7 +63,7 @@ export interface CompressOptionsKeepNames {
    *
    * @default false
    */
-  class: boolean
+  class: boolean;
 }
 
 export interface MangleOptions {
@@ -72,15 +72,15 @@ export interface MangleOptions {
    *
    * @default false
    */
-  toplevel?: boolean
+  toplevel?: boolean;
   /**
    * Preserve `name` property for functions and classes.
    *
    * @default false
    */
-  keepNames?: boolean | MangleOptionsKeepNames
+  keepNames?: boolean | MangleOptionsKeepNames;
   /** Debug mangled names. */
-  debug?: boolean
+  debug?: boolean;
 }
 
 export interface MangleOptionsKeepNames {
@@ -89,65 +89,69 @@ export interface MangleOptionsKeepNames {
    *
    * @default false
    */
-  function: boolean
+  function: boolean;
   /**
    * Preserve `name` property for classes.
    *
    * @default false
    */
-  class: boolean
+  class: boolean;
 }
 
 /** Minify synchronously. */
-export declare function minify(filename: string, sourceText: string, options?: MinifyOptions | undefined | null): MinifyResult
+export declare function minify(
+  filename: string,
+  sourceText: string,
+  options?: MinifyOptions | undefined | null,
+): MinifyResult;
 
 export interface MinifyOptions {
   /** Use when minifying an ES6 module. */
-  module?: boolean
-  compress?: boolean | CompressOptions
-  mangle?: boolean | MangleOptions
-  codegen?: boolean | CodegenOptions
-  sourcemap?: boolean
+  module?: boolean;
+  compress?: boolean | CompressOptions;
+  mangle?: boolean | MangleOptions;
+  codegen?: boolean | CodegenOptions;
+  sourcemap?: boolean;
 }
 
 export interface MinifyResult {
-  code: string
-  map?: SourceMap
-  errors: Array<OxcError>
+  code: string;
+  map?: SourceMap;
+  errors: Array<OxcError>;
 }
 export interface Comment {
-  type: 'Line' | 'Block'
-  value: string
-  start: number
-  end: number
+  type: "Line" | "Block";
+  value: string;
+  start: number;
+  end: number;
 }
 
 export interface ErrorLabel {
-  message?: string
-  start: number
-  end: number
+  message?: string;
+  start: number;
+  end: number;
 }
 
 export interface OxcError {
-  severity: Severity
-  message: string
-  labels: Array<ErrorLabel>
-  helpMessage?: string
-  codeframe?: string
+  severity: Severity;
+  message: string;
+  labels: Array<ErrorLabel>;
+  helpMessage?: string;
+  codeframe?: string;
 }
 
 export declare const enum Severity {
-  Error = 'Error',
-  Warning = 'Warning',
-  Advice = 'Advice'
+  Error = "Error",
+  Warning = "Warning",
+  Advice = "Advice",
 }
 export interface SourceMap {
-  file?: string
-  mappings: string
-  names: Array<string>
-  sourceRoot?: string
-  sources: Array<string>
-  sourcesContent?: Array<string>
-  version: number
-  x_google_ignoreList?: Array<number>
+  file?: string;
+  mappings: string;
+  names: Array<string>;
+  sourceRoot?: string;
+  sources: Array<string>;
+  sourcesContent?: Array<string>;
+  version: number;
+  x_google_ignoreList?: Array<number>;
 }

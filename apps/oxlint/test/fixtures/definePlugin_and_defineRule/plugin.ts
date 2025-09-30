@@ -19,7 +19,10 @@ const relativePath = sep === '/'
 
 const createRule = defineRule({
   create(context) {
-    context.report({ message: `create body:\nthis === rule: ${this === createRule}`, node: SPAN });
+    context.report({
+      message: `create body:\nthis === rule: ${this === createRule}`,
+      node: SPAN,
+    });
 
     return {
       Identifier(node) {
@@ -42,7 +45,8 @@ const createOnceRule = defineRule({
 
     // `fileNum` should be different for each file.
     // `identNum` should start at 1 for each file.
-    let fileNum = 0, identNum: number;
+    let fileNum = 0,
+      identNum: number;
     // Note: Files are processed in unpredictable order, so `files/1.js` may be `fileNum` 1 or 2.
     // Therefore, collect all visits and check them in `after` hook of the 2nd file.
     const visits: { fileNum: number; identNum: number }[] = [];
@@ -95,9 +99,16 @@ const createOnceRule = defineRule({
 
           if (
             visits.length !== expectedVisits.length ||
-            visits.some((v, i) => v.fileNum !== expectedVisits[i].fileNum || v.identNum !== expectedVisits[i].identNum)
+            visits.some(
+              (v, i) =>
+                v.fileNum !== expectedVisits[i].fileNum ||
+                v.identNum !== expectedVisits[i].identNum,
+            )
           ) {
-            context.report({ message: `Unexpected visits: ${JSON.stringify(visits)}`, node: SPAN });
+            context.report({
+              message: `Unexpected visits: ${JSON.stringify(visits)}`,
+              node: SPAN,
+            });
           }
         }
       },
@@ -111,8 +122,7 @@ const createOnceBeforeFalseRule = defineRule({
     return {
       before() {
         context.report({
-          message: 'before hook:\n' +
-            `filename: ${relativePath(context.filename)}`,
+          message: 'before hook:\n' + `filename: ${relativePath(context.filename)}`,
           node: SPAN,
         });
 
@@ -128,8 +138,7 @@ const createOnceBeforeFalseRule = defineRule({
       },
       after() {
         context.report({
-          message: 'after hook:\n' +
-            `filename: ${relativePath(context.filename)}`,
+          message: 'after hook:\n' + `filename: ${relativePath(context.filename)}`,
           node: SPAN,
         });
       },
@@ -144,8 +153,7 @@ const createOnceBeforeOnlyRule = defineRule({
     return {
       before() {
         context.report({
-          message: 'before hook:\n' +
-            `filename: ${relativePath(context.filename)}`,
+          message: 'before hook:\n' + `filename: ${relativePath(context.filename)}`,
           node: SPAN,
         });
       },
@@ -172,8 +180,7 @@ const createOnceAfterOnlyRule = defineRule({
       },
       after() {
         context.report({
-          message: 'after hook:\n' +
-            `filename: ${relativePath(context.filename)}`,
+          message: 'after hook:\n' + `filename: ${relativePath(context.filename)}`,
           node: SPAN,
         });
       },

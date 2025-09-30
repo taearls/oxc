@@ -23,8 +23,10 @@ export function camelToSnake(name) {
       break;
     }
   }
-  return name.slice(0, prefixLen).toLowerCase() +
-    name.slice(prefixLen).replace(/[A-Z]/g, c => `_${c.toLowerCase()}`);
+  return (
+    name.slice(0, prefixLen).toLowerCase() +
+    name.slice(prefixLen).replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)
+  );
 }
 
 /**
@@ -38,6 +40,8 @@ export function snakeToCamel(name) {
       break;
     }
   }
-  return name.slice(0, prefixLen + 1).toUpperCase() +
-    name.slice(prefixLen + 1).replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+  return (
+    name.slice(0, prefixLen + 1).toUpperCase() +
+    name.slice(prefixLen + 1).replace(/_([a-z])/g, (_, c) => c.toUpperCase())
+  );
 }

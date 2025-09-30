@@ -9,7 +9,7 @@ class TestClass {
   constructor() {
     babelHelpers.defineProperty(this, KEY2, 42);
   }
-  
+
   // regular static field with computed key should be transformed
 }
 

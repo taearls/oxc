@@ -8,12 +8,16 @@ mkdirSync('./test_workspace', { recursive: true });
 mkdirSync('./test_workspace_second', { recursive: true });
 
 const multiRootWorkspaceConfig = {
-  'folders': [
-    { 'path': 'test_workspace' },
-    { 'path': 'test_workspace_second' },
-  ],
+  folders: [{ path: 'test_workspace' }, { path: 'test_workspace_second' }],
 };
-writeFileSync(multiRootWorkspaceFile, JSON.stringify(multiRootWorkspaceConfig, null, 2));
+writeFileSync(
+  multiRootWorkspaceFile,
+  JSON.stringify(
+    multiRootWorkspaceConfig,
+    null,
+    2,
+  ),
+);
 
 const ext = process.platform === 'win32' ? '.exe' : '';
 

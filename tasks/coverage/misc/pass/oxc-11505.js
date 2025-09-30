@@ -1,1 +1,1 @@
-import type from 'module'
+import type from "module";

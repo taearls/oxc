@@ -4,7 +4,7 @@ function setFunctionName(e, t, n) {
   try {
     Object.defineProperty(e, "name", {
       configurable: !0,
-      value: n ? n + " " + t : t
+      value: n ? n + " " + t : t,
     });
   } catch (e) {}
   return e;

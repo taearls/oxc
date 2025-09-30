@@ -70,7 +70,9 @@ describe('transformAsync', () => {
     `;
 
     const syncResult = transform('test.js', sourceCode, { target: 'es2015' });
-    const asyncResult = await transformAsync('test.js', sourceCode, { target: 'es2015' });
+    const asyncResult = await transformAsync('test.js', sourceCode, {
+      target: 'es2015',
+    });
 
     expect(asyncResult.code).toEqual(syncResult.code);
     expect(asyncResult.errors).toEqual(syncResult.errors);

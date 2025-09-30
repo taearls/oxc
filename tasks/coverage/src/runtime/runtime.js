@@ -9,10 +9,23 @@ import vm from 'node:vm';
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 const harnessDir = path.join(__dirname, '../..', 'test262', 'harness');
 
-const { Script, createContext, SourceTextModule, runInContext, SyntheticModule } = vm;
+const {
+  Script,
+  createContext,
+  SourceTextModule,
+  runInContext,
+  SyntheticModule,
+} = vm;
 
 async function runCodeInHarness(options = {}) {
-  const { code = '', includes = [], importDir = '', isAsync = false, isModule = true, isRaw = false } = options;
+  const {
+    code = '',
+    includes = [],
+    importDir = '',
+    isAsync = false,
+    isModule = true,
+    isRaw = false,
+  } = options;
   const context = {};
 
   if (process.env.DEBUG) {
@@ -31,11 +44,17 @@ async function runCodeInHarness(options = {}) {
         const code = fs.readFileSync(modulePath, 'utf8');
         if (modulePath.endsWith('json')) {
           const evaluate = function() {
-            this.setExport('default', runInContext('JSON.parse', context)(code));
+            this.setExport(
+              'default',
+              runInContext('JSON.parse', context)(code),
+            );
           };
           module = new SyntheticModule(['default'], evaluate, { context });
         } else {
-          module = new SourceTextModule(code, { context, importModuleDynamically });
+          module = new SourceTextModule(code, {
+            context,
+            importModuleDynamically,
+          });
         }
         moduleCache.set(modulePath, module);
       }
@@ -52,7 +71,8 @@ async function runCodeInHarness(options = {}) {
       if (!promise) {
         const module = findModule(where);
         if (module.status === 'unlinked') {
-          promise = module.link(linker)
+          promise = module
+            .link(linker)
             .then(() => module.evaluate())
             .then(() => module);
         } else {
@@ -67,7 +87,10 @@ async function runCodeInHarness(options = {}) {
     if (!isRaw) runInContext(createHarnessForTest(includes), context);
 
     if (isModule) {
-      const module = new SourceTextModule(code, { context, importModuleDynamically });
+      const module = new SourceTextModule(code, {
+        context,
+        importModuleDynamically,
+      });
       await module.link(linker);
       await module.evaluate();
     } else {
@@ -78,7 +101,7 @@ async function runCodeInHarness(options = {}) {
 
   if (isAsync) {
     await new Promise((resolve, reject) => {
-      context.$DONE = err => err ? reject(err) : resolve();
+      context.$DONE = (err) => (err ? reject(err) : resolve());
       runCode().catch(reject);
     });
   } else {
@@ -102,7 +125,10 @@ for (const entry of fs.readdirSync(harnessDir)) {
   harnessFiles.set(entry, content);
 }
 
-const babelHelpers = fs.readFileSync(path.join(__dirname, './babelHelpers.js'), 'utf8');
+const babelHelpers = fs.readFileSync(
+  path.join(__dirname, './babelHelpers.js'),
+  'utf8',
+);
 
 function createHarnessForTest(includes) {
   let harness = defaultHarness;
@@ -127,7 +153,7 @@ const server = createServer((req, res) => {
   }
   if (req.method === 'POST') {
     let body = '';
-    req.on('data', chunk => {
+    req.on('data', (chunk) => {
       body += chunk.toString(); // convert Buffer to string
     });
     req.on('end', async () => {

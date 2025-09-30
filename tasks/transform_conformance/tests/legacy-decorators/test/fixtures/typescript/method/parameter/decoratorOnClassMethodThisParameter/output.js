@@ -1,9 +1,12 @@
 class C {
-    method() { }
+  method() {}
 }
 class C2 {
-    method(allowed) { }
+  method(allowed) {}
 }
-babelHelpers.decorate([
-    babelHelpers.decorateParam(0, dec)
-], C2.prototype, "method", null);
+babelHelpers.decorate(
+  [babelHelpers.decorateParam(0, dec)],
+  C2.prototype,
+  "method",
+  null,
+);

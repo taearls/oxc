@@ -1,4 +1,4 @@
 // @jsx JSX
-import JSX from "module"
+import JSX from "module";
 
-() => <div></div>
+() => <div></div>;

@@ -13,12 +13,16 @@ function createClassDeclaration() {
 
 function createClassExpression() {
   let _this2, _ref2;
-  return _this2 = this, _ref2 = this + "bar", class {
-    constructor() {
-      babelHelpers.defineProperty(this, _this2, 3);
-      babelHelpers.defineProperty(this, _ref2, 4);
+  return (
+    (_this2 = this),
+    (_ref2 = this + "bar"),
+    class {
+      constructor() {
+        babelHelpers.defineProperty(this, _this2, 3);
+        babelHelpers.defineProperty(this, _ref2, 4);
+      }
     }
-  };
+  );
 }
 
 const C = createClassDeclaration.call("foo");

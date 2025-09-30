@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 // Leading or trailing line breaks
 const A = styled.div`\r\ncolor: blue;\r\n`;
@@ -14,5 +14,5 @@ const C = styled.div`thing\r\n:hover;`;
 
 // Line breaks before and after interpolations
 const D = styled.div`
-  foo\r\n${'blue'}\r\n:blah;
+  foo\r\n${"blue"}\r\n:blah;
 `;

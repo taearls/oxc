@@ -18,9 +18,14 @@ export default function App() {
   use();
   return /* @__PURE__ */ _jsxs("h1", { children: [bar, baz] });
 }
-_s2(App, "useFancyState{bar}\\nuseThing{baz}\\nuseState{}\\nuseThePlatform{}\\nuse{}", true, function() {
-  return [FancyHook.useThing];
-});
+_s2(
+  App,
+  "useFancyState{bar}\\nuseThing{baz}\\nuseState{}\\nuseThePlatform{}\\nuse{}",
+  true,
+  function () {
+    return [FancyHook.useThing];
+  },
+);
 _c = App;
 var _c;
 $RefreshReg$(_c, "App");

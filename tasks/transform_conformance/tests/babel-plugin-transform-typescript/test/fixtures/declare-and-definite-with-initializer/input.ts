@@ -5,6 +5,6 @@ class DeclareExample {
 }
 
 class DefiniteExample {
-   readonly bar! = "test";
-   readonly foo! = 1;
+  readonly bar! = "test";
+  readonly foo! = 1;
 }

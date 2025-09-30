@@ -16,10 +16,10 @@ const outer = {
           return babelHelpers.asyncToGenerator(function* () {
             () => _superprop_getValue2();
           })();
-        }
+        },
       };
 
       () => _superprop_getValue();
     })();
-  }
+  },
 };

@@ -1,7 +1,7 @@
 export type Foo = {};
 export namespace Foo {
-	export const Bar = 0;
+  export const Bar = 0;
 }
 export namespace Foo {
-	export const Zoo = 1;
+  export const Zoo = 1;
 }

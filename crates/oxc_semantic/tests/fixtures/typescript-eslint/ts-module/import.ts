@@ -1,5 +1,5 @@
 //// @sourceType = module
 
-declare module 'foo' {
-  import { bar } from 'mod';
+declare module "foo" {
+  import { bar } from "mod";
 }

@@ -45,7 +45,10 @@ export { name1, /* …, */ nameN } from "module-name";
 export { import1 as name1, import2 as name2, /* …, */ nameN } from "module-name";
 export { default, /* …, */ } from "module-name";
 export { default as name1 } from "module-name";
-`.split('\n').map((s) => s.trim()).filter(Boolean);
+`
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   test.each(code)('%s', (s) => {
     const ret = parseSync('test.js', s);
@@ -77,7 +80,9 @@ describe('hasModuleSyntax', () => {
   test('import expression', () => {
     const ret = parseSync('test.js', "import('foo')");
     expect(ret.module.hasModuleSyntax).toBe(false);
-    expect(ret.module.dynamicImports).toStrictEqual([{ start: 0, end: 13, moduleRequest: { start: 7, end: 12 } }]);
+    expect(ret.module.dynamicImports).toStrictEqual([
+      { start: 0, end: 13, moduleRequest: { start: 7, end: 12 } },
+    ]);
   });
 
   test('script', () => {

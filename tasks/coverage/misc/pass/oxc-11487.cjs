@@ -1,1 +1,1 @@
-async await => {}
+async (await) => {};

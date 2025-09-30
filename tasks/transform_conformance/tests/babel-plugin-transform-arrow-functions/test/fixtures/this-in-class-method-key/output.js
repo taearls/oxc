@@ -1,6 +1,6 @@
 function outer() {
   var _this = this;
-  return function() {
+  return function () {
     class C {
       [_this]() {}
     }

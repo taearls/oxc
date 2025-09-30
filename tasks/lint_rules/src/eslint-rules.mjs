@@ -43,27 +43,12 @@ import pluginRegexp from 'eslint-plugin-regexp';
 import pluginVue from 'eslint-plugin-vue';
 
 // destructuring default exports
-const {
-  configs: pluginTypeScriptConfigs,
-  rules: pluginTypeScriptAllRules,
-} = pluginTypescript;
+const { configs: pluginTypeScriptConfigs, rules: pluginTypeScriptAllRules } = pluginTypescript;
 const { rules: pluginNAllRules } = pluginNAll;
-const {
-  configs: pluginUnicornConfigs,
-  rules: pluginUnicornAllRules,
-} = pluginUnicorn;
-const {
-  rules: pluginJSDocAllRules,
-  configs: pluginJSDocConfigs,
-} = pluginJSDoc;
-const {
-  rules: pluginJSXA11yAllRules,
-  configs: pluginJSXA11yConfigs,
-} = pluginJSXA11y;
-const {
-  rules: pluginJestAllRules,
-  configs: pluginJestConfigs,
-} = pluginJest;
+const { configs: pluginUnicornConfigs, rules: pluginUnicornAllRules } = pluginUnicorn;
+const { rules: pluginJSDocAllRules, configs: pluginJSDocConfigs } = pluginJSDoc;
+const { rules: pluginJSXA11yAllRules, configs: pluginJSXA11yConfigs } = pluginJSXA11y;
+const { rules: pluginJestAllRules, configs: pluginJestConfigs } = pluginJest;
 const {
   // @ts-expect-error: Module has no exported member
   configs: pluginPromiseConfigs,
@@ -71,22 +56,10 @@ const {
 } = pluginPromise;
 const { rules: pluginReactAllRules } = pluginReact;
 const { rules: pluginNextAllRules } = pluginNext;
-const {
-  rules: pluginReactPerfAllRules,
-  configs: pluginReactPerfConfigs,
-} = pluginReactPerf;
-const {
-  configs: pluginVitestConfigs,
-  rules: pluginVitestRules,
-} = pluginVitest;
-const {
-  configs: pluginRegexpConfigs,
-  rules: pluginRegexpRules,
-} = pluginRegexp;
-const {
-  configs: pluginVueConfigs,
-  rules: pluginVueRules,
-} = pluginVue;
+const { rules: pluginReactPerfAllRules, configs: pluginReactPerfConfigs } = pluginReactPerf;
+const { configs: pluginVitestConfigs, rules: pluginVitestRules } = pluginVitest;
+const { configs: pluginRegexpConfigs, rules: pluginRegexpRules } = pluginRegexp;
+const { configs: pluginVueConfigs, rules: pluginVueRules } = pluginVue;
 
 /** @param {import("eslint").Linter} linter */
 const loadPluginTypeScriptRules = (linter) => {

@@ -31,7 +31,9 @@ const rule: Rule = {
 
     return {
       VariableDeclaration(node) {
-        if (this !== undefined) context.report({ message: 'this !== undefined', node });
+        if (this !== undefined) {
+          context.report({ message: 'this !== undefined', node });
+        }
       },
     };
   },

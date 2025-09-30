@@ -1,1 +1,1 @@
-type T = typeof import('').default;
+type T = typeof import("").default;

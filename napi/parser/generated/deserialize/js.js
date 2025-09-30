@@ -1,21 +1,50 @@
 // Auto-generated code, DO NOT EDIT DIRECTLY!
 // To edit this generated file you have to edit `tasks/ast_tools/src/generators/raw_transfer.rs`.
 
-let uint8, uint32, float64, sourceText, sourceIsAscii, sourceByteLen, preserveParens;
+let uint8,
+  uint32,
+  float64,
+  sourceText,
+  sourceIsAscii,
+  sourceByteLen,
+  preserveParens;
 
 const textDecoder = new TextDecoder('utf-8', { ignoreBOM: true }),
   decodeStr = textDecoder.decode.bind(textDecoder),
   { fromCodePoint } = String;
 
 export function deserialize(buffer, sourceText, sourceByteLen, preserveParens) {
-  return deserializeWith(buffer, sourceText, sourceByteLen, preserveParens, deserializeRawTransferData);
+  return deserializeWith(
+    buffer,
+    sourceText,
+    sourceByteLen,
+    preserveParens,
+    deserializeRawTransferData,
+  );
 }
 
-export function deserializeProgramOnly(buffer, sourceText, sourceByteLen, preserveParens) {
-  return deserializeWith(buffer, sourceText, sourceByteLen, preserveParens, deserializeProgram);
+export function deserializeProgramOnly(
+  buffer,
+  sourceText,
+  sourceByteLen,
+  preserveParens,
+) {
+  return deserializeWith(
+    buffer,
+    sourceText,
+    sourceByteLen,
+    preserveParens,
+    deserializeProgram,
+  );
 }
 
-function deserializeWith(buffer, sourceTextInput, sourceByteLenInput, preserveParensInput, deserialize) {
+function deserializeWith(
+  buffer,
+  sourceTextInput,
+  sourceByteLenInput,
+  preserveParensInput,
+  deserialize,
+) {
   uint8 = buffer;
   uint32 = buffer.uint32;
   float64 = buffer.float64;
@@ -160,8 +189,7 @@ function deserializeTemplateElement(pos) {
     end = deserializeU32(pos + 4),
     value = deserializeTemplateElementValue(pos + 8);
   if (value.cooked !== null && deserializeBool(pos + 41)) {
-    value.cooked = value.cooked
-      .replace(/\uFFFD(.{4})/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)));
+    value.cooked = value.cooked.replace(/\uFFFD(.{4})/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)));
   }
   return { type: 'TemplateElement', value, tail, start, end };
 }
@@ -1041,7 +1069,7 @@ function deserializeBooleanLiteral(pos) {
   return {
     type: 'Literal',
     value,
-    raw: (start === 0 && end === 0) ? null : value + '',
+    raw: start === 0 && end === 0 ? null : value + '',
     start,
     end,
   };
@@ -1053,7 +1081,7 @@ function deserializeNullLiteral(pos) {
   return {
     type: 'Literal',
     value: null,
-    raw: (start === 0 && end === 0) ? null : 'null',
+    raw: start === 0 && end === 0 ? null : 'null',
     start,
     end,
   };
@@ -1638,7 +1666,7 @@ function deserializeTSClassImplements(pos) {
   let expression = deserializeTSTypeName(pos + 8);
   if (expression.type === 'TSQualifiedName') {
     let object = expression.left;
-    let parent = expression = {
+    let parent = (expression = {
       type: 'MemberExpression',
       object,
       property: expression.right,
@@ -1646,7 +1674,7 @@ function deserializeTSClassImplements(pos) {
       computed: false,
       start: expression.start,
       end: expression.end,
-    };
+    });
 
     while (object.type === 'TSQualifiedName') {
       const { left } = object;
@@ -1843,7 +1871,16 @@ function deserializeTSModuleDeclaration(pos) {
   // Skip `body` field if `null`
   const node = body === null
     ? { type: 'TSModuleDeclaration', id, kind, declare, global, start, end }
-    : { type: 'TSModuleDeclaration', id, body, kind, declare, global, start, end };
+    : {
+      type: 'TSModuleDeclaration',
+      id,
+      body,
+      kind,
+      declare,
+      global,
+      start,
+      end,
+    };
   return node;
 }
 
@@ -2387,7 +2424,9 @@ function deserializeArrayExpressionElement(pos) {
     case 65:
       return deserializeElision(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for ArrayExpressionElement`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for ArrayExpressionElement`,
+      );
   }
 }
 
@@ -2398,7 +2437,9 @@ function deserializeObjectPropertyKind(pos) {
     case 1:
       return deserializeBoxSpreadElement(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for ObjectPropertyKind`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for ObjectPropertyKind`,
+      );
   }
 }
 
@@ -2521,7 +2562,9 @@ function deserializeMemberExpression(pos) {
     case 50:
       return deserializeBoxPrivateFieldExpression(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for MemberExpression`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for MemberExpression`,
+      );
   }
 }
 
@@ -2643,7 +2686,9 @@ function deserializeAssignmentTarget(pos) {
     case 50:
       return deserializeBoxPrivateFieldExpression(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for AssignmentTarget`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for AssignmentTarget`,
+      );
   }
 }
 
@@ -2666,7 +2711,9 @@ function deserializeSimpleAssignmentTarget(pos) {
     case 50:
       return deserializeBoxPrivateFieldExpression(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for SimpleAssignmentTarget`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for SimpleAssignmentTarget`,
+      );
   }
 }
 
@@ -2677,7 +2724,9 @@ function deserializeAssignmentTargetPattern(pos) {
     case 9:
       return deserializeBoxObjectAssignmentTarget(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for AssignmentTargetPattern`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for AssignmentTargetPattern`,
+      );
   }
 }
 
@@ -2706,7 +2755,9 @@ function deserializeAssignmentTargetMaybeDefault(pos) {
     case 50:
       return deserializeBoxPrivateFieldExpression(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for AssignmentTargetMaybeDefault`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for AssignmentTargetMaybeDefault`,
+      );
   }
 }
 
@@ -2717,7 +2768,9 @@ function deserializeAssignmentTargetProperty(pos) {
     case 1:
       return deserializeBoxAssignmentTargetPropertyProperty(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for AssignmentTargetProperty`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for AssignmentTargetProperty`,
+      );
   }
 }
 
@@ -2845,7 +2898,9 @@ function deserializeVariableDeclarationKind(pos) {
     case 4:
       return 'await using';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for VariableDeclarationKind`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for VariableDeclarationKind`,
+      );
   }
 }
 
@@ -2940,7 +2995,9 @@ function deserializeForStatementInit(pos) {
     case 64:
       return deserializeBoxVariableDeclaration(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for ForStatementInit`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for ForStatementInit`,
+      );
   }
 }
 
@@ -2969,7 +3026,9 @@ function deserializeForStatementLeft(pos) {
     case 50:
       return deserializeBoxPrivateFieldExpression(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for ForStatementLeft`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for ForStatementLeft`,
+      );
   }
 }
 
@@ -2984,7 +3043,9 @@ function deserializeBindingPatternKind(pos) {
     case 3:
       return deserializeBoxAssignmentPattern(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for BindingPatternKind`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for BindingPatternKind`,
+      );
   }
 }
 
@@ -3014,7 +3075,9 @@ function deserializeFormalParameterKind(pos) {
     case 3:
       return 'Signature';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for FormalParameterKind`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for FormalParameterKind`,
+      );
   }
 }
 
@@ -3053,7 +3116,9 @@ function deserializeMethodDefinitionType(pos) {
     case 1:
       return 'TSAbstractMethodDefinition';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for MethodDefinitionType`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for MethodDefinitionType`,
+      );
   }
 }
 
@@ -3064,7 +3129,9 @@ function deserializePropertyDefinitionType(pos) {
     case 1:
       return 'TSAbstractPropertyDefinition';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for PropertyDefinitionType`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for PropertyDefinitionType`,
+      );
   }
 }
 
@@ -3079,7 +3146,9 @@ function deserializeMethodDefinitionKind(pos) {
     case 3:
       return 'set';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for MethodDefinitionKind`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for MethodDefinitionKind`,
+      );
   }
 }
 
@@ -3098,7 +3167,9 @@ function deserializeModuleDeclaration(pos) {
     case 69:
       return deserializeBoxTSNamespaceExportDeclaration(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for ModuleDeclaration`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for ModuleDeclaration`,
+      );
   }
 }
 
@@ -3109,7 +3180,9 @@ function deserializeAccessorPropertyType(pos) {
     case 1:
       return 'TSAbstractAccessorProperty';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for AccessorPropertyType`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for AccessorPropertyType`,
+      );
   }
 }
 
@@ -3133,7 +3206,9 @@ function deserializeImportDeclarationSpecifier(pos) {
     case 2:
       return deserializeBoxImportNamespaceSpecifier(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for ImportDeclarationSpecifier`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for ImportDeclarationSpecifier`,
+      );
   }
 }
 
@@ -3144,7 +3219,9 @@ function deserializeImportAttributeKey(pos) {
     case 1:
       return deserializeStringLiteral(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for ImportAttributeKey`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for ImportAttributeKey`,
+      );
   }
 }
 
@@ -3243,7 +3320,9 @@ function deserializeExportDefaultDeclarationKind(pos) {
     case 66:
       return deserializeBoxTSInterfaceDeclaration(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for ExportDefaultDeclarationKind`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for ExportDefaultDeclarationKind`,
+      );
   }
 }
 
@@ -3256,7 +3335,9 @@ function deserializeModuleExportName(pos) {
     case 2:
       return deserializeStringLiteral(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for ModuleExportName`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for ModuleExportName`,
+      );
   }
 }
 
@@ -3266,16 +3347,28 @@ function deserializeJSXElementName(pos) {
       return deserializeBoxJSXIdentifier(pos + 8);
     case 1:
       const ident = deserializeBoxIdentifierReference(pos + 8);
-      return { type: 'JSXIdentifier', name: ident.name, start: ident.start, end: ident.end };
+      return {
+        type: 'JSXIdentifier',
+        name: ident.name,
+        start: ident.start,
+        end: ident.end,
+      };
     case 2:
       return deserializeBoxJSXNamespacedName(pos + 8);
     case 3:
       return deserializeBoxJSXMemberExpression(pos + 8);
     case 4:
       const thisExpr = deserializeBoxThisExpression(pos + 8);
-      return { type: 'JSXIdentifier', name: 'this', start: thisExpr.start, end: thisExpr.end };
+      return {
+        type: 'JSXIdentifier',
+        name: 'this',
+        start: thisExpr.start,
+        end: thisExpr.end,
+      };
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for JSXElementName`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for JSXElementName`,
+      );
   }
 }
 
@@ -3283,14 +3376,26 @@ function deserializeJSXMemberExpressionObject(pos) {
   switch (uint8[pos]) {
     case 0:
       const ident = deserializeBoxIdentifierReference(pos + 8);
-      return { type: 'JSXIdentifier', name: ident.name, start: ident.start, end: ident.end };
+      return {
+        type: 'JSXIdentifier',
+        name: ident.name,
+        start: ident.start,
+        end: ident.end,
+      };
     case 1:
       return deserializeBoxJSXMemberExpression(pos + 8);
     case 2:
       const thisExpr = deserializeBoxThisExpression(pos + 8);
-      return { type: 'JSXIdentifier', name: 'this', start: thisExpr.start, end: thisExpr.end };
+      return {
+        type: 'JSXIdentifier',
+        name: 'this',
+        start: thisExpr.start,
+        end: thisExpr.end,
+      };
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for JSXMemberExpressionObject`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for JSXMemberExpressionObject`,
+      );
   }
 }
 
@@ -3385,7 +3490,9 @@ function deserializeJSXExpression(pos) {
     case 64:
       return deserializeJSXEmptyExpression(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for JSXExpression`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for JSXExpression`,
+      );
   }
 }
 
@@ -3396,7 +3503,9 @@ function deserializeJSXAttributeItem(pos) {
     case 1:
       return deserializeBoxJSXSpreadAttribute(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for JSXAttributeItem`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for JSXAttributeItem`,
+      );
   }
 }
 
@@ -3407,7 +3516,9 @@ function deserializeJSXAttributeName(pos) {
     case 1:
       return deserializeBoxJSXNamespacedName(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for JSXAttributeName`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for JSXAttributeName`,
+      );
   }
 }
 
@@ -3422,7 +3533,9 @@ function deserializeJSXAttributeValue(pos) {
     case 3:
       return deserializeBoxJSXFragment(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for JSXAttributeValue`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for JSXAttributeValue`,
+      );
   }
 }
 
@@ -3454,7 +3567,9 @@ function deserializeTSEnumMemberName(pos) {
     case 3:
       return deserializeBoxTemplateLiteral(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for TSEnumMemberName`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for TSEnumMemberName`,
+      );
   }
 }
 
@@ -3567,7 +3682,9 @@ function deserializeTSTypeOperatorOperator(pos) {
     case 2:
       return 'readonly';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for TSTypeOperatorOperator`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for TSTypeOperatorOperator`,
+      );
   }
 }
 
@@ -3652,7 +3769,9 @@ function deserializeTSTupleElement(pos) {
     case 65:
       return deserializeBoxTSRestType(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for TSTupleElement`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for TSTupleElement`,
+      );
   }
 }
 
@@ -3678,7 +3797,9 @@ function deserializeTSAccessibility(pos) {
     case 2:
       return 'public';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for TSAccessibility`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for TSAccessibility`,
+      );
   }
 }
 
@@ -3708,7 +3829,9 @@ function deserializeTSMethodSignatureKind(pos) {
     case 2:
       return 'set';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for TSMethodSignatureKind`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for TSMethodSignatureKind`,
+      );
   }
 }
 
@@ -3719,7 +3842,9 @@ function deserializeTSTypePredicateName(pos) {
     case 1:
       return deserializeTSThisType(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for TSTypePredicateName`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for TSTypePredicateName`,
+      );
   }
 }
 
@@ -3732,7 +3857,9 @@ function deserializeTSModuleDeclarationKind(pos) {
     case 2:
       return 'namespace';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for TSModuleDeclarationKind`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for TSModuleDeclarationKind`,
+      );
   }
 }
 
@@ -3743,7 +3870,9 @@ function deserializeTSModuleDeclarationName(pos) {
     case 1:
       return deserializeStringLiteral(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for TSModuleDeclarationName`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for TSModuleDeclarationName`,
+      );
   }
 }
 
@@ -3754,7 +3883,9 @@ function deserializeTSModuleDeclarationBody(pos) {
     case 1:
       return deserializeBoxTSModuleBlock(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for TSModuleDeclarationBody`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for TSModuleDeclarationBody`,
+      );
   }
 }
 
@@ -3769,7 +3900,9 @@ function deserializeTSTypeQueryExprName(pos) {
     case 3:
       return deserializeBoxTSImportType(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for TSTypeQueryExprName`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for TSTypeQueryExprName`,
+      );
   }
 }
 
@@ -3780,7 +3913,9 @@ function deserializeTSImportTypeQualifier(pos) {
     case 1:
       return deserializeBoxTSImportTypeQualifiedName(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for TSImportTypeQualifier`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for TSImportTypeQualifier`,
+      );
   }
 }
 
@@ -3793,7 +3928,9 @@ function deserializeTSMappedTypeModifierOperator(pos) {
     case 2:
       return '-';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for TSMappedTypeModifierOperator`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for TSMappedTypeModifierOperator`,
+      );
   }
 }
 
@@ -3808,7 +3945,9 @@ function deserializeTSModuleReference(pos) {
     case 3:
       return deserializeBoxTSExternalModuleReference(pos + 8);
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for TSModuleReference`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for TSModuleReference`,
+      );
   }
 }
 
@@ -3819,7 +3958,9 @@ function deserializeImportOrExportKind(pos) {
     case 1:
       return 'type';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for ImportOrExportKind`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for ImportOrExportKind`,
+      );
   }
 }
 
@@ -3838,14 +3979,21 @@ function deserializeImportImportName(pos) {
   switch (uint8[pos]) {
     case 0:
       var nameSpan = deserializeNameSpan(pos + 8);
-      return { kind: 'Name', name: nameSpan.value, start: nameSpan.start, end: nameSpan.end };
+      return {
+        kind: 'Name',
+        name: nameSpan.value,
+        start: nameSpan.start,
+        end: nameSpan.end,
+      };
     case 1:
       return { kind: 'NamespaceObject', name: null, start: null, end: null };
     case 2:
       var span = deserializeSpan(pos + 8);
       return { kind: 'Default', name: null, start: span.start, end: span.end };
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for ImportImportName`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for ImportImportName`,
+      );
   }
 }
 
@@ -3853,7 +4001,12 @@ function deserializeExportImportName(pos) {
   switch (uint8[pos]) {
     case 0:
       var nameSpan = deserializeNameSpan(pos + 8);
-      return { kind: 'Name', name: nameSpan.value, start: nameSpan.start, end: nameSpan.end };
+      return {
+        kind: 'Name',
+        name: nameSpan.value,
+        start: nameSpan.start,
+        end: nameSpan.end,
+      };
     case 1:
       return { kind: 'All', name: null, start: null, end: null };
     case 2:
@@ -3861,7 +4014,9 @@ function deserializeExportImportName(pos) {
     case 3:
       return { kind: 'None', name: null, start: null, end: null };
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for ExportImportName`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for ExportImportName`,
+      );
   }
 }
 
@@ -3869,14 +4024,21 @@ function deserializeExportExportName(pos) {
   switch (uint8[pos]) {
     case 0:
       var nameSpan = deserializeNameSpan(pos + 8);
-      return { kind: 'Name', name: nameSpan.value, start: nameSpan.start, end: nameSpan.end };
+      return {
+        kind: 'Name',
+        name: nameSpan.value,
+        start: nameSpan.start,
+        end: nameSpan.end,
+      };
     case 1:
       var span = deserializeSpan(pos + 8);
       return { kind: 'Default', name: null, start: span.start, end: span.end };
     case 2:
       return { kind: 'None', name: null, start: null, end: null };
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for ExportExportName`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for ExportExportName`,
+      );
   }
 }
 
@@ -3884,14 +4046,26 @@ function deserializeExportLocalName(pos) {
   switch (uint8[pos]) {
     case 0:
       var nameSpan = deserializeNameSpan(pos + 8);
-      return { kind: 'Name', name: nameSpan.value, start: nameSpan.start, end: nameSpan.end };
+      return {
+        kind: 'Name',
+        name: nameSpan.value,
+        start: nameSpan.start,
+        end: nameSpan.end,
+      };
     case 1:
       var nameSpan = deserializeNameSpan(pos + 8);
-      return { kind: 'Default', name: nameSpan.value, start: nameSpan.start, end: nameSpan.end };
+      return {
+        kind: 'Default',
+        name: nameSpan.value,
+        start: nameSpan.start,
+        end: nameSpan.end,
+      };
     case 2:
       return { kind: 'None', name: null, start: null, end: null };
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for ExportLocalName`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for ExportLocalName`,
+      );
   }
 }
 
@@ -3930,7 +4104,9 @@ function deserializeAssignmentOperator(pos) {
     case 15:
       return '??=';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for AssignmentOperator`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for AssignmentOperator`,
+      );
   }
 }
 
@@ -3981,7 +4157,9 @@ function deserializeBinaryOperator(pos) {
     case 21:
       return 'instanceof';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for BinaryOperator`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for BinaryOperator`,
+      );
   }
 }
 
@@ -3994,7 +4172,9 @@ function deserializeLogicalOperator(pos) {
     case 2:
       return '??';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for LogicalOperator`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for LogicalOperator`,
+      );
   }
 }
 
@@ -4015,7 +4195,9 @@ function deserializeUnaryOperator(pos) {
     case 6:
       return 'delete';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for UnaryOperator`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for UnaryOperator`,
+      );
   }
 }
 
@@ -4026,7 +4208,9 @@ function deserializeUpdateOperator(pos) {
     case 1:
       return '--';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for UpdateOperator`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for UpdateOperator`,
+      );
   }
 }
 
@@ -4050,7 +4234,9 @@ function deserializeErrorSeverity(pos) {
     case 2:
       return 'Advice';
     default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for ErrorSeverity`);
+      throw new Error(
+        `Unexpected discriminant ${uint8[pos]} for ErrorSeverity`,
+      );
   }
 }
 
@@ -4104,7 +4290,9 @@ function deserializeVecComment(pos) {
 }
 
 function deserializeOptionHashbang(pos) {
-  if (uint32[(pos + 8) >> 2] === 0 && uint32[(pos + 12) >> 2] === 0) return null;
+  if (uint32[(pos + 8) >> 2] === 0 && uint32[(pos + 12) >> 2] === 0) {
+    return null;
+  }
   return deserializeHashbang(pos);
 }
 
@@ -4580,7 +4768,9 @@ function deserializeOptionForStatementInit(pos) {
 }
 
 function deserializeOptionLabelIdentifier(pos) {
-  if (uint32[(pos + 8) >> 2] === 0 && uint32[(pos + 12) >> 2] === 0) return null;
+  if (uint32[(pos + 8) >> 2] === 0 && uint32[(pos + 12) >> 2] === 0) {
+    return null;
+  }
   return deserializeLabelIdentifier(pos);
 }
 
@@ -4679,7 +4869,9 @@ function deserializeVecOptionBindingPattern(pos) {
 }
 
 function deserializeOptionBindingIdentifier(pos) {
-  if (uint32[(pos + 8) >> 2] === 0 && uint32[(pos + 12) >> 2] === 0) return null;
+  if (uint32[(pos + 8) >> 2] === 0 && uint32[(pos + 12) >> 2] === 0) {
+    return null;
+  }
   return deserializeBindingIdentifier(pos);
 }
 
@@ -5286,7 +5478,9 @@ function deserializeU64(pos) {
 }
 
 function deserializeOptionNameSpan(pos) {
-  if (uint32[(pos + 8) >> 2] === 0 && uint32[(pos + 12) >> 2] === 0) return null;
+  if (uint32[(pos + 8) >> 2] === 0 && uint32[(pos + 12) >> 2] === 0) {
+    return null;
+  }
   return deserializeNameSpan(pos);
 }
 

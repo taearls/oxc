@@ -3,7 +3,7 @@ class Foo {
   constructor() {
     Object.defineProperty(this, _prop, {
       writable: true,
-      value: "foo"
+      value: "foo",
     });
   }
 }
@@ -13,7 +13,7 @@ class Bar extends Foo {
     super(..._args);
     Object.defineProperty(this, _prop2, {
       writable: true,
-      value: "bar"
+      value: "bar",
     });
   }
 }

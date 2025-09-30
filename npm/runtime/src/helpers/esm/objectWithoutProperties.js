@@ -6,7 +6,9 @@ function _objectWithoutProperties(e, t) {
     i = objectWithoutPropertiesLoose(e, t);
   if (Object.getOwnPropertySymbols) {
     var s = Object.getOwnPropertySymbols(e);
-    for (r = 0; r < s.length; r++) o = s[r], t.includes(o) || {}.propertyIsEnumerable.call(e, o) && (i[o] = e[o]);
+    for (r = 0; r < s.length; r++)
+      (o = s[r]),
+        t.includes(o) || ({}.propertyIsEnumerable.call(e, o) && (i[o] = e[o]));
   }
   return i;
 }

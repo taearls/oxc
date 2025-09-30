@@ -1,4 +1,4 @@
-export default function Bar () {
-  useContext(X)
-  return <Foo />
-};
+export default function Bar() {
+  useContext(X);
+  return <Foo />;
+}

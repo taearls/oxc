@@ -2,7 +2,10 @@ const fs = require('node:fs');
 const childProcess = require('node:child_process');
 
 const pkg = JSON.parse(
-  fs.readFileSync(require.resolve('oxc-minify/package.json'), 'utf-8'),
+  fs.readFileSync(
+    require.resolve('oxc-minify/package.json'),
+    'utf-8',
+  ),
 );
 const version = pkg.version;
 const baseDir = `/tmp/oxc-minify-${version}`;

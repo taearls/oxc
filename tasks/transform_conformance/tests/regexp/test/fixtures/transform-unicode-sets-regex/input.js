@@ -1,1 +1,1 @@
-g1 = /[\p{White_Space}&&\p{ASCII}]/v
+g1 = /[\p{White_Space}&&\p{ASCII}]/v;

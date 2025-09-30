@@ -23,7 +23,7 @@ import { jsx as _jsx } from "react/jsx-runtime";
 /* @__PURE__ */ _jsx("div", { children: "∪ ∫ ∴ ∼ ≅ ≈ ≠ ≡ ≤ ≥" });
 /* @__PURE__ */ _jsx("div", { children: "⊂ ⊃ ⊄ ⊆ ⊇ ⊕ ⊗ ⊥ ⋅ ⌈" });
 /* @__PURE__ */ _jsx("div", { children: "⌉ ⌊ ⌋ 〈 〉 ◊ ♠ ♣ ♥ ♦" });
-/* @__PURE__ */ _jsx("div", { children: "\" & < > Œ œ Š š Ÿ ˆ" });
+/* @__PURE__ */ _jsx("div", { children: '" & < > Œ œ Š š Ÿ ˆ' });
 /* @__PURE__ */ _jsx("div", { children: "˜       ‌ ‍ ‎ ‏ – —" });
 /* @__PURE__ */ _jsx("div", { children: "‘ ’ ‚ “ ” „ † ‡ ‰ ‹" });
 /* @__PURE__ */ _jsx("div", { children: "› €" });

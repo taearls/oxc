@@ -1,10 +1,10 @@
 let Example = class Example {
-	constructor(a) {}
+  constructor(a) {}
 };
 Example = babelHelpers.decorate(
-	[
-		babelHelpers.decorateParam(0, dce),
-		babelHelpers.decorateMetadata("design:paramtypes", [Object]),
-	],
-	Example,
+  [
+    babelHelpers.decorateParam(0, dce),
+    babelHelpers.decorateMetadata("design:paramtypes", [Object]),
+  ],
+  Example,
 );

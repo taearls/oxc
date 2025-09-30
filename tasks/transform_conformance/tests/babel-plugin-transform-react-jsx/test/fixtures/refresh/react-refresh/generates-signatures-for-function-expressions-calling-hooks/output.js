@@ -1,24 +1,45 @@
 import { jsx as _jsx } from "react/jsx-runtime";
-var _s = $RefreshSig$(), _s2 = $RefreshSig$();
-export const A = _s(React.memo(_c2 = _s(React.forwardRef(_c = _s((props, ref) => {
-  _s();
-  const [foo, setFoo] = useState(0);
-  React.useEffect(() => {});
-  return /* @__PURE__ */ _jsx("h1", {
-    ref,
-    children: foo
-  });
-}, "useState{[foo, setFoo](0)}\\nuseEffect{}")), "useState{[foo, setFoo](0)}\\nuseEffect{}")), "useState{[foo, setFoo](0)}\\nuseEffect{}");
+var _s = $RefreshSig$(),
+  _s2 = $RefreshSig$();
+export const A = _s(
+  React.memo(
+    (_c2 = _s(
+      React.forwardRef(
+        (_c = _s((props, ref) => {
+          _s();
+          const [foo, setFoo] = useState(0);
+          React.useEffect(() => {});
+          return /* @__PURE__ */ _jsx("h1", {
+            ref,
+            children: foo,
+          });
+        }, "useState{[foo, setFoo](0)}\\nuseEffect{}")),
+      ),
+      "useState{[foo, setFoo](0)}\\nuseEffect{}",
+    )),
+  ),
+  "useState{[foo, setFoo](0)}\\nuseEffect{}",
+);
 _c3 = A;
-export const B = _s2(React.memo(_c5 = _s2(React.forwardRef(_c4 = _s2(function(props, ref) {
-  _s2();
-  const [foo, setFoo] = useState(0);
-  React.useEffect(() => {});
-  return /* @__PURE__ */ _jsx("h1", {
-    ref,
-    children: foo
-  });
-}, "useState{[foo, setFoo](0)}\\nuseEffect{}")), "useState{[foo, setFoo](0)}\\nuseEffect{}")), "useState{[foo, setFoo](0)}\\nuseEffect{}");
+export const B = _s2(
+  React.memo(
+    (_c5 = _s2(
+      React.forwardRef(
+        (_c4 = _s2(function (props, ref) {
+          _s2();
+          const [foo, setFoo] = useState(0);
+          React.useEffect(() => {});
+          return /* @__PURE__ */ _jsx("h1", {
+            ref,
+            children: foo,
+          });
+        }, "useState{[foo, setFoo](0)}\\nuseEffect{}")),
+      ),
+      "useState{[foo, setFoo](0)}\\nuseEffect{}",
+    )),
+  ),
+  "useState{[foo, setFoo](0)}\\nuseEffect{}",
+);
 _c6 = B;
 function hoc() {
   var _s3 = $RefreshSig$();
@@ -28,7 +49,7 @@ function hoc() {
     React.useEffect(() => {});
     return /* @__PURE__ */ _jsx("h1", {
       ref,
-      children: foo
+      children: foo,
     });
   }, "useState{[foo, setFoo](0)}\\nuseEffect{}");
 }

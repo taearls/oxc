@@ -10,10 +10,13 @@ const oxlintDirPath = join(import.meta.dirname, '..'),
 console.log('Modifying bindings.js...');
 const bindingsPath = join(oxlintDirPath, 'src-js/bindings.js');
 let bindingsJs = readFileSync(bindingsPath, 'utf8');
-bindingsJs = bindingsJs.replace(/require\('@oxlint\/binding-(.+?)'\)/g, (_, name) => {
-  name = name.replace(/-msvc(\/|$)/g, '$1');
-  return `require('@oxlint/${name}')`;
-});
+bindingsJs = bindingsJs.replace(
+  /require\('@oxlint\/binding-(.+?)'\)/g,
+  (_, name) => {
+    name = name.replace(/-msvc(\/|$)/g, '$1');
+    return `require('@oxlint/${name}')`;
+  },
+);
 writeFileSync(bindingsPath, bindingsJs);
 
 // Build with tsdown
@@ -39,7 +42,10 @@ const parserFilePaths = [
 ];
 
 for (const parserFilePath of parserFilePaths) {
-  copyFile(join(parserDirPath, parserFilePath), join(distDirPath, parserFilePath));
+  copyFile(
+    join(parserDirPath, parserFilePath),
+    join(distDirPath, parserFilePath),
+  );
 }
 
 // Copy native `.node` files from `src-js`
@@ -47,7 +53,14 @@ console.log('Copying `.node` files...');
 
 for (const filename of readdirSync(join(oxlintDirPath, 'src-js'))) {
   if (!filename.endsWith('.node')) continue;
-  copyFile(join(oxlintDirPath, 'src-js', filename), join(distDirPath, filename));
+  copyFile(
+    join(
+      oxlintDirPath,
+      'src-js',
+      filename,
+    ),
+    join(distDirPath, filename),
+  );
 }
 
 console.log('Build complete!');

@@ -11,7 +11,7 @@ function Baz() {
   return <h1>OK</h1>;
 }
 
-const NotAComp = 'hi';
+const NotAComp = "hi";
 export { Baz, NotAComp };
 
 export function sum() {}

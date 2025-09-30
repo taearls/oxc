@@ -5,9 +5,13 @@ class F {
   constructor() {
     babelHelpers.classPrivateMethodInitSpec(this, _F_brand);
     babelHelpers.classPrivateFieldInitSpec(this, _x, 0);
-    babelHelpers.classPrivateFieldInitSpec(this, _y, (() => {
-      throw "error";
-    })());
+    babelHelpers.classPrivateFieldInitSpec(
+      this,
+      _y,
+      (() => {
+        throw "error";
+      })(),
+    );
   }
   m() {
     _F_brand.has(babelHelpers.checkInRHS(this));

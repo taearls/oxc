@@ -7,8 +7,18 @@ class Example {
   message = "";
 }
 
-babelHelpers.decorate([dce, babelHelpers.decorateMetadata("design:type", Number)], Example.prototype, "count", void 0);
-babelHelpers.decorate([dce, babelHelpers.decorateMetadata("design:type", String)], Example.prototype, "message", void 0);
+babelHelpers.decorate(
+  [dce, babelHelpers.decorateMetadata("design:type", Number)],
+  Example.prototype,
+  "count",
+  void 0,
+);
+babelHelpers.decorate(
+  [dce, babelHelpers.decorateMetadata("design:type", String)],
+  Example.prototype,
+  "message",
+  void 0,
+);
 
 const example = new Example();
 

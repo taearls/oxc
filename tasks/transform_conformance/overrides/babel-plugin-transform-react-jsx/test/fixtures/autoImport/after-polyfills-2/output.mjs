@@ -4,8 +4,8 @@
 
 import { jsx as _jsx } from "react/jsx-runtime";
 ReactDOM.render(
-	/* @__PURE__ */ _jsx("p", { children: "Hello, World!" }),
-	document.getElementById("root"),
+  /* @__PURE__ */ _jsx("p", { children: "Hello, World!" }),
+  document.getElementById("root"),
 );
 import "react-app-polyfill/ie11";
 import "react-app-polyfill/stable";

@@ -6,7 +6,7 @@ class C {
 }
 
 class D {
-  [keys: string]: typeof import('x', { with: super.foo }).y;
+  [keys: string]: typeof import("x", { with: super.foo }).y;
 }
 
 class Outer extends Super {
@@ -15,10 +15,10 @@ class Outer extends Super {
       [keys: typeof super.foo]: string;
     }
     class Inner2 {
-      [keys: typeof import('x', { with: super.foo }).y]: string;
+      [keys: typeof import("x", { with: super.foo }).y]: string;
     }
     class Inner3 {
-      [keys: typeof import('x', { with: super() }).y]: string;
+      [keys: typeof import("x", { with: super() }).y]: string;
     }
   }
 
@@ -26,14 +26,14 @@ class Outer extends Super {
     [keys: typeof super.foo]: string;
   };
   prop2 = class Inner {
-    [keys: typeof import('x', { with: super.foo }).y]: string;
+    [keys: typeof import("x", { with: super.foo }).y]: string;
   };
 
   accessor access1 = class Inner {
     [keys: typeof super.foo]: string;
   };
   accessor access2 = class Inner {
-    [keys: typeof import('x', { with: super.foo }).y]: string;
+    [keys: typeof import("x", { with: super.foo }).y]: string;
   };
 
   method() {
@@ -41,7 +41,7 @@ class Outer extends Super {
       [keys: typeof super.foo]: string;
     }
     class Inner2 {
-      [keys: typeof import('x', { with: super.foo }).y]: string;
+      [keys: typeof import("x", { with: super.foo }).y]: string;
     }
   }
 }

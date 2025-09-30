@@ -1,5 +1,5 @@
-const domElements = ['div'];
+const domElements = ["div"];
 const styled = () => {};
-domElements.forEach(domElement => {
+domElements.forEach((domElement) => {
   styled[domElement] = styled(domElement);
 });

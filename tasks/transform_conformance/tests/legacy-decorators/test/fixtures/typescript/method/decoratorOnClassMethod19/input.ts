@@ -6,14 +6,14 @@
 declare var decorator: any;
 
 class C1 {
-    #x
+  #x;
 
-    @decorator((x: C1) => x.#x)
-    y() {}
+  @decorator((x: C1) => x.#x)
+  y() {}
 }
 
 class C2 {
-    #x
+  #x;
 
-    y(@decorator((x: C2) => x.#x) p) {}
+  y(@decorator((x: C2) => x.#x) p) {}
 }

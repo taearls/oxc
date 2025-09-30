@@ -1,4 +1,3 @@
-
 debugger;
 
 async function returnsPromise() {

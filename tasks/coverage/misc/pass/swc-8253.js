@@ -1,9 +1,7 @@
 class C {
-  async
-  async
+  async;
+  async;
   foo() {}
-  static
-  static
-  static
-  bar() {}
+  static static;
+  static bar() {}
 }

@@ -1,7 +1,7 @@
 function createClassDeclaration() {
   class C {
     [this] = 1;
-    [this + 'bar'] = 2;
+    [this + "bar"] = 2;
   }
   return C;
 }
@@ -9,7 +9,7 @@ function createClassDeclaration() {
 function createClassExpression() {
   return class {
     [this] = 3;
-    [this + 'bar'] = 4;
+    [this + "bar"] = 4;
   };
 }
 

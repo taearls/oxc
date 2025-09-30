@@ -10,7 +10,8 @@ module.exports = function test() {
                   if (test) {
                     if (asdf) {
                       if (asdf) {
-                        test += ' || ' + (test) + ' === null || ' + (test) + ' === \'\' ';
+                        test +=
+                          " || " + test + " === null || " + test + " === '' ";
                       }
                     }
                   }
@@ -22,4 +23,4 @@ module.exports = function test() {
       }
     }
   }
-}
+};

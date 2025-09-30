@@ -14,5 +14,5 @@ function Foo() {
         />
       </label>
     </template>
-  )
+  );
 }

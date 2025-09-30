@@ -1,5 +1,5 @@
-type VerticalAlignment = 'top' | 'middle' | 'bottom';
-type HorizontalAlignment = 'left' | 'center' | 'right';
+type VerticalAlignment = "top" | "middle" | "bottom";
+type HorizontalAlignment = "left" | "center" | "right";
 
 // Takes
 //   | "top-left"    | "top-center"    | "top-right"

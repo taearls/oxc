@@ -50,7 +50,8 @@ let allowedToStartServer: boolean;
 export async function activate(context: ExtensionContext) {
   const configService = new ConfigService();
   allowedToStartServer = configService.vsCodeConfig.requireConfig
-    ? (await workspace.findFiles(`**/.oxlintrc.json`, '**/node_modules/**', 1)).length > 0
+    ? (await workspace.findFiles(`**/.oxlintrc.json`, '**/node_modules/**', 1))
+      .length > 0
     : true;
 
   const restartCommand = commands.registerCommand(
@@ -84,7 +85,9 @@ export async function activate(context: ExtensionContext) {
   const toggleEnable = commands.registerCommand(
     OxcCommands.ToggleEnable,
     async () => {
-      await configService.vsCodeConfig.updateEnable(!configService.vsCodeConfig.enable);
+      await configService.vsCodeConfig.updateEnable(
+        !configService.vsCodeConfig.enable,
+      );
 
       if (client === undefined || !allowedToStartServer) {
         return;
@@ -117,16 +120,20 @@ export async function activate(context: ExtensionContext) {
 
       const params = {
         command: LspCommands.FixAll,
-        arguments: [{
-          uri: textEditor.document.uri.toString(),
-        }],
+        arguments: [
+          {
+            uri: textEditor.document.uri.toString(),
+          },
+        ],
       };
 
       await client.sendRequest(ExecuteCommandRequest.type, params);
     },
   );
 
-  const outputChannel = window.createOutputChannel(outputChannelName, { log: true });
+  const outputChannel = window.createOutputChannel(outputChannelName, {
+    log: true,
+  });
 
   context.subscriptions.push(
     applyAllFixesFile,
@@ -171,17 +178,31 @@ export async function activate(context: ExtensionContext) {
   };
 
   // see https://github.com/oxc-project/oxc/blob/9b475ad05b750f99762d63094174be6f6fc3c0eb/crates/oxc_linter/src/loader/partial_loader/mod.rs#L17-L20
-  const supportedExtensions = ['astro', 'cjs', 'cts', 'js', 'jsx', 'mjs', 'mts', 'svelte', 'ts', 'tsx', 'vue'];
+  const supportedExtensions = [
+    'astro',
+    'cjs',
+    'cts',
+    'js',
+    'jsx',
+    'mjs',
+    'mts',
+    'svelte',
+    'ts',
+    'tsx',
+    'vue',
+  ];
 
   // If the extension is launched in debug mode then the debug server options are used
   // Otherwise the run options are used
   // Options to control the language client
   let clientOptions: LanguageClientOptions = {
     // Register the server for plain text documents
-    documentSelector: [{
-      pattern: `**/*.{${supportedExtensions.join(',')}}`,
-      scheme: 'file',
-    }],
+    documentSelector: [
+      {
+        pattern: `**/*.{${supportedExtensions.join(',')}}`,
+        scheme: 'file',
+      },
+    ],
     initializationOptions: configService.languageServerConfig,
     outputChannel,
     traceOutputChannel: outputChannel,
@@ -189,7 +210,10 @@ export async function activate(context: ExtensionContext) {
       handleDiagnostics: (uri, diagnostics, next) => {
         for (const diag of diagnostics) {
           // https://github.com/oxc-project/oxc/issues/12404
-          if (typeof diag.code === 'object' && diag.code?.value === 'eslint-plugin-unicorn(filename-case)') {
+          if (
+            typeof diag.code === 'object' &&
+            diag.code?.value === 'eslint-plugin-unicorn(filename-case)'
+          ) {
             diag.message += '\nYou may need to close the file and restart VSCode after renaming a file by only casing.';
           }
         }
@@ -197,7 +221,7 @@ export async function activate(context: ExtensionContext) {
       },
       workspace: {
         configuration: (params: ConfigurationParams) => {
-          return params.items.map(item => {
+          return params.items.map((item) => {
             if (item.section !== 'oxc_language_server') {
               return null;
             }
@@ -205,7 +229,11 @@ export async function activate(context: ExtensionContext) {
               return null;
             }
 
-            return configService.getWorkspaceConfig(Uri.parse(item.scopeUri))?.toLanguageServerConfig() ?? null;
+            return (
+              configService
+                .getWorkspaceConfig(Uri.parse(item.scopeUri))
+                ?.toLanguageServerConfig() ?? null
+            );
           });
         },
       },
@@ -213,33 +241,32 @@ export async function activate(context: ExtensionContext) {
   };
 
   // Create the language client and start the client.
-  client = new LanguageClient(
-    languageClientName,
-    serverOptions,
-    clientOptions,
-  );
+  client = new LanguageClient(languageClientName, serverOptions, clientOptions);
 
-  const onNotificationDispose = client.onNotification(ShowMessageNotification.type, (params) => {
-    switch (params.type) {
-      case MessageType.Debug:
-        outputChannel.debug(params.message);
-        break;
-      case MessageType.Log:
-        outputChannel.info(params.message);
-        break;
-      case MessageType.Info:
-        window.showInformationMessage(params.message);
-        break;
-      case MessageType.Warning:
-        window.showWarningMessage(params.message);
-        break;
-      case MessageType.Error:
-        window.showErrorMessage(params.message);
-        break;
-      default:
-        outputChannel.info(params.message);
-    }
-  });
+  const onNotificationDispose = client.onNotification(
+    ShowMessageNotification.type,
+    (params) => {
+      switch (params.type) {
+        case MessageType.Debug:
+          outputChannel.debug(params.message);
+          break;
+        case MessageType.Log:
+          outputChannel.info(params.message);
+          break;
+        case MessageType.Info:
+          window.showInformationMessage(params.message);
+          break;
+        case MessageType.Warning:
+          window.showWarningMessage(params.message);
+          break;
+        case MessageType.Error:
+          window.showErrorMessage(params.message);
+          break;
+        default:
+          outputChannel.info(params.message);
+      }
+    },
+  );
 
   context.subscriptions.push(onNotificationDispose);
 
@@ -272,13 +299,13 @@ export async function activate(context: ExtensionContext) {
     // update the initializationOptions for a possible restart
     client.clientOptions.initializationOptions = this.languageServerConfig;
 
-    if (configService.effectsWorkspaceConfigChange(event) && client.isRunning()) {
-      await client.sendNotification(
-        'workspace/didChangeConfiguration',
-        {
-          settings: this.languageServerConfig,
-        },
-      );
+    if (
+      configService.effectsWorkspaceConfigChange(event) &&
+      client.isRunning()
+    ) {
+      await client.sendNotification('workspace/didChangeConfiguration', {
+        settings: this.languageServerConfig,
+      });
     }
   };
 
@@ -300,15 +327,9 @@ export async function deactivate(): Promise<void> {
   client = undefined;
 }
 
-function updateStatsBar(
-  context: ExtensionContext,
-  enable: boolean,
-) {
+function updateStatsBar(context: ExtensionContext, enable: boolean) {
   if (!myStatusBarItem) {
-    myStatusBarItem = window.createStatusBarItem(
-      StatusBarAlignment.Right,
-      100,
-    );
+    myStatusBarItem = window.createStatusBarItem(StatusBarAlignment.Right, 100);
     myStatusBarItem.command = OxcCommands.ToggleEnable;
     context.subscriptions.push(myStatusBarItem);
     myStatusBarItem.show();
@@ -330,8 +351,16 @@ function updateStatsBar(
   myStatusBarItem.backgroundColor = new ThemeColor(bgColor);
 }
 
-function generateActivatorByConfig(config: VSCodeConfig, context: ExtensionContext): void {
-  const watcher = workspace.createFileSystemWatcher('**/.oxlintrc.json', false, true, true);
+function generateActivatorByConfig(
+  config: VSCodeConfig,
+  context: ExtensionContext,
+): void {
+  const watcher = workspace.createFileSystemWatcher(
+    '**/.oxlintrc.json',
+    false,
+    true,
+    true,
+  );
   watcher.onDidCreate(async () => {
     watcher.dispose();
     allowedToStartServer = true;

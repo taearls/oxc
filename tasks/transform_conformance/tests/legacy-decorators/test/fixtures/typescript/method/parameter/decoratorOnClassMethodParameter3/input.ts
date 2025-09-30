@@ -7,5 +7,5 @@ function fn(value: Promise<number>): any {
   class Class {
     async method(@dec(await value) arg: number) {}
   }
-  return Class
+  return Class;
 }

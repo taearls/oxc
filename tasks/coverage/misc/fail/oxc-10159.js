@@ -1,1 +1,4 @@
-function a() { class b { }; function b() { } }
+function a() {
+  class b {}
+  function b() {}
+}

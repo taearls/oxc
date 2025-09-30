@@ -26,12 +26,14 @@ describe('parse', () => {
 
     const comment = ret.comments[0];
     expect(comment).toEqual({
-      'type': 'Block',
-      'start': 0,
-      'end': 13,
-      'value': ' comment ',
+      type: 'Block',
+      start: 0,
+      end: 13,
+      value: ' comment ',
     });
-    expect(code.substring(comment.start, comment.end)).toBe('/*' + comment.value + '*/');
+    expect(code.substring(comment.start, comment.end)).toBe(
+      '/*' + comment.value + '*/',
+    );
   });
 
   it('checks semantic', async () => {
@@ -52,13 +54,17 @@ describe('parse', () => {
       const ret = parseSync('test.cjs', code, { lang, sourceType: 'script' });
       expect(ret.errors.length).toBe(0);
       // Parsed as `await(1)`
-      expect((ret.program.body[0] as ExpressionStatement).expression.type).toBe('CallExpression');
+      expect((ret.program.body[0] as ExpressionStatement).expression.type).toBe(
+        'CallExpression',
+      );
     });
     test.each(langs)('%s', (lang) => {
       const ret = parseSync('test.cjs', code, { lang, sourceType: 'module' });
       expect(ret.errors.length).toBe(0);
       // Parsed as `await 1`
-      expect((ret.program.body[0] as ExpressionStatement).expression.type).toBe('AwaitExpression');
+      expect((ret.program.body[0] as ExpressionStatement).expression.type).toBe(
+        'AwaitExpression',
+      );
     });
     test('sets lang as dts', () => {
       const code = 'declare const foo';
@@ -148,7 +154,10 @@ describe('parse', () => {
       });
 
       it('`astType` option is "ts"', () => {
-        const { program } = parseSync('test.js', code, { lang: 'js', astType: 'ts' });
+        const { program } = parseSync('test.js', code, {
+          lang: 'js',
+          astType: 'ts',
+        });
         expect(program).toEqual(withTsFields);
       });
     });
@@ -165,7 +174,10 @@ describe('parse', () => {
       });
 
       it('`astType` option is "js"', () => {
-        const { program } = parseSync('test.ts', code, { lang: 'ts', astType: 'js' });
+        const { program } = parseSync('test.ts', code, {
+          lang: 'ts',
+          astType: 'js',
+        });
         expect(program).toEqual(withoutTsFields);
       });
     });
@@ -246,7 +258,10 @@ describe('parse', () => {
     });
 
     it('lone surrogates and lossy replacement characters', () => {
-      const ret = parseSync('test.js', ';"�\\u{FFFD}\\uD800\\uDBFF�\\u{FFFD}";');
+      const ret = parseSync(
+        'test.js',
+        ';"�\\u{FFFD}\\uD800\\uDBFF�\\u{FFFD}";',
+      );
       expect(ret.errors.length).toBe(0);
       expect(ret.program.body.length).toBe(2);
       expect(ret.program.body[1]).toEqual({
@@ -340,7 +355,7 @@ describe('parse', () => {
                 raw: '\\uD800\\uDBFF',
                 cooked: '\ud800\udbff',
               },
-              'tail': false,
+              tail: false,
             },
             {
               type: 'TemplateElement',
@@ -350,7 +365,7 @@ describe('parse', () => {
                 raw: '\\uD800\\uDBFF',
                 cooked: '\ud800\udbff',
               },
-              'tail': true,
+              tail: true,
             },
           ],
         },
@@ -375,7 +390,13 @@ describe('parse', () => {
                 local: { type: 'Identifier', start: 18, end: 20, name: 'ns' },
               },
             ],
-            source: { type: 'Literal', start: 26, end: 29, value: 'x', raw: '"x"' },
+            source: {
+              type: 'Literal',
+              start: 26,
+              end: 29,
+              value: 'x',
+              raw: '"x"',
+            },
             attributes: [],
             phase: 'defer',
           });
@@ -405,7 +426,13 @@ describe('parse', () => {
                 },
               },
             ],
-            source: { type: 'Literal', start: 26, end: 29, value: 'x', raw: '"x"' },
+            source: {
+              type: 'Literal',
+              start: 26,
+              end: 29,
+              value: 'x',
+              raw: '"x"',
+            },
             attributes: [],
             phase: 'defer',
             importKind: 'value',
@@ -430,7 +457,13 @@ describe('parse', () => {
                 local: { type: 'Identifier', start: 14, end: 17, name: 'src' },
               },
             ],
-            source: { type: 'Literal', start: 23, end: 26, value: 'x', raw: '"x"' },
+            source: {
+              type: 'Literal',
+              start: 23,
+              end: 26,
+              value: 'x',
+              raw: '"x"',
+            },
             attributes: [],
             phase: 'source',
           });
@@ -460,7 +493,13 @@ describe('parse', () => {
                 },
               },
             ],
-            source: { type: 'Literal', start: 23, end: 26, value: 'x', raw: '"x"' },
+            source: {
+              type: 'Literal',
+              start: 23,
+              end: 26,
+              value: 'x',
+              raw: '"x"',
+            },
             attributes: [],
             phase: 'source',
             importKind: 'value',
@@ -479,7 +518,13 @@ describe('parse', () => {
               type: 'ImportExpression',
               start: 0,
               end: 17,
-              source: { type: 'Literal', start: 13, end: 16, value: 'x', raw: '"x"' },
+              source: {
+                type: 'Literal',
+                start: 13,
+                end: 16,
+                value: 'x',
+                raw: '"x"',
+              },
               options: null,
               phase: 'defer',
             });
@@ -496,7 +541,13 @@ describe('parse', () => {
               type: 'ImportExpression',
               start: 0,
               end: 17,
-              source: { type: 'Literal', start: 13, end: 16, value: 'x', raw: '"x"' },
+              source: {
+                type: 'Literal',
+                start: 13,
+                end: 16,
+                value: 'x',
+                raw: '"x"',
+              },
               options: null,
               phase: 'defer',
             });
@@ -513,7 +564,13 @@ describe('parse', () => {
               type: 'ImportExpression',
               start: 0,
               end: 18,
-              source: { type: 'Literal', start: 14, end: 17, value: 'x', raw: '"x"' },
+              source: {
+                type: 'Literal',
+                start: 14,
+                end: 17,
+                value: 'x',
+                raw: '"x"',
+              },
               options: null,
               phase: 'source',
             });
@@ -530,7 +587,13 @@ describe('parse', () => {
               type: 'ImportExpression',
               start: 0,
               end: 18,
-              source: { type: 'Literal', start: 14, end: 17, value: 'x', raw: '"x"' },
+              source: {
+                type: 'Literal',
+                start: 14,
+                end: 17,
+                value: 'x',
+                raw: '"x"',
+              },
               options: null,
               phase: 'source',
             });
@@ -568,7 +631,7 @@ describe('parse', () => {
                 raw: '�\\u{FFFD}',
                 cooked: '��',
               },
-              'tail': false,
+              tail: false,
             },
             {
               type: 'TemplateElement',
@@ -578,7 +641,7 @@ describe('parse', () => {
                 raw: '�\\u{FFFD}',
                 cooked: '��',
               },
-              'tail': true,
+              tail: true,
             },
           ],
         },
@@ -586,7 +649,10 @@ describe('parse', () => {
     });
 
     it('lone surrogates and lossy replacement characters', () => {
-      const ret = parseSync('test.js', '`�\\u{FFFD}\\uD800${x}\\uDBFF�\\u{FFFD}`;');
+      const ret = parseSync(
+        'test.js',
+        '`�\\u{FFFD}\\uD800${x}\\uDBFF�\\u{FFFD}`;',
+      );
       expect(ret.errors.length).toBe(0);
       expect(ret.program.body.length).toBe(1);
       expect(ret.program.body[0]).toEqual({
@@ -614,7 +680,7 @@ describe('parse', () => {
                 raw: '�\\u{FFFD}\\uD800',
                 cooked: '��\ud800',
               },
-              'tail': false,
+              tail: false,
             },
             {
               type: 'TemplateElement',
@@ -624,7 +690,7 @@ describe('parse', () => {
                 raw: '\\uDBFF�\\u{FFFD}',
                 cooked: '\udbff��',
               },
-              'tail': true,
+              tail: true,
             },
           ],
         },
@@ -678,19 +744,27 @@ describe('parse', () => {
   describe('preserveParens', () => {
     it('should include parens when true', () => {
       let ret = parseSync('test.js', '(x)');
-      expect((ret.program.body[0] as ExpressionStatement).expression.type).toBe('ParenthesizedExpression');
+      expect((ret.program.body[0] as ExpressionStatement).expression.type).toBe(
+        'ParenthesizedExpression',
+      );
 
       ret = parseSync('test.ts', 'type Foo = (x)');
-      expect((ret.program.body[0] as TSTypeAliasDeclaration).typeAnnotation.type).toBe('TSParenthesizedType');
+      expect(
+        (ret.program.body[0] as TSTypeAliasDeclaration).typeAnnotation.type,
+      ).toBe('TSParenthesizedType');
     });
 
     it('should omit parens when false', () => {
       const options = { preserveParens: false };
       let ret = parseSync('test.js', '(x)', options);
-      expect((ret.program.body[0] as ExpressionStatement).expression.type).toBe('Identifier');
+      expect((ret.program.body[0] as ExpressionStatement).expression.type).toBe(
+        'Identifier',
+      );
 
       ret = parseSync('test.ts', 'type Foo = (x)', options);
-      expect((ret.program.body[0] as TSTypeAliasDeclaration).typeAnnotation.type).toBe('TSTypeReference');
+      expect(
+        (ret.program.body[0] as TSTypeAliasDeclaration).typeAnnotation.type,
+      ).toBe('TSTypeReference');
     });
   });
 
@@ -741,7 +815,10 @@ describe('UTF-16 span', () => {
   });
 
   it('module record', async () => {
-    const ret = await parseAsync('test.js', `"🤨";import x from "x"; export { x };import("y");import.meta.z`);
+    const ret = await parseAsync(
+      'test.js',
+      `"🤨";import x from "x"; export { x };import("y");import.meta.z`,
+    );
     expect(ret.module).toMatchInlineSnapshot(`
       {
         "dynamicImports": [
@@ -861,15 +938,15 @@ describe('error', () => {
     expect(ret.errors.length).toBe(1);
     delete ret.errors[0].codeframe;
     expect(ret.errors[0]).toStrictEqual({
-      'helpMessage': 'Try insert a semicolon here',
-      'labels': [
+      helpMessage: 'Try insert a semicolon here',
+      labels: [
         {
-          'end': 4,
-          'start': 4,
+          end: 4,
+          start: 4,
         },
       ],
-      'message': 'Expected a semicolon or an implicit semicolon after a statement, but found none',
-      'severity': 'Error',
+      message: 'Expected a semicolon or an implicit semicolon after a statement, but found none',
+      severity: 'Error',
     });
   });
 });

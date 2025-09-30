@@ -73,7 +73,9 @@ export function parseSyncRawImpl(filename, sourceText, options, convert) {
 //
 // Fallback to `os.cpus().length` on versions of NodeJS prior to v18.14.0, which do not support
 // `os.availableParallelism`.
-let availableCores = os.availableParallelism ? os.availableParallelism() : os.cpus().length;
+let availableCores = os.availableParallelism
+  ? os.availableParallelism()
+  : os.cpus().length;
 const queue = [];
 
 /**
@@ -91,7 +93,12 @@ const queue = [];
  * @param {function} convert - Function to convert the buffer returned from Rust into a JS object
  * @returns {Object} - The return value of `convert`
  */
-export async function parseAsyncRawImpl(filename, sourceText, options, convert) {
+export async function parseAsyncRawImpl(
+  filename,
+  sourceText,
+  options,
+  convert,
+) {
   // Wait for a free CPU core if all CPUs are currently busy.
   //
   // Note: `availableCores` is NOT decremented if have to wait in the queue first,
@@ -164,7 +171,8 @@ const ONE_GIB = 1 << 30;
 // freed. We don't want to block it from freeing memory, but if it's not done that yet, there's no
 // point creating a new buffer, when one already exists.
 const CLEAR_BUFFERS_TIMEOUT = 10_000; // 10 seconds
-const buffers = [], oldBuffers = [];
+const buffers = [],
+  oldBuffers = [];
 let clearBuffersTimeout = null;
 
 const textEncoder = new TextEncoder();
@@ -202,9 +210,18 @@ export function prepareRaw(sourceText) {
   // Write source into start of buffer.
   // `TextEncoder` cannot write into a `Uint8Array` larger than 1 GiB,
   // so create a view into buffer of this size to write into.
-  const sourceBuffer = new Uint8Array(buffer.buffer, buffer.byteOffset, ONE_GIB);
-  const { read, written: sourceByteLen } = textEncoder.encodeInto(sourceText, sourceBuffer);
-  if (read !== sourceText.length) throw new Error('Failed to write source text into buffer');
+  const sourceBuffer = new Uint8Array(
+    buffer.buffer,
+    buffer.byteOffset,
+    ONE_GIB,
+  );
+  const { read, written: sourceByteLen } = textEncoder.encodeInto(
+    sourceText,
+    sourceBuffer,
+  );
+  if (read !== sourceText.length) {
+    throw new Error('Failed to write source text into buffer');
+  }
 
   return { buffer, sourceByteLen };
 }

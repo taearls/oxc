@@ -37,18 +37,24 @@ const plugin: Plugin = {
           },
           BinaryExpression(expr) {
             // `right` should not be `ParenthesizedExpression`
-            visits.push(`${expr.type}: ${expr.operator} (right: ${expr.right.type})`);
+            visits.push(
+              `${expr.type}: ${expr.operator} (right: ${expr.right.type})`,
+            );
           },
           Literal(lit) {
             visits.push(`${lit.type}: ${lit.value}`);
           },
           TSTypeAliasDeclaration(decl) {
             // `typeAnnotation` should not be `TSParenthesizedType`
-            visits.push(`${decl.type}: (typeAnnotation: ${decl.typeAnnotation.type})`);
+            visits.push(
+              `${decl.type}: (typeAnnotation: ${decl.typeAnnotation.type})`,
+            );
           },
           'TSTypeAliasDeclaration:exit'(decl) {
             // `typeAnnotation` should not be `TSParenthesizedType`
-            visits.push(`${decl.type}:exit: (typeAnnotation: ${decl.typeAnnotation.type})`);
+            visits.push(
+              `${decl.type}:exit: (typeAnnotation: ${decl.typeAnnotation.type})`,
+            );
           },
           TSStringKeyword(keyword) {
             visits.push(keyword.type);
@@ -59,11 +65,15 @@ const plugin: Plugin = {
           },
           TSUnionType(union) {
             // `types` should not be `TSParenthesizedType`
-            visits.push(`${union.type}: (types: ${union.types.map(t => t.type).join(', ')})`);
+            visits.push(
+              `${union.type}: (types: ${union.types.map((t) => t.type).join(', ')})`,
+            );
           },
           'TSUnionType:exit'(union) {
             // `types` should not be `TSParenthesizedType`
-            visits.push(`${union.type}:exit: (types: ${union.types.map(t => t.type).join(', ')})`);
+            visits.push(
+              `${union.type}:exit: (types: ${union.types.map((t) => t.type).join(', ')})`,
+            );
           },
           TSNumberKeyword(keyword) {
             visits.push(keyword.type);

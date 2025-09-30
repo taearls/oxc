@@ -3,7 +3,7 @@ export const foo = () => ({
     ReactDOM.render(
       <Bar {...config} attribute={await baz} />,
       domNode,
-      () => {}
+      () => {},
     );
   },
 });

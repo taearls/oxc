@@ -8,6 +8,8 @@ class Test {
       }
     }
     _Other = Other;
-    babelHelpers.defineProperty(Other, "a", () => babelHelpers.superPropGet(_Other, "test", _Other));
+    babelHelpers.defineProperty(Other, "a", () =>
+      babelHelpers.superPropGet(_Other, "test", _Other),
+    );
   }
 }

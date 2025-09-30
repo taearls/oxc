@@ -1,4 +1,4 @@
 export class C {
-    inject(): this;
-    is(): this;
+  inject(): this;
+  is(): this;
 }

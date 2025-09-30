@@ -8,7 +8,10 @@ import { spawnCommand } from './spawn.js';
 const tempDir: string = mkdtempSync(join(os.tmpdir(), 'oxc-mcp-'));
 
 function writeTempFile(sourceCode: string, filename: string): string {
-  const tempPath = join(tempDir, `${Date.now()}-${Math.random().toString(36).substring(2)}-${filename}`);
+  const tempPath = join(
+    tempDir,
+    `${Date.now()}-${Math.random().toString(36).substring(2)}-${filename}`,
+  );
   writeFileSync(tempPath, sourceCode, 'utf8');
   return tempPath;
 }
@@ -16,11 +19,9 @@ function writeTempFile(sourceCode: string, filename: string): string {
 /**
  * Execute a tool with temporary file cleanup
  */
-export async function executeWithTempFile<T extends { sourceCode: string; filename?: string }>(
-  command: string,
-  options: T,
-  args: string[],
-): Promise<string> {
+export async function executeWithTempFile<
+  T extends { sourceCode: string; filename?: string },
+>(command: string, options: T, args: string[]): Promise<string> {
   const { sourceCode, filename = 'index.js' } = options;
   const tempPath = writeTempFile(sourceCode, filename);
   args.push(tempPath);
@@ -29,7 +30,6 @@ export async function executeWithTempFile<T extends { sourceCode: string; filena
   } finally {
     try {
       unlinkSync(tempPath);
-    } catch {
-    }
+    } catch {}
   }
 }

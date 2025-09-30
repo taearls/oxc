@@ -6,7 +6,7 @@ class C extends S {
     var _unboundProp, _mutatedProp;
 
     super[boundProp] && (super[boundProp] = 1);
-    super[(_unboundProp = unboundProp)] && (super[_unboundProp] = 2);
-    super[(_mutatedProp = mutatedProp)] && (super[_mutatedProp] = 3);
+    super[_unboundProp = unboundProp] && (super[_unboundProp] = 2);
+    super[_mutatedProp = mutatedProp] && (super[_mutatedProp] = 3);
   }
 }

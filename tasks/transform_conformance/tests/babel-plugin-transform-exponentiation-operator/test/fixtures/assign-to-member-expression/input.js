@@ -1,7 +1,7 @@
 // Bound root of member expression
 let obj;
 obj.prop **= 2;
-obj['prop blah'] **= 3;
+obj["prop blah"] **= 3;
 obj.foo.bar.qux **= 4;
 
 let boundPropName;
@@ -18,7 +18,7 @@ obj[unboundPropObj.foo.bar.qux] **= 10;
 
 // Unbound root of member expression
 unboundObj.prop **= 11;
-unboundObj['prop blah'] **= 12;
+unboundObj["prop blah"] **= 12;
 unboundObj.foo.bar.qux **= 13;
 
 let boundPropName3;
@@ -38,18 +38,18 @@ let fn, fn2;
 fn().prop **= 20;
 fn().foo().bar().qux **= 21;
 fn().prop[fn2()] **= 22;
-fn().prop[fn3().foo().bar().qux() + ' junk'] **= 23;
+fn().prop[fn3().foo().bar().qux() + " junk"] **= 23;
 
 // `this`
 this.prop **= 24;
 this.foo.bar.qux **= 25;
-this['prop blah'] **= 26;
+this["prop blah"] **= 26;
 this[fn4().foo.bar.qux()] **= 27;
 
 function outer() {
   this.prop **= 28;
   this.foo.bar.qux **= 29;
-  this['prop blah'] **= 30;
+  this["prop blah"] **= 30;
   this[fn4().foo.bar.qux()] **= 31;
 }
 

@@ -1,3 +1,3 @@
 let g = async () => {
-  console.log("Good")
+  console.log("Good");
 };

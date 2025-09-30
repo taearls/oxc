@@ -3,7 +3,10 @@ import { moduleRunnerTransform } from '../index';
 
 describe('moduleRunnerTransform', () => {
   test('dynamic import', async () => {
-    const result = moduleRunnerTransform('index.js', `export const i = () => import('./foo')`);
+    const result = moduleRunnerTransform(
+      'index.js',
+      `export const i = () => import('./foo')`,
+    );
     expect(result?.code).toMatchInlineSnapshot(`
       "Object.defineProperty(__vite_ssr_exports__, "i", {
       	enumerable: true,
@@ -20,15 +23,9 @@ describe('moduleRunnerTransform', () => {
   });
 
   test('sourcemap', async () => {
-    const map = (
-      moduleRunnerTransform(
-        'index.js',
-        `export const a = 1`,
-        {
-          sourcemap: true,
-        },
-      )
-    )?.map;
+    const map = moduleRunnerTransform('index.js', `export const a = 1`, {
+      sourcemap: true,
+    })?.map;
 
     expect(map).toMatchInlineSnapshot(`
       {

@@ -11,5 +11,5 @@ const Obj = {
         _superprop_getObject().value = true;
       };
     })();
-  }
+  },
 };

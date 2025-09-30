@@ -56,7 +56,10 @@ export let setupContextForFile: (
  * @returns `InternalContext` object
  * @throws {Error} If context has not been set up
  */
-let getInternal: (context: Context, actionDescription: string) => InternalContext;
+let getInternal: (
+  context: Context,
+  actionDescription: string,
+) => InternalContext;
 
 // Internal data within `Context` that don't want to expose to plugins.
 // Stored as `#internal` property of `Context`.
@@ -146,7 +149,9 @@ export class Context {
 
     getInternal = (context, actionDescription) => {
       const internal = context.#internal;
-      if (internal.ruleIndex === -1) throw new Error(`Cannot ${actionDescription} in \`createOnce\``);
+      if (internal.ruleIndex === -1) {
+        throw new Error(`Cannot ${actionDescription} in \`createOnce\``);
+      }
       return internal;
     };
   }

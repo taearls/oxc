@@ -5,14 +5,12 @@
 declare var dec: any;
 
 @dec
-class A {
-}
+class A {}
 
 @dec
 class B {
-    constructor(x: number) {}
+  constructor(x: number) {}
 }
 
 @dec
-class C extends A {
-}
+class C extends A {}

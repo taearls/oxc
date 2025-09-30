@@ -28,7 +28,10 @@ const PREAMBLE = '// Auto-generated code, DO NOT EDIT DIRECTLY!\n' +
 
 const types = await getTypesFromCode();
 
-const outputDirPath = pathJoin(fileURLToPath(import.meta.url), '../../src/generated');
+const outputDirPath = pathJoin(
+  fileURLToPath(import.meta.url),
+  '../../src/generated',
+);
 
 await Promise.all([
   writeToFile('traverse.rs', generateTraverseTraitCode(types)),

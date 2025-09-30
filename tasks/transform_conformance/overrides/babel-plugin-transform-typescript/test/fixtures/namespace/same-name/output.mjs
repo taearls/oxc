@@ -14,9 +14,9 @@ let N;
     _N11._N5 = _N5;
   })(N || (N = _N8.N || (_N8.N = {})));
   (function (_N12) {
-    let _N = /*#__PURE__*/function (_N) {
+    let _N = /*#__PURE__*/ (function (_N) {
       return _N;
-    }({});
+    })({});
     _N12._N = _N;
   })(N || (N = _N8.N || (_N8.N = {})));
 })(N || (N = {}));

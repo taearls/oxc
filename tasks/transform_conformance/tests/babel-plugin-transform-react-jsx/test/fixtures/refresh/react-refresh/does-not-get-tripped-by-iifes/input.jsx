@@ -1,5 +1,5 @@
 while (item) {
-  (item => {
+  ((item) => {
     useFoo();
   })(item);
 }

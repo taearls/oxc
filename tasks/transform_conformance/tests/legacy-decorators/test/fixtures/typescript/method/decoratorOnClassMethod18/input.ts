@@ -4,8 +4,8 @@
 declare var decorator: any;
 
 class Foo {
-    p1
+  p1;
 
-    @decorator()
-    p2;
+  @decorator()
+  p2;
 }

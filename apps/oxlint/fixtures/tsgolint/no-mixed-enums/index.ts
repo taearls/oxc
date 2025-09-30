@@ -2,12 +2,12 @@
 
 enum Status {
   Open = 1,
-  Closed = 'closed',
+  Closed = "closed",
 }
 
 enum Direction {
-  Up = 'up',
+  Up = "up",
   Down = 2,
-  Left = 'left',
+  Left = "left",
   Right = 4,
 }

@@ -27,7 +27,12 @@ export type VisitFn = (node: Node) => void;
 
 // AST node type.
 // We'll make this type a union later on.
-export type Node = { type: string; start: number; end: number; [key: string]: unknown };
+export type Node = {
+  type: string;
+  start: number;
+  end: number;
+  [key: string]: unknown;
+};
 
 // Element of compiled visitor array.
 // * `VisitFn | null` for leaf nodes.

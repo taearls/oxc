@@ -3,15 +3,15 @@
 // A doesn't get registered because it's not declared locally.
 // Alias doesn't get registered because its definition is just an identifier.
 
-import A from './A';
-import Store from './Store';
+import A from "./A";
+import Store from "./Store";
 
 Store.subscribe();
 
-const Header = styled.div`color: red`
-const StyledFactory1 = styled('div')`color: hotpink`
-const StyledFactory2 = styled('div')({ color: 'hotpink' })
-const StyledFactory3 = styled(A)({ color: 'hotpink' })
+const Header = styled.div`color: red`;
+const StyledFactory1 = styled("div")`color: hotpink`;
+const StyledFactory2 = styled("div")({ color: "hotpink" });
+const StyledFactory3 = styled(A)({ color: "hotpink" });
 const FunnyFactory = funny.factory``;
 
 let Alias1 = A;
@@ -20,7 +20,17 @@ const Dict = {};
 
 function Foo() {
   return (
-    <div><A /><B /><StyledFactory1 /><StyledFactory2 /><StyledFactory3 /><Alias1 /><Alias2 /><Header /><Dict.X /></div>
+    <div>
+      <A />
+      <B />
+      <StyledFactory1 />
+      <StyledFactory2 />
+      <StyledFactory3 />
+      <Alias1 />
+      <Alias2 />
+      <Header />
+      <Dict.X />
+    </div>
   );
 }
 

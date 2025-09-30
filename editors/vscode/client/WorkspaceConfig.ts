@@ -96,33 +96,69 @@ export class WorkspaceConfig {
     this._configPath = this.configuration.get<string | null>('configPath') ||
       (useNestedConfigs ? null : oxlintConfigFileName);
     this._tsConfigPath = this.configuration.get<string | null>('tsConfigPath') ?? null;
-    this._unusedDisableDirectives = this.configuration.get<UnusedDisableDirectives>('unusedDisableDirectives') ??
-      'allow';
+    this._unusedDisableDirectives = this.configuration.get<UnusedDisableDirectives>(
+      'unusedDisableDirectives',
+    ) ?? 'allow';
     this._typeAware = this.configuration.get<boolean>('typeAware') ?? false;
     this._flags = flags;
     this._formattingExperimental = this.configuration.get<boolean>('fmt.experimental') ?? false;
   }
 
   public effectsConfigChange(event: ConfigurationChangeEvent): boolean {
-    if (event.affectsConfiguration(`${ConfigService.namespace}.configPath`, this.workspace)) {
+    if (
+      event.affectsConfiguration(
+        `${ConfigService.namespace}.configPath`,
+        this.workspace,
+      )
+    ) {
       return true;
     }
-    if (event.affectsConfiguration(`${ConfigService.namespace}.tsConfigPath`, this.workspace)) {
+    if (
+      event.affectsConfiguration(
+        `${ConfigService.namespace}.tsConfigPath`,
+        this.workspace,
+      )
+    ) {
       return true;
     }
-    if (event.affectsConfiguration(`${ConfigService.namespace}.lint.run`, this.workspace)) {
+    if (
+      event.affectsConfiguration(
+        `${ConfigService.namespace}.lint.run`,
+        this.workspace,
+      )
+    ) {
       return true;
     }
-    if (event.affectsConfiguration(`${ConfigService.namespace}.unusedDisableDirectives`, this.workspace)) {
+    if (
+      event.affectsConfiguration(
+        `${ConfigService.namespace}.unusedDisableDirectives`,
+        this.workspace,
+      )
+    ) {
       return true;
     }
-    if (event.affectsConfiguration(`${ConfigService.namespace}.typeAware`, this.workspace)) {
+    if (
+      event.affectsConfiguration(
+        `${ConfigService.namespace}.typeAware`,
+        this.workspace,
+      )
+    ) {
       return true;
     }
-    if (event.affectsConfiguration(`${ConfigService.namespace}.flags`, this.workspace)) {
+    if (
+      event.affectsConfiguration(
+        `${ConfigService.namespace}.flags`,
+        this.workspace,
+      )
+    ) {
       return true;
     }
-    if (event.affectsConfiguration(`${ConfigService.namespace}.fmt.experimental`, this.workspace)) {
+    if (
+      event.affectsConfiguration(
+        `${ConfigService.namespace}.fmt.experimental`,
+        this.workspace,
+      )
+    ) {
       return true;
     }
     return false;
@@ -138,7 +174,11 @@ export class WorkspaceConfig {
 
   updateRunTrigger(value: Trigger): PromiseLike<void> {
     this._runTrigger = value;
-    return this.configuration.update('lint.run', value, ConfigurationTarget.WorkspaceFolder);
+    return this.configuration.update(
+      'lint.run',
+      value,
+      ConfigurationTarget.WorkspaceFolder,
+    );
   }
 
   get configPath(): string | null {
@@ -147,7 +187,11 @@ export class WorkspaceConfig {
 
   updateConfigPath(value: string | null): PromiseLike<void> {
     this._configPath = value;
-    return this.configuration.update('configPath', value, ConfigurationTarget.WorkspaceFolder);
+    return this.configuration.update(
+      'configPath',
+      value,
+      ConfigurationTarget.WorkspaceFolder,
+    );
   }
 
   get tsConfigPath(): string | null {
@@ -156,16 +200,26 @@ export class WorkspaceConfig {
 
   updateTsConfigPath(value: string | null): PromiseLike<void> {
     this._tsConfigPath = value;
-    return this.configuration.update('tsConfigPath', value, ConfigurationTarget.WorkspaceFolder);
+    return this.configuration.update(
+      'tsConfigPath',
+      value,
+      ConfigurationTarget.WorkspaceFolder,
+    );
   }
 
   get unusedDisableDirectives(): UnusedDisableDirectives {
     return this._unusedDisableDirectives;
   }
 
-  updateUnusedDisableDirectives(value: UnusedDisableDirectives): PromiseLike<void> {
+  updateUnusedDisableDirectives(
+    value: UnusedDisableDirectives,
+  ): PromiseLike<void> {
     this._unusedDisableDirectives = value;
-    return this.configuration.update('unusedDisableDirectives', value, ConfigurationTarget.WorkspaceFolder);
+    return this.configuration.update(
+      'unusedDisableDirectives',
+      value,
+      ConfigurationTarget.WorkspaceFolder,
+    );
   }
 
   get typeAware(): boolean {
@@ -174,7 +228,11 @@ export class WorkspaceConfig {
 
   updateTypeAware(value: boolean): PromiseLike<void> {
     this._typeAware = value;
-    return this.configuration.update('typeAware', value, ConfigurationTarget.WorkspaceFolder);
+    return this.configuration.update(
+      'typeAware',
+      value,
+      ConfigurationTarget.WorkspaceFolder,
+    );
   }
 
   get flags(): Record<string, string> {
@@ -183,7 +241,11 @@ export class WorkspaceConfig {
 
   updateFlags(value: Record<string, string>): PromiseLike<void> {
     this._flags = value;
-    return this.configuration.update('flags', value, ConfigurationTarget.WorkspaceFolder);
+    return this.configuration.update(
+      'flags',
+      value,
+      ConfigurationTarget.WorkspaceFolder,
+    );
   }
 
   get formattingExperimental(): boolean {
@@ -192,7 +254,11 @@ export class WorkspaceConfig {
 
   updateFormattingExperimental(value: boolean): PromiseLike<void> {
     this._formattingExperimental = value;
-    return this.configuration.update('fmt.experimental', value, ConfigurationTarget.WorkspaceFolder);
+    return this.configuration.update(
+      'fmt.experimental',
+      value,
+      ConfigurationTarget.WorkspaceFolder,
+    );
   }
 
   public toLanguageServerConfig(): WorkspaceConfigInterface {

@@ -4,6 +4,6 @@
 declare function dec(): <T>(target: any, propertyKey: string) => void;
 
 class A {
-    @dec()
-    foo: `${string}`
+  @dec()
+  foo: `${string}`;
 }

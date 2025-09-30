@@ -3,8 +3,8 @@ const Obj = {
   async method() {
     super.value = true;
     () => {
-      super['value'] = true;
+      super["value"] = true;
       super.object.value = true;
-    }
-  }
-}
+    };
+  },
+};

@@ -23,7 +23,9 @@ import { minify } from '../index';
 import { run_code } from './sandbox';
 
 function run(input: string, expected: string[], prepend_code?: string) {
-  const consoleMock = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  const consoleMock = vi
+    .spyOn(console, 'log')
+    .mockImplementation(() => undefined);
   try {
     const minified = minify('test.cjs', input).code;
     expect(minified).not.toBeFalsy();
@@ -52,7 +54,13 @@ function convert(arg: any) {
 test('replace_index', () => {
   const code =
     'var arguments=[];console.log(arguments[0]);(function(){console.log(arguments[1],arguments["1"],arguments["foo"])})("bar",42);(function(a,b){console.log(arguments[1],arguments["1"],arguments["foo"])})("bar",42);(function(arguments){console.log(arguments[1],arguments["1"],arguments["foo"])})("bar",42);(function(){var arguments;console.log(arguments[1],arguments["1"],arguments["foo"])})("bar",42);';
-  const expected = ['undefined', '42 42 undefined', '42 42 undefined', 'a a undefined', '42 42 undefined'];
+  const expected = [
+    'undefined',
+    '42 42 undefined',
+    '42 42 undefined',
+    'a a undefined',
+    '42 42 undefined',
+  ];
   run(code, expected);
 });
 
@@ -66,7 +74,13 @@ test('replace_index_strict', () => {
 test('replace_index_keep_fargs', () => {
   const code =
     'var arguments=[];console.log(arguments[0]);(function(){console.log(arguments[1],arguments["1"],arguments["foo"])})("bar",42);(function(a,b){console.log(arguments[1],arguments["1"],arguments["foo"])})("bar",42);(function(arguments){console.log(arguments[1],arguments["1"],arguments["foo"])})("bar",42);(function(){var arguments;console.log(arguments[1],arguments["1"],arguments["foo"])})("bar",42);';
-  const expected = ['undefined', '42 42 undefined', '42 42 undefined', 'a a undefined', '42 42 undefined'];
+  const expected = [
+    'undefined',
+    '42 42 undefined',
+    '42 42 undefined',
+    'a a undefined',
+    '42 42 undefined',
+  ];
   run(code, expected);
 });
 
@@ -94,14 +108,20 @@ test('modified_strict', () => {
 test('arguments_in_arrow_func_1', () => {
   const code =
     '(function(a,b){console.log(arguments[0],a,arguments[1],arguments[3],b,arguments[2])})("bar",42,false);(function(a,b){(()=>{console.log(arguments[0],a,arguments[1],arguments[3],b,arguments[2])})(10,20,30,40)})("bar",42,false);';
-  const expected = ['bar bar 42 undefined 42 false', 'bar bar 42 undefined 42 false'];
+  const expected = [
+    'bar bar 42 undefined 42 false',
+    'bar bar 42 undefined 42 false',
+  ];
   run(code, expected);
 });
 
 test('arguments_in_arrow_func_2', () => {
   const code =
     '(function(a,b){console.log(arguments[0],a,arguments[1],arguments[3],b,arguments[2])})("bar",42,false);(function(a,b){(()=>{console.log(arguments[0],a,arguments[1],arguments[3],b,arguments[2])})(10,20,30,40)})("bar",42,false);';
-  const expected = ['bar bar 42 undefined 42 false', 'bar bar 42 undefined 42 false'];
+  const expected = [
+    'bar bar 42 undefined 42 false',
+    'bar bar 42 undefined 42 false',
+  ];
   run(code, expected);
 });
 
@@ -286,7 +306,9 @@ test('issue_87', () => {
 test('regression_block_scope_resolves', () => {
   const code =
     '(function(){if(1){let x;const y=1;class Zee{}}if(1){let ex;const why=2;class Zi{}}console.log(typeof x,typeof y,typeof Zee,typeof ex,typeof why,typeof Zi)})();';
-  const expected = ['undefined undefined undefined undefined undefined undefined'];
+  const expected = [
+    'undefined undefined undefined undefined undefined undefined',
+  ];
   run(code, expected);
 });
 
@@ -1039,7 +1061,16 @@ test('issue_2560', () => {
 test('issue_2994', () => {
   const code =
     'function f(condition1,condition2,condition3){if(condition1){if(condition2){return aValue}else{const variable1="something";if(condition3){const variable2="else";return anotherValue}else{return undefined}}}}let aValue=2,anotherValue=3;for(let i=0;i<8;++i){console.log(f(i&4,i&2,i&1))}';
-  const expected = ['undefined', 'undefined', 'undefined', 'undefined', 'undefined', '3', '2', '2'];
+  const expected = [
+    'undefined',
+    'undefined',
+    'undefined',
+    'undefined',
+    'undefined',
+    '3',
+    '2',
+    '2',
+  ];
   run(code, expected);
 });
 
@@ -1947,7 +1978,22 @@ test('issue_2822', () => {
 test('string_case', () => {
   const code =
     'console.log("İ".toLowerCase().charCodeAt(0));console.log("I".toLowerCase().charCodeAt(0));console.log("Ş".toLowerCase().charCodeAt(0));console.log("Ğ".toLowerCase().charCodeAt(0));console.log("Ü".toLowerCase().charCodeAt(0));console.log("Ö".toLowerCase().charCodeAt(0));console.log("Ç".toLowerCase().charCodeAt(0));console.log("i".toUpperCase().charCodeAt(0));console.log("ı".toUpperCase().charCodeAt(0));console.log("ş".toUpperCase().charCodeAt(0));console.log("ğ".toUpperCase().charCodeAt(0));console.log("ü".toUpperCase().charCodeAt(0));console.log("ö".toUpperCase().charCodeAt(0));console.log("ç".toUpperCase().charCodeAt(0));';
-  const expected = ['105', '105', '351', '287', '252', '246', '231', '73', '73', '350', '286', '220', '214', '199'];
+  const expected = [
+    '105',
+    '105',
+    '351',
+    '287',
+    '252',
+    '246',
+    '231',
+    '73',
+    '73',
+    '350',
+    '286',
+    '220',
+    '214',
+    '199',
+  ];
   run(code, expected);
 });
 
@@ -2561,14 +2607,40 @@ test('array_literal_with_spread_2b', () => {
 test('array_literal_with_spread_3a', () => {
   const code =
     'console.log([10,20][0]);console.log([10,20][1]);console.log([10,20][2]);console.log([...[],10,20][0]);console.log([...[],10,20][1]);console.log([...[],10,20][2]);console.log([10,...[],20][0]);console.log([10,...[],20][1]);console.log([10,...[],20][2]);console.log([10,20,...[]][0]);console.log([10,20,...[]][1]);console.log([10,20,...[]][2]);';
-  const expected = ['10', '20', 'undefined', '10', '20', 'undefined', '10', '20', 'undefined', '10', '20', 'undefined'];
+  const expected = [
+    '10',
+    '20',
+    'undefined',
+    '10',
+    '20',
+    'undefined',
+    '10',
+    '20',
+    'undefined',
+    '10',
+    '20',
+    'undefined',
+  ];
   run(code, expected);
 });
 
 test('array_literal_with_spread_3b', () => {
   const code =
     'var nothing=[];console.log([10,20][0]);console.log([10,20][1]);console.log([10,20][2]);console.log([...nothing,10,20][0]);console.log([...nothing,10,20][1]);console.log([...nothing,10,20][2]);console.log([10,...nothing,20][0]);console.log([10,...nothing,20][1]);console.log([10,...nothing,20][2]);console.log([10,20,...nothing][0]);console.log([10,20,...nothing][1]);console.log([10,20,...nothing][2]);';
-  const expected = ['10', '20', 'undefined', '10', '20', 'undefined', '10', '20', 'undefined', '10', '20', 'undefined'];
+  const expected = [
+    '10',
+    '20',
+    'undefined',
+    '10',
+    '20',
+    'undefined',
+    '10',
+    '20',
+    'undefined',
+    '10',
+    '20',
+    'undefined',
+  ];
   run(code, expected);
 });
 
@@ -3844,7 +3916,11 @@ test('computed_property', () => {
 test('issue_2513', () => {
   const code =
     '!function(Infinity,NaN,undefined){console.log("a"[1/0],"b"["Infinity"]);console.log("c"[0/0],"d"["NaN"]);console.log("e"[void 0],"f"["undefined"])}(0,0,0);';
-  const expected = ['undefined undefined', 'undefined undefined', 'undefined undefined'];
+  const expected = [
+    'undefined undefined',
+    'undefined undefined',
+    'undefined undefined',
+  ];
   run(code, expected);
 });
 
@@ -4051,14 +4127,20 @@ test('issue_t64', () => {
 test('dont_mangle_computed_property_1', () => {
   const code =
     '"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";"CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";const prop=Symbol("foo");const obj={[prop]:"bar",baz:1,qux:2,[3+4]:"seven",0:"zero",1:"one",null:"Null",undefined:"Undefined",Infinity:"infinity",NaN:"nan",void:"Void"};console.log(obj[prop],obj["baz"],obj.qux,obj[7],obj[0],obj[1+0],obj[null],obj[undefined],obj[1/0],obj[NaN],obj.void);console.log(obj.null,obj.undefined,obj.Infinity,obj.NaN);';
-  const expected = ['bar 1 2 seven zero one Null Undefined infinity nan Void', 'Null Undefined infinity nan'];
+  const expected = [
+    'bar 1 2 seven zero one Null Undefined infinity nan Void',
+    'Null Undefined infinity nan',
+  ];
   run(code, expected);
 });
 
 test('dont_mangle_computed_property_2', () => {
   const code =
     'const prop=Symbol("foo");const obj={[prop]:"bar",baz:1,qux:2,[3+4]:"seven",0:"zero",1:"one",null:"Null",undefined:"Undefined",Infinity:"infinity",NaN:"nan",void:"Void"};console.log(obj[prop],obj["baz"],obj.qux,obj[7],obj[0],obj[1+0],obj[null],obj[undefined],obj[1/0],obj[NaN],obj.void);console.log(obj.null,obj.undefined,obj.Infinity,obj.NaN);';
-  const expected = ['bar 1 2 seven zero one Null Undefined infinity nan Void', 'Null Undefined infinity nan'];
+  const expected = [
+    'bar 1 2 seven zero one Null Undefined infinity nan Void',
+    'Null Undefined infinity nan',
+  ];
   run(code, expected);
 });
 
@@ -4233,7 +4315,26 @@ test('window_access_is_impure', () => {
 test('modified', () => {
   const code =
     'function f0(){var a=1,b=2;b++;console.log(a+1);console.log(b+1)}function f1(){var a=1,b=2;--b;console.log(a+1);console.log(b+1)}function f2(){var a=1,b=2,c=3;b=c;console.log(a+b);console.log(b+c);console.log(a+c);console.log(a+b+c)}function f3(){var a=1,b=2,c=3;b*=c;console.log(a+b);console.log(b+c);console.log(a+c);console.log(a+b+c)}function f4(){var a=1,b=2,c=3;if(a){b=c}else{c=b}console.log(a+b);console.log(b+c);console.log(a+c);console.log(a+b+c)}function f5(a){B=a;console.log(typeof A?"yes":"no");console.log(typeof B?"yes":"no")}f0(),f1(),f2(),f3(),f4(),f5();';
-  const expected = ['2', '4', '2', '2', '4', '6', '4', '7', '7', '9', '4', '10', '4', '6', '4', '7', 'yes', 'yes'];
+  const expected = [
+    '2',
+    '4',
+    '2',
+    '2',
+    '4',
+    '6',
+    '4',
+    '7',
+    '7',
+    '9',
+    '4',
+    '10',
+    '4',
+    '6',
+    '4',
+    '7',
+    'yes',
+    'yes',
+  ];
   run(code, expected);
 });
 
@@ -4682,7 +4783,19 @@ test('recursive_inlining_3', () => {
 test('recursive_inlining_4', () => {
   const code =
     '!function(){function foo(x){console.log("foo",x);if(x)bar(x-1)}function bar(x){console.log("bar",x);if(x)qux(x-1)}function qux(x){console.log("qux",x);if(x)foo(x-1)}qux(4);bar(5)}();';
-  const expected = ['qux 4', 'foo 3', 'bar 2', 'qux 1', 'foo 0', 'bar 5', 'qux 4', 'foo 3', 'bar 2', 'qux 1', 'foo 0'];
+  const expected = [
+    'qux 4',
+    'foo 3',
+    'bar 2',
+    'qux 1',
+    'foo 0',
+    'bar 5',
+    'qux 4',
+    'foo 3',
+    'bar 2',
+    'qux 1',
+    'foo 0',
+  ];
   run(code, expected);
 });
 

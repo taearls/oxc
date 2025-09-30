@@ -5,7 +5,7 @@ const plugin: Plugin = {
     name: 'fixes-plugin',
   },
   rules: {
-    'fixes': {
+    fixes: {
       meta: {
         fixable: 'code',
       },
@@ -27,7 +27,12 @@ const plugin: Plugin = {
             };
             context.report(report);
 
-            if (!thisIsReport) context.report({ message: `this in fix function is not report object`, node });
+            if (!thisIsReport) {
+              context.report({
+                message: `this in fix function is not report object`,
+                node,
+              });
+            }
           },
           Identifier(node) {
             switch (node.name) {
@@ -44,7 +49,10 @@ const plugin: Plugin = {
                   message: 'Replace "b" with "abacus"',
                   node,
                   fix(fixer) {
-                    return fixer.replaceTextRange([node.start, node.end], 'abacus');
+                    return fixer.replaceTextRange(
+                      [node.start, node.end],
+                      'abacus',
+                    );
                   },
                 });
               case 'c':
@@ -60,7 +68,10 @@ const plugin: Plugin = {
                   message: 'Prefix "d" with "damne"',
                   node,
                   fix(fixer) {
-                    return fixer.insertTextBeforeRange([node.start, node.end], 'damne');
+                    return fixer.insertTextBeforeRange(
+                      [node.start, node.end],
+                      'damne',
+                    );
                   },
                 });
               case 'e':
@@ -76,7 +87,10 @@ const plugin: Plugin = {
                   message: 'Postfix "f" with "eck"',
                   node,
                   fix(fixer) {
-                    return fixer.insertTextAfterRange([node.start, node.end], 'eck');
+                    return fixer.insertTextAfterRange(
+                      [node.start, node.end],
+                      'eck',
+                    );
                   },
                 });
               case 'g':

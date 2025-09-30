@@ -1,4 +1,3 @@
-
 let _y, _y2, _y3, _y4, _a, _c, _y5, _a2, _c2;
 
 class Cls {
@@ -7,7 +6,7 @@ class Cls {
     this[_y] = 1;
   }
   static {
-    x, _y = y, z;
+    x, (_y = y), z;
   }
   #x;
   #y = 1;
@@ -16,7 +15,7 @@ class Cls {
 
 class ClsWithConstructor extends Cls {
   static {
-    x, _y2 = y, z;
+    x, (_y2 = y), z;
   }
   constructor() {
     console.log("before super()");
@@ -29,7 +28,7 @@ class ClsWithConstructor extends Cls {
 
 class StaticCls {
   static {
-    x, _y3 = y, z;
+    x, (_y3 = y), z;
   }
   static {
     this.y = 1;
@@ -45,22 +44,22 @@ class ClsWithComputedKeyMethods {
     this[_a] = 2;
     this[_c] = 3;
   }
-  [x()]() { }
-  [(_y4 = y(), z())]() { }
-  accessor [(_a = a(), b(), _c = c(), e())] = 4;
+  [x()]() {}
+  [((_y4 = y()), z())]() {}
+  accessor [((_a = a()), b(), (_c = c()), e())] = 4;
 }
 
 class StaticClsWithComputedKeyMethods {
-  static [x()]() { }
+  static [x()]() {}
   static {
     this[_y5] = 1;
   }
-  static [(_y5 = y(), z())]() { }
+  static [((_y5 = y()), z())]() {}
   static {
     this[_a2] = 2;
   }
   static {
     this[_c2] = 3;
   }
-  static accessor [(_a2 = a(), b(), _c2 = c(), e())] = 4;
+  static accessor [((_a2 = a()), b(), (_c2 = c()), e())] = 4;
 }

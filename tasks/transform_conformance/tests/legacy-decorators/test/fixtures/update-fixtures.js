@@ -64,7 +64,11 @@ function writeBabelOptions(folder, emitDecoratorMetadata = false) {
   ].filter(Boolean);
   const content = JSON.stringify(
     {
-      plugins: [legacyDecoratorPlugin.length === 1 ? legacyDecoratorPlugin[0] : legacyDecoratorPlugin],
+      plugins: [
+        legacyDecoratorPlugin.length === 1
+          ? legacyDecoratorPlugin[0]
+          : legacyDecoratorPlugin,
+      ],
     },
     null,
     2,
@@ -111,7 +115,7 @@ async function generateOutputFiles() {
 function run() {
   try {
     rmSync(oxcTestFolderPath, { recursive: true });
-  } catch { }
+  } catch {}
   copyTestsFromTypeScript();
   generateOutputFiles();
 }

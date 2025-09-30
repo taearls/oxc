@@ -1,7 +1,9 @@
 using x = foo();
 
 export class C {
-  static getSelf() { return C; }
+  static getSelf() {
+    return C;
+  }
 }
 const K = C;
 C = 123;

@@ -1,7 +1,7 @@
 class Root {}
 
 class Outer extends Root {
-  value = 0
+  value = 0;
 
   method() {
     var _superprop_getValue = () => super.value;

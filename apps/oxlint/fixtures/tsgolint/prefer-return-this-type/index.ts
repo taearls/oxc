@@ -1,9 +1,10 @@
 // Examples of incorrect code for prefer-return-this-type rule
 
 class Builder {
-  private value: string = '';
+  private value: string = "";
 
-  setValue(value: string): Builder { // Should return 'this'
+  setValue(value: string): Builder {
+    // Should return 'this'
     this.value = value;
     return this;
   }

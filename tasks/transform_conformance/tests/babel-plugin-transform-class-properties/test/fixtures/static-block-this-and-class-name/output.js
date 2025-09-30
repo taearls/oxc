@@ -15,12 +15,16 @@ _C3 = C3;
   _C3.d();
 })();
 
-let C4 = (_C4 = class C {}, _C4.e(), _C4);
+let C4 = ((_C4 = class C {}), _C4.e(), _C4);
 
-let C5 = (_C5 = class C {}, (() => {
-  _C5.f();
-  C5.g();
-})(), _C5.h(), _C5);
+let C5 =
+  ((_C5 = class C {}),
+  (() => {
+    _C5.f();
+    C5.g();
+  })(),
+  _C5.h(),
+  _C5);
 
 class Nested {}
 _Nested = Nested;

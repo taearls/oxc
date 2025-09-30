@@ -1,4 +1,4 @@
-import Im, {Ok} from 'a';
+import Im, { Ok } from "a";
 class Foo {}
 const Bar = 0;
 function Func() {}
@@ -14,4 +14,4 @@ type T = number;
 function T(): T {
   return 123;
 }
-export { T }
+export { T };

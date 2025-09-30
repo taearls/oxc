@@ -7,6 +7,5 @@ export default function Bar() {
 }
 _s(Bar, "gDsCjeeItUuvgOWf1v4qoK9RF6k=");
 _c = Bar;
-;
 var _c;
 $RefreshReg$(_c, "Bar");

@@ -4,7 +4,11 @@ class A {
     babelHelpers.classPrivateMethodInitSpec(this, _A_brand);
   }
   m() {
-    [babelHelpers.toSetter(_set_setter.bind(babelHelpers.assertClassBrand(_A_brand, this)))._] = [1];
+    [
+      babelHelpers.toSetter(
+        _set_setter.bind(babelHelpers.assertClassBrand(_A_brand, this)),
+      )._,
+    ] = [1];
     [(this, babelHelpers.readOnlyError("#getter"))._] = [1];
   }
 }

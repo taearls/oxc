@@ -1,1 +1,1 @@
-<div __self={this} />
+<div __self={this} />;

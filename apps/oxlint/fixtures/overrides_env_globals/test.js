@@ -1,6 +1,6 @@
 // for env detection
-globalThis = 'abc';
-$ = 'abc';
+globalThis = "abc";
+$ = "abc";
 
 // for globals detection
-Foo = 'readable';
+Foo = "readable";

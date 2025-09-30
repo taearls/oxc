@@ -3,4 +3,9 @@ export class T {
     return test;
   }
 }
-babelHelpers.decorate([first(), babelHelpers.decorateParam(0, first())], T.prototype, "method", null);
+babelHelpers.decorate(
+  [first(), babelHelpers.decorateParam(0, first())],
+  T.prototype,
+  "method",
+  null,
+);

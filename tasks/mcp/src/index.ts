@@ -131,7 +131,9 @@ class McpOxcServer {
       try {
         result = await fn(options);
       } catch (error) {
-        throw new Error(`${name} error: ${error instanceof Error ? error.message : String(error)}`);
+        throw new Error(
+          `${name} error: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
 
       return {

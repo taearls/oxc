@@ -1,14 +1,13 @@
 export interface Things<P, T> {
-    p: P;
-    t: T;
+  p: P;
+  t: T;
 }
 
-export interface Props {
-}
+export interface Props {}
 
 export default class MyComponent {
-    props: Props;
+  props: Props;
 }
 export namespace Something {
-    export const foo = 123;
+  export const foo = 123;
 }

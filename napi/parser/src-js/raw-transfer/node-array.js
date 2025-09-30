@@ -109,7 +109,13 @@ export class NodeArray extends Array {
     }
 
     const { stride } = internal;
-    return new NodeArray(internal.pos + start * stride, sliceLength, stride, internal.construct, internal.ast);
+    return new NodeArray(
+      internal.pos + start * stride,
+      sliceLength,
+      stride,
+      internal.construct,
+      internal.ast,
+    );
   }
 
   // Make `console.log` deserialize all elements.
@@ -125,14 +131,14 @@ export class NodeArray extends Array {
      * @param {Proxy} proxy - Proxy wrapping `NodeArray` object
      * @returns {Object} - Internal properties object
      */
-    getInternalFromProxy = proxy => proxy[ARRAY].#internal;
+    getInternalFromProxy = (proxy) => proxy[ARRAY].#internal;
 
     /**
      * Get length of `NodeArray`.
      * @param {NodeArray} arr - `NodeArray` object
      * @returns {number} - Array length
      */
-    getLength = arr => arr.#internal.length;
+    getLength = (arr) => arr.#internal.length;
 
     /**
      * Get element of `NodeArray` at index `index`.
@@ -144,7 +150,10 @@ export class NodeArray extends Array {
     getElement = (arr, index) => {
       const internal = arr.#internal;
       if (index >= internal.length) return void 0;
-      return (0, internal.construct)(internal.pos + index * internal.stride, internal.ast);
+      return (0, internal.construct)(
+        internal.pos + index * internal.stride,
+        internal.ast,
+      );
     };
   }
 }
@@ -234,7 +243,13 @@ class NodeArrayEntriesIterator {
     internal.index = index + 1;
     return {
       done: false,
-      value: [index, (0, internal.construct)(internal.pos + index * internal.stride, internal.ast)],
+      value: [
+        index,
+        (0, internal.construct)(
+          internal.pos + index * internal.stride,
+          internal.ast,
+        ),
+      ],
     };
   }
 
@@ -275,7 +290,12 @@ const PROXY_HANDLERS = {
   getOwnPropertyDescriptor(arr, key) {
     if (key === 'length') {
       // Cannot return `writable: false` unfortunately
-      return { value: getLength(arr), writable: true, enumerable: false, configurable: false };
+      return {
+        value: getLength(arr),
+        writable: true,
+        enumerable: false,
+        configurable: false,
+      };
     }
 
     const index = toIndex(key);

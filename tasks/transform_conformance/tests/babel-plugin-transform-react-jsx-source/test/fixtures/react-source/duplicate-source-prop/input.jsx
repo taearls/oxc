@@ -1,1 +1,1 @@
-<div __source="custom" />
+<div __source="custom" />;

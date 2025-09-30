@@ -1,3 +1,3 @@
 class C {
-    method() { }
+  method() {}
 }

@@ -1,4 +1,4 @@
 const bar = "bar";
 export function foo() {}
 
-export { bar as "default" }
+export { bar as "default" };

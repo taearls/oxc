@@ -9,4 +9,6 @@ function toPrimitive(t, r) {
   }
   return ("string" === r ? String : Number)(t);
 }
-module.exports = toPrimitive, module.exports.__esModule = true, module.exports["default"] = module.exports;
+(module.exports = toPrimitive),
+  (module.exports.__esModule = true),
+  (module.exports["default"] = module.exports);

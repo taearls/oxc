@@ -1,1 +1,1 @@
-type T = import('').default;
+type T = import("").default;

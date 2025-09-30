@@ -68,7 +68,10 @@ const FILENAMES = ['js.rs', 'jsx.rs', 'literal.rs', 'ts.rs'];
  * @returns {Promise<Types>}
  */
 export default async function getTypesFromCode() {
-  const codeDirPath = pathJoin(fileURLToPath(import.meta.url), '../../../../oxc_ast/src/ast/');
+  const codeDirPath = pathJoin(
+    fileURLToPath(import.meta.url),
+    '../../../../oxc_ast/src/ast/',
+  );
 
   const types = Object.create(null);
   for (const filename of FILENAMES) {
@@ -104,7 +107,9 @@ class Position {
    * @param {string} [message]
    */
   throw(message) {
-    throw new Error(`${message || 'Unknown error'} (at ${this.filename}:${this.index + 1})`);
+    throw new Error(
+      `${message || 'Unknown error'} (at ${this.filename}:${this.index + 1})`,
+    );
   }
 }
 
@@ -135,8 +140,12 @@ class Lines {
    * @returns {Lines}
    */
   static fromCode(code, filename) {
-    const lines = code.split(/\r?\n/)
-      .map(line => line.replace(/\s+/g, ' ').replace(/ ?\/\/.*$/, '').replace(/ $/, ''));
+    const lines = code.split(/\r?\n/).map((line) =>
+      line
+        .replace(/\s+/g, ' ')
+        .replace(/ ?\/\/.*$/, '')
+        .replace(/ $/, '')
+    );
     return new Lines(lines, filename, 0);
   }
 
@@ -175,7 +184,8 @@ function parseFile(code, filename, types) {
     }
 
     // Consume attrs and comments, parse `#[scope]` attr
-    let match, scopeArgs = null;
+    let match,
+      scopeArgs = null;
     while (!lines.isEnd()) {
       if (/^#\[scope[(\]]/.test(lines.current())) {
         scopeArgs = parseScopeArgs(lines, scopeArgs);
@@ -184,7 +194,9 @@ function parseFile(code, filename, types) {
       match = lines.next().match(/^pub (enum|struct) ((.+?)(?:<'a>)?) \{/);
       if (match) break;
     }
-    lines.position().assert(match, `Could not find enum or struct after #[ast]`);
+    lines
+      .position()
+      .assert(match, `Could not find enum or struct after #[ast]`);
     const [, kind, rawName, name] = match;
 
     // Find end of struct / enum
@@ -211,7 +223,9 @@ function parseStruct(name, rawName, lines, scopeArgs) {
   const fields = [];
 
   while (!lines.isEnd()) {
-    let isScopeEntry = false, isScopeExit = false, line;
+    let isScopeEntry = false,
+      isScopeExit = false,
+      line;
     while (!lines.isEnd()) {
       line = lines.next();
       if (line === '') continue;
@@ -229,12 +243,21 @@ function parseStruct(name, rawName, lines, scopeArgs) {
     }
 
     const match = line.match(/^pub ((?:r#)?([a-z_]+)): (.+),$/);
-    lines.positionPrevious().assert(match, `Cannot parse line as struct field: '${line}'`);
+    lines
+      .positionPrevious()
+      .assert(match, `Cannot parse line as struct field: '${line}'`);
     const [, rawName, name, rawTypeName] = match,
       typeName = rawTypeName.replace(/<'a>/g, '').replace(/<'a, ?/g, '<'),
       { name: innerTypeName, wrappers } = typeAndWrappers(typeName);
 
-    fields.push({ name, typeName, rawName, rawTypeName, innerTypeName, wrappers });
+    fields.push({
+      name,
+      typeName,
+      rawName,
+      rawTypeName,
+      innerTypeName,
+      wrappers,
+    });
 
     if (isScopeEntry) scopeArgs.enterScopeBefore = name;
     if (isScopeExit) scopeArgs.exitScopeBefore = name;
@@ -267,10 +290,19 @@ function parseEnum(name, rawName, lines) {
         typeName = rawTypeName.replace(/<'a>/g, '').replace(/<'a, ?/g, '<'),
         { name: innerTypeName, wrappers } = typeAndWrappers(typeName),
         discriminant = discriminantStr ? +discriminantStr : null;
-      variants.push({ name, typeName, rawTypeName, innerTypeName, wrappers, discriminant });
+      variants.push({
+        name,
+        typeName,
+        rawTypeName,
+        innerTypeName,
+        wrappers,
+        discriminant,
+      });
     } else {
       const match2 = line.match(/^@inherit ([A-Za-z]+)$/);
-      lines.positionPrevious().assert(match2, `Cannot parse line as enum variant: '${line}'`);
+      lines
+        .positionPrevious()
+        .assert(match2, `Cannot parse line as enum variant: '${line}'`);
       inherits.push(match2[1]);
     }
   }
@@ -353,7 +385,9 @@ function parseScopeArgsStr(argsStr, args, position) {
       matchAndConsume(/^\s*,\s*/);
     }
   } catch (err) {
-    position.throw(`Cannot parse scope args: '${argsStr}': ${err?.message || 'Unknown error'}`);
+    position.throw(
+      `Cannot parse scope args: '${argsStr}': ${err?.message || 'Unknown error'}`,
+    );
   }
 
   console.log(args);

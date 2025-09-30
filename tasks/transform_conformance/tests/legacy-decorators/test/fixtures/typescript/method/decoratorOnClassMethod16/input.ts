@@ -4,9 +4,9 @@
 declare var decorator: any;
 
 class Foo {
-    private prop
-    @decorator
-    foo() {
-        return 0;
-    }
+  private prop;
+  @decorator
+  foo() {
+    return 0;
+  }
 }

@@ -1,4 +1,4 @@
-import FancyHook from 'fancy';
+import FancyHook from "fancy";
 
 export default function App() {
   function useFancyState() {
@@ -11,5 +11,10 @@ export default function App() {
   React.useState();
   useThePlatform();
   use();
-  return <h1>{bar}{baz}</h1>;
+  return (
+    <h1>
+      {bar}
+      {baz}
+    </h1>
+  );
 }

@@ -1,3 +1,3 @@
 // @ts-ignore
 
-import { foo, type BarType } from '../depth-zero';
+import { foo, type BarType } from "../depth-zero";

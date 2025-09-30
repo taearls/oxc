@@ -25,7 +25,9 @@ describe('compile visitor', () => {
   afterEach(finalizeCompiledVisitor);
 
   it('throws if visitor is not an object', () => {
-    const expectedErr = new TypeError('Visitor returned from `create` method must be an object');
+    const expectedErr = new TypeError(
+      'Visitor returned from `create` method must be an object',
+    );
     expect(() => (addVisitorToCompiled as any)()).toThrow(expectedErr);
     // oxlint-disable typescript-eslint/no-confusing-void-expression
     expect(() => addVisitorToCompiled(null)).toThrow(expectedErr);
@@ -37,17 +39,26 @@ describe('compile visitor', () => {
 
   it('throws if unknown visitor key', () => {
     // @ts-expect-error
-    expect(() => addVisitorToCompiled({ Foo() {} }))
-      .toThrow(new Error("Unknown node type 'Foo' in visitor object"));
+    expect(() => addVisitorToCompiled({ Foo() {} })).toThrow(
+      new Error("Unknown node type 'Foo' in visitor object"),
+    );
   });
 
   it('throws if visitor property is not a function', () => {
-    const expectedErr = new TypeError("'Program' property of visitor object is not a function");
+    const expectedErr = new TypeError(
+      "'Program' property of visitor object is not a function",
+    );
     // oxlint-disable typescript-eslint/no-confusing-void-expression
     expect(() => addVisitorToCompiled({ Program: null })).toThrow(expectedErr);
-    expect(() => addVisitorToCompiled({ Program: undefined })).toThrow(expectedErr);
-    expect(() => addVisitorToCompiled({ Program: true } as any)).toThrow(expectedErr);
-    expect(() => addVisitorToCompiled({ Program: {} } as any)).toThrow(expectedErr);
+    expect(() => addVisitorToCompiled({ Program: undefined })).toThrow(
+      expectedErr,
+    );
+    expect(() => addVisitorToCompiled({ Program: true } as any)).toThrow(
+      expectedErr,
+    );
+    expect(() => addVisitorToCompiled({ Program: {} } as any)).toThrow(
+      expectedErr,
+    );
     // oxlint-enable typescript-eslint/no-confusing-void-expression
   });
 
@@ -94,7 +105,10 @@ describe('compile visitor', () => {
       it('defined in order', () => {
         const enter = vi.fn(() => {});
         const exit = vi.fn(() => {});
-        addVisitorToCompiled({ EmptyStatement: enter, 'EmptyStatement:exit': exit });
+        addVisitorToCompiled({
+          EmptyStatement: enter,
+          'EmptyStatement:exit': exit,
+        });
         expect(finalizeCompiledVisitor()).toBe(true);
 
         const node = { type: 'EmptyStatement', start: 0, end: 0 };
@@ -107,7 +121,10 @@ describe('compile visitor', () => {
       it('defined in reverse order', () => {
         const enter = vi.fn(() => {});
         const exit = vi.fn(() => {});
-        addVisitorToCompiled({ 'EmptyStatement:exit': exit, EmptyStatement: enter });
+        addVisitorToCompiled({
+          'EmptyStatement:exit': exit,
+          EmptyStatement: enter,
+        });
         expect(finalizeCompiledVisitor()).toBe(true);
 
         const node = { type: 'EmptyStatement', start: 0, end: 0 };
@@ -150,11 +167,17 @@ describe('compile visitor', () => {
       it('defined in order', () => {
         const enter1 = vi.fn(() => {});
         const exit1 = vi.fn(() => {});
-        addVisitorToCompiled({ EmptyStatement: enter1, 'EmptyStatement:exit': exit1 });
+        addVisitorToCompiled({
+          EmptyStatement: enter1,
+          'EmptyStatement:exit': exit1,
+        });
 
         const enter2 = vi.fn(() => {});
         const exit2 = vi.fn(() => {});
-        addVisitorToCompiled({ EmptyStatement: enter2, 'EmptyStatement:exit': exit2 });
+        addVisitorToCompiled({
+          EmptyStatement: enter2,
+          'EmptyStatement:exit': exit2,
+        });
 
         expect(finalizeCompiledVisitor()).toBe(true);
 
@@ -172,11 +195,17 @@ describe('compile visitor', () => {
       it('defined in reverse order', () => {
         const enter1 = vi.fn(() => {});
         const exit1 = vi.fn(() => {});
-        addVisitorToCompiled({ 'EmptyStatement:exit': exit1, EmptyStatement: enter1 });
+        addVisitorToCompiled({
+          'EmptyStatement:exit': exit1,
+          EmptyStatement: enter1,
+        });
 
         const enter2 = vi.fn(() => {});
         const exit2 = vi.fn(() => {});
-        addVisitorToCompiled({ 'EmptyStatement:exit': exit2, EmptyStatement: enter2 });
+        addVisitorToCompiled({
+          'EmptyStatement:exit': exit2,
+          EmptyStatement: enter2,
+        });
 
         expect(finalizeCompiledVisitor()).toBe(true);
 
@@ -194,11 +223,17 @@ describe('compile visitor', () => {
       it('defined in mixed order', () => {
         const enter1 = vi.fn(() => {});
         const exit1 = vi.fn(() => {});
-        addVisitorToCompiled({ EmptyStatement: enter1, 'EmptyStatement:exit': exit1 });
+        addVisitorToCompiled({
+          EmptyStatement: enter1,
+          'EmptyStatement:exit': exit1,
+        });
 
         const enter2 = vi.fn(() => {});
         const exit2 = vi.fn(() => {});
-        addVisitorToCompiled({ 'EmptyStatement:exit': exit2, EmptyStatement: enter2 });
+        addVisitorToCompiled({
+          'EmptyStatement:exit': exit2,
+          EmptyStatement: enter2,
+        });
 
         expect(finalizeCompiledVisitor()).toBe(true);
 
@@ -216,11 +251,17 @@ describe('compile visitor', () => {
       it('defined in mixed order 2', () => {
         const enter1 = vi.fn(() => {});
         const exit1 = vi.fn(() => {});
-        addVisitorToCompiled({ 'EmptyStatement:exit': exit1, EmptyStatement: enter1 });
+        addVisitorToCompiled({
+          'EmptyStatement:exit': exit1,
+          EmptyStatement: enter1,
+        });
 
         const enter2 = vi.fn(() => {});
         const exit2 = vi.fn(() => {});
-        addVisitorToCompiled({ EmptyStatement: enter2, 'EmptyStatement:exit': exit2 });
+        addVisitorToCompiled({
+          EmptyStatement: enter2,
+          'EmptyStatement:exit': exit2,
+        });
 
         expect(finalizeCompiledVisitor()).toBe(true);
 
@@ -337,27 +378,45 @@ describe('compile visitor', () => {
     it('many visitors', () => {
       const enter1 = vi.fn(() => {});
       const exit1 = vi.fn(() => {});
-      addVisitorToCompiled({ EmptyStatement: enter1, 'EmptyStatement:exit': exit1 });
+      addVisitorToCompiled({
+        EmptyStatement: enter1,
+        'EmptyStatement:exit': exit1,
+      });
 
       const enter2 = vi.fn(() => {});
       const exit2 = vi.fn(() => {});
-      addVisitorToCompiled({ EmptyStatement: enter2, 'EmptyStatement:exit': exit2 });
+      addVisitorToCompiled({
+        EmptyStatement: enter2,
+        'EmptyStatement:exit': exit2,
+      });
 
       const enter3 = vi.fn(() => {});
       const exit3 = vi.fn(() => {});
-      addVisitorToCompiled({ EmptyStatement: enter3, 'EmptyStatement:exit': exit3 });
+      addVisitorToCompiled({
+        EmptyStatement: enter3,
+        'EmptyStatement:exit': exit3,
+      });
 
       const enter4 = vi.fn(() => {});
       const exit4 = vi.fn(() => {});
-      addVisitorToCompiled({ EmptyStatement: enter4, 'EmptyStatement:exit': exit4 });
+      addVisitorToCompiled({
+        EmptyStatement: enter4,
+        'EmptyStatement:exit': exit4,
+      });
 
       const enter5 = vi.fn(() => {});
       const exit5 = vi.fn(() => {});
-      addVisitorToCompiled({ EmptyStatement: enter5, 'EmptyStatement:exit': exit5 });
+      addVisitorToCompiled({
+        EmptyStatement: enter5,
+        'EmptyStatement:exit': exit5,
+      });
 
       const enter6 = vi.fn(() => {});
       const exit6 = vi.fn(() => {});
-      addVisitorToCompiled({ EmptyStatement: enter6, 'EmptyStatement:exit': exit6 });
+      addVisitorToCompiled({
+        EmptyStatement: enter6,
+        'EmptyStatement:exit': exit6,
+      });
 
       expect(finalizeCompiledVisitor()).toBe(true);
 

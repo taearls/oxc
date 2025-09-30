@@ -1,4 +1,4 @@
-const ArrowFunction = /*#__PURE__*/function () {
+const ArrowFunction = /*#__PURE__*/ (function () {
   var _ref = babelHelpers.asyncToGenerator(function* () {
     {
       var _arguments = _arguments;
@@ -9,4 +9,4 @@ const ArrowFunction = /*#__PURE__*/function () {
   return function ArrowFunction() {
     return _ref.apply(this, arguments);
   };
-}();
+})();

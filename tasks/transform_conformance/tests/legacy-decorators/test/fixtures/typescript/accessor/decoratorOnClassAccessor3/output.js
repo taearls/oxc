@@ -1,7 +1,7 @@
 class C {
-    public;
-    get accessor() { return 1; }
+  public;
+  get accessor() {
+    return 1;
+  }
 }
-babelHelpers.decorate([
-    dec
-], C.prototype, "accessor", null);
+babelHelpers.decorate([dec], C.prototype, "accessor", null);

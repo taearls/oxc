@@ -5,7 +5,7 @@ function identity<T = string>(arg: T): T {
 }
 
 // Unnecessary type argument - string is the default
-const result = identity<string>('hello');
+const result = identity<string>("hello");
 
 interface Container<T = number> {
   value: T;

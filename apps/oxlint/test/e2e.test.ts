@@ -14,7 +14,9 @@ interface TestOptions {
   // Supply a different name when there are multiple tests for a single fixture.
   snapshotName?: string;
   // Function to get extra data to include in the snapshot
-  getExtraSnapshotData?: (dirPath: string) => Promise<{ [key: string]: string }>;
+  getExtraSnapshotData?: (
+    dirPath: string,
+  ) => Promise<{ [key: string]: string }>;
 }
 
 /**
@@ -22,7 +24,10 @@ interface TestOptions {
  * @param fixtureName - Name of the fixture directory within `test/fixtures`
  * @param options - Options to customize the test (optional)
  */
-async function testFixture(fixtureName: string, options?: TestOptions): Promise<void> {
+async function testFixture(
+  fixtureName: string,
+  options?: TestOptions,
+): Promise<void> {
   const args = options?.args ?? [];
 
   await testFixtureWithCommand({

@@ -22,4 +22,4 @@ let obj = { foo: 1 };
 
 // Mixed type assertions
 (a! as any) = 42;
-((a as any)!) = 42;
+(a as any)! = 42;

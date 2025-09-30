@@ -1,5 +1,5 @@
 //// @sourceType = module
 
-import foo = require('a');
+import foo = require("a");
 
 foo;

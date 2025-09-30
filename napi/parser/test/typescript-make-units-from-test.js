@@ -30,7 +30,7 @@ function valueToBoolean(value, defaultValue) {
  */
 function splitValueOptions(value) {
   if (!value) return [];
-  return value.split(',').map(s => s.trim().toLowerCase());
+  return value.split(',').map((s) => s.trim().toLowerCase());
 }
 
 /**
@@ -45,11 +45,20 @@ function createCompilerSettings(options) {
     strict: valueToBoolean(options.get('strict'), false),
     jsx: splitValueOptions(options.get('jsx')),
     declaration: valueToBoolean(options.get('declaration'), false),
-    emitDeclarationOnly: valueToBoolean(options.get('emitdeclarationonly'), false),
+    emitDeclarationOnly: valueToBoolean(
+      options.get('emitdeclarationonly'),
+      false,
+    ),
     alwaysStrict: valueToBoolean(options.get('alwaysstrict'), false),
-    allowUnreachableCode: valueToBoolean(options.get('allowunreachablecode'), true),
+    allowUnreachableCode: valueToBoolean(
+      options.get('allowunreachablecode'),
+      true,
+    ),
     allowUnusedLabels: valueToBoolean(options.get('allowunusedlabels'), true),
-    noFallthroughCasesInSwitch: valueToBoolean(options.get('nofallthroughcasesinswitch'), false),
+    noFallthroughCasesInSwitch: valueToBoolean(
+      options.get('nofallthroughcasesinswitch'),
+      false,
+    ),
   };
 }
 
@@ -98,9 +107,9 @@ function getErrorFiles(filePath, options) {
 
   const suffixes = [
     '',
-    ...options.modules.map(module => `(module=${module})`),
-    ...options.targets.map(target => `(target=${target})`),
-    ...options.jsx.map(jsx => `(jsx=${jsx})`),
+    ...options.modules.map((module) => `(module=${module})`),
+    ...options.targets.map((target) => `(target=${target})`),
+    ...options.jsx.map((jsx) => `(jsx=${jsx})`),
   ];
 
   const errorFiles = [];
@@ -178,14 +187,13 @@ export function makeUnitsFromTest(filePath, code) {
 
   // Update source types and filter out unsupported files
   const isModule = testUnitData.length > 1;
-  const validTestUnits = testUnitData
-    .filter(unit => {
-      const sourceType = getSourceType(unit.name, settings);
-      if (!sourceType) return false;
-      if (isModule) sourceType.module = true;
-      unit.sourceType = sourceType;
-      return true;
-    });
+  const validTestUnits = testUnitData.filter((unit) => {
+    const sourceType = getSourceType(unit.name, settings);
+    if (!sourceType) return false;
+    if (isModule) sourceType.module = true;
+    unit.sourceType = sourceType;
+    return true;
+  });
 
   const errorFiles = getErrorFiles(filePath, settings);
 

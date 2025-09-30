@@ -1,7 +1,7 @@
-declare const ReactiveMarkerSymbol: unique symbol
+declare const ReactiveMarkerSymbol: unique symbol;
 
 export declare class ReactiveMarker {
-  private [ReactiveMarkerSymbol]?: void
+  private [ReactiveMarkerSymbol]?: void;
 }
 
-export declare const A = 1
+export declare const A = 1;

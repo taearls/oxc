@@ -8,7 +8,7 @@ export class C {
   static #_4() {}
   accessor #_5 = 5;
   static accessor #_6 = 6;
-  
+
   // Non-private don't use up prop names
   _7 = 7;
   static _8 = 8;

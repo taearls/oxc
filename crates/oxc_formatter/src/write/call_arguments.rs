@@ -105,6 +105,11 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
             return format_all_args_broken_out(self, true, f);
         }
 
+        // Check if this is a simple nested call that should stay compact
+        if call_expression.is_some_and(|call| should_keep_nested_call_compact(call, self, f)) {
+            return format_compact_call_arguments(self, f);
+        }
+
         if let Some(group_layout) = arguments_grouped_layout(call_like_span, self, f) {
             write_grouped_arguments(self, group_layout, f)
         } else if call_expression.is_some_and(|call| is_long_curried_call(call)) {
@@ -127,6 +132,103 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
         } else {
             format_all_args_broken_out(self, false, f)
         }
+    }
+}
+
+/// Checks if this call should keep its arguments compact because it's a
+/// simple nested call used as an argument.
+///
+/// Returns `true` for patterns like:
+/// - `require(path.join(arg1, arg2))`
+/// - `logger.error(pipe(call1(), call2()))`
+///
+/// After removing AstKind::Argument, these calls are direct children of
+/// their parent CallExpression, so we check if our span is within the
+/// parent's argument spans.
+fn should_keep_nested_call_compact(
+    call: &AstNode<'_, CallExpression<'_>>,
+    args: &[Argument<'_>],
+    f: &Formatter<'_, '_>,
+) -> bool {
+    // Only applies to calls with 2-4 simple arguments
+    if args.len() < 2 || args.len() > 4 {
+        return false;
+    }
+
+    // Don't use compact formatting if there are any comments in the arguments
+    // Check before first argument and between all arguments
+    let call_span = call.span;
+    for (i, arg) in args.iter().enumerate() {
+        let previous_end = if i == 0 {
+            call.callee.span().end  // Check from after callee to first arg
+        } else {
+            args[i - 1].span().end  // Check between args
+        };
+
+        let current_span = arg.span();
+        let following_start = arg.span().start;
+        if f.comments().has_comment(previous_end, current_span, following_start) {
+            return false;
+        }
+    }
+
+    // Also check after last argument (trailing comments)
+    if let Some(last_arg) = args.last() {
+        let dummy_span = Span::new(call_span.end, call_span.end);
+        if f.comments().has_comment(last_arg.span().end, dummy_span, call_span.end) {
+            return false;
+        }
+    }
+
+    // Estimate total argument length to avoid keeping very long calls compact
+    let total_length: u32 = args.iter().map(|arg| arg.span().size()).sum();
+    // If arguments are too long (> 60 chars), let the normal formatting handle it
+    if total_length > 60 {
+        return false;
+    }
+
+    // Check if arguments are relatively simple
+    // Allow some complex expressions like conditionals and simple calls if they're short
+    let all_args_acceptable = args.iter().all(|arg| {
+        match arg.as_expression() {
+            Some(expr) => match expr {
+                // Allow conditionals, binary/logical expressions, and simple calls
+                Expression::ConditionalExpression(_)
+                | Expression::LogicalExpression(_)
+                | Expression::BinaryExpression(_)
+                | Expression::CallExpression(_) => true,
+                // For other expressions, use the simple check
+                _ => is_relatively_short_argument(expr),
+            },
+            None => false, // SpreadElement is not acceptable
+        }
+    });
+
+    if !all_args_acceptable {
+        return false;
+    }
+
+    // Check if this call is itself an argument to another call
+    // After AstKind::Argument removal, parent is directly the CallExpression
+    match call.parent {
+        AstNodes::CallExpression(parent_call) => {
+            // Verify our span is within parent's arguments (not the callee)
+            if parent_call.callee.span().contains_inclusive(call.span) {
+                return false; // We're the callee, not an argument
+            }
+
+            // Check if our span is within any of parent's arguments
+            parent_call.arguments.iter().any(|arg| arg.span().contains_inclusive(call.span))
+        }
+        AstNodes::NewExpression(parent_new) => {
+            // Same check for new expressions
+            if parent_new.callee.span().contains_inclusive(call.span) {
+                return false;
+            }
+
+            parent_new.arguments.iter().any(|arg| arg.span().contains_inclusive(call.span))
+        }
+        _ => false,
     }
 }
 
@@ -232,6 +334,33 @@ fn format_all_args_broken_out<'a, 'b>(
             ")",
         ))
         .should_expand(expand)]
+    )
+}
+
+/// Formats call arguments in a compact style that resists breaking.
+/// Used for simple nested calls that should stay on one line when possible.
+///
+/// Uses a simple group without soft_block_indent to avoid breaking when
+/// the outer call adds indentation.
+fn format_compact_call_arguments<'a>(
+    node: &AstNode<'a, ArenaVec<'a, Argument<'a>>>,
+    f: &mut Formatter<'_, 'a>,
+) -> FormatResult<()> {
+    write!(
+        f,
+        [group(&format_args!(
+            "(",
+            format_with(|f| {
+                for (index, argument) in node.iter().enumerate() {
+                    if index > 0 {
+                        write!(f, [",", space()])?;
+                    }
+                    write!(f, [argument])?;
+                }
+                Ok(())
+            }),
+            ")",
+        ))]
     )
 }
 

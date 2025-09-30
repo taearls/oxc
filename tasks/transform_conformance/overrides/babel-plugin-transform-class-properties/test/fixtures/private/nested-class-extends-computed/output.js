@@ -6,7 +6,11 @@ class Foo {
   test() {
     let _this$foo;
     var _foo2 = /* @__PURE__ */ new WeakMap();
-    class Nested extends (_this$foo = babelHelpers.classPrivateFieldGet2(_foo, this), class {
+    class Nested extends ((_this$foo = babelHelpers.classPrivateFieldGet2(
+      _foo,
+      this,
+    )),
+    class {
       constructor() {
         babelHelpers.defineProperty(this, _this$foo, 2);
       }

@@ -1,4 +1,7 @@
-import _styled, { default as _styled2, default as _styled3 } from "styled-components";
+import _styled, {
+  default as _styled2,
+  default as _styled3,
+} from "styled-components";
 import React from "react";
 import { css } from "styled-components";
 import Icons from "./icons";
@@ -16,5 +19,5 @@ var _StyledIcons = _styled(Icons)`${someCss}`;
 var _StyledIconsFoo = _styled2(Icons.Foo)`${someCss}`;
 var _StyledIconsFooBar = _styled3(Icons.Foo.Bar).withConfig({
   displayName: "input___StyledIconsFooBar",
-  componentId: "sc-1wxehft-0"
+  componentId: "sc-1wxehft-0",
 })(["", ""], someCss);

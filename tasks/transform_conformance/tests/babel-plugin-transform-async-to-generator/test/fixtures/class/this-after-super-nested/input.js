@@ -1,16 +1,22 @@
 class Outer {
   constructor() {
-    async () => { return [this, 1]; };
+    async () => {
+      return [this, 1];
+    };
 
     class Inner extends Outer {
       constructor() {
         if (condition) {
           const _super = super();
-          this.fn = async () => { return [this, 2]; };
+          this.fn = async () => {
+            return [this, 2];
+          };
         }
 
         super();
-        async () => { return [this, 3]; };
+        async () => {
+          return [this, 3];
+        };
       }
     }
   }

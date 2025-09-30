@@ -140,7 +140,10 @@ export interface TemplateElementValue {
   cooked: string | null;
 }
 
-export type MemberExpression = ComputedMemberExpression | StaticMemberExpression | PrivateFieldExpression;
+export type MemberExpression =
+  | ComputedMemberExpression
+  | StaticMemberExpression
+  | PrivateFieldExpression;
 
 export interface ComputedMemberExpression extends Span {
   type: 'MemberExpression';
@@ -253,7 +256,9 @@ export type SimpleAssignmentTarget =
   | TSTypeAssertion
   | MemberExpression;
 
-export type AssignmentTargetPattern = ArrayAssignmentTarget | ObjectAssignmentTarget;
+export type AssignmentTargetPattern =
+  | ArrayAssignmentTarget
+  | ObjectAssignmentTarget;
 
 export interface ArrayAssignmentTarget extends Span {
   type: 'ArrayPattern';
@@ -280,7 +285,9 @@ export interface AssignmentTargetRest extends Span {
   value?: null;
 }
 
-export type AssignmentTargetMaybeDefault = AssignmentTargetWithDefault | AssignmentTarget;
+export type AssignmentTargetMaybeDefault =
+  | AssignmentTargetWithDefault
+  | AssignmentTarget;
 
 export interface AssignmentTargetWithDefault extends Span {
   type: 'AssignmentPattern';
@@ -291,7 +298,9 @@ export interface AssignmentTargetWithDefault extends Span {
   typeAnnotation?: null;
 }
 
-export type AssignmentTargetProperty = AssignmentTargetPropertyIdentifier | AssignmentTargetPropertyProperty;
+export type AssignmentTargetProperty =
+  | AssignmentTargetPropertyIdentifier
+  | AssignmentTargetPropertyProperty;
 
 export interface AssignmentTargetPropertyIdentifier extends Span {
   type: 'Property';
@@ -334,7 +343,10 @@ export interface ChainExpression extends Span {
   expression: ChainElement;
 }
 
-export type ChainElement = CallExpression | TSNonNullExpression | MemberExpression;
+export type ChainElement =
+  | CallExpression
+  | TSNonNullExpression
+  | MemberExpression;
 
 export interface ParenthesizedExpression extends Span {
   type: 'ParenthesizedExpression';
@@ -396,7 +408,12 @@ export interface VariableDeclaration extends Span {
   declare?: boolean;
 }
 
-export type VariableDeclarationKind = 'var' | 'let' | 'const' | 'using' | 'await using';
+export type VariableDeclarationKind =
+  | 'var'
+  | 'let'
+  | 'const'
+  | 'using'
+  | 'await using';
 
 export interface VariableDeclarator extends Span {
   type: 'VariableDeclarator';
@@ -522,14 +539,16 @@ export interface DebuggerStatement extends Span {
   type: 'DebuggerStatement';
 }
 
-export type BindingPattern =
-  & ({
-    optional?: boolean;
-    typeAnnotation?: TSTypeAnnotation | null;
-  })
-  & (BindingIdentifier | ObjectPattern | ArrayPattern | AssignmentPattern);
+export type BindingPattern = {
+  optional?: boolean;
+  typeAnnotation?: TSTypeAnnotation | null;
+} & (BindingIdentifier | ObjectPattern | ArrayPattern | AssignmentPattern);
 
-export type BindingPatternKind = BindingIdentifier | ObjectPattern | ArrayPattern | AssignmentPattern;
+export type BindingPatternKind =
+  | BindingIdentifier
+  | ObjectPattern
+  | ArrayPattern
+  | AssignmentPattern;
 
 export interface AssignmentPattern extends Span {
   type: 'AssignmentPattern';
@@ -589,7 +608,10 @@ export interface Function extends Span {
   expression: false;
 }
 
-export type ParamPattern = FormalParameter | TSParameterProperty | FormalParameterRest;
+export type ParamPattern =
+  | FormalParameter
+  | TSParameterProperty
+  | FormalParameterRest;
 
 export type FunctionType =
   | 'FunctionDeclaration'
@@ -606,11 +628,9 @@ export interface FormalParameterRest extends Span {
   value?: null;
 }
 
-export type FormalParameter =
-  & ({
-    decorators?: Array<Decorator>;
-  })
-  & BindingPattern;
+export type FormalParameter = {
+  decorators?: Array<Decorator>;
+} & BindingPattern;
 
 export interface TSParameterProperty extends Span {
   type: 'TSParameterProperty';
@@ -665,7 +685,12 @@ export interface ClassBody extends Span {
   body: Array<ClassElement>;
 }
 
-export type ClassElement = StaticBlock | MethodDefinition | PropertyDefinition | AccessorProperty | TSIndexSignature;
+export type ClassElement =
+  | StaticBlock
+  | MethodDefinition
+  | PropertyDefinition
+  | AccessorProperty
+  | TSIndexSignature;
 
 export interface MethodDefinition extends Span {
   type: MethodDefinitionType;
@@ -680,7 +705,9 @@ export interface MethodDefinition extends Span {
   accessibility?: TSAccessibility | null;
 }
 
-export type MethodDefinitionType = 'MethodDefinition' | 'TSAbstractMethodDefinition';
+export type MethodDefinitionType =
+  | 'MethodDefinition'
+  | 'TSAbstractMethodDefinition';
 
 export interface PropertyDefinition extends Span {
   type: PropertyDefinitionType;
@@ -698,7 +725,9 @@ export interface PropertyDefinition extends Span {
   accessibility?: TSAccessibility | null;
 }
 
-export type PropertyDefinitionType = 'PropertyDefinition' | 'TSAbstractPropertyDefinition';
+export type PropertyDefinitionType =
+  | 'PropertyDefinition'
+  | 'TSAbstractPropertyDefinition';
 
 export type MethodDefinitionKind = 'constructor' | 'method' | 'get' | 'set';
 
@@ -720,7 +749,9 @@ export type ModuleDeclaration =
   | TSExportAssignment
   | TSNamespaceExportDeclaration;
 
-export type AccessorPropertyType = 'AccessorProperty' | 'TSAbstractAccessorProperty';
+export type AccessorPropertyType =
+  | 'AccessorProperty'
+  | 'TSAbstractAccessorProperty';
 
 export interface AccessorProperty extends Span {
   type: AccessorPropertyType;
@@ -756,7 +787,10 @@ export interface ImportDeclaration extends Span {
 
 export type ImportPhase = 'source' | 'defer';
 
-export type ImportDeclarationSpecifier = ImportSpecifier | ImportDefaultSpecifier | ImportNamespaceSpecifier;
+export type ImportDeclarationSpecifier =
+  | ImportSpecifier
+  | ImportDefaultSpecifier
+  | ImportNamespaceSpecifier;
 
 export interface ImportSpecifier extends Span {
   type: 'ImportSpecifier';
@@ -813,9 +847,16 @@ export interface ExportSpecifier extends Span {
   exportKind?: ImportOrExportKind;
 }
 
-export type ExportDefaultDeclarationKind = Function | Class | TSInterfaceDeclaration | Expression;
+export type ExportDefaultDeclarationKind =
+  | Function
+  | Class
+  | TSInterfaceDeclaration
+  | Expression;
 
-export type ModuleExportName = IdentifierName | IdentifierReference | StringLiteral;
+export type ModuleExportName =
+  | IdentifierName
+  | IdentifierReference
+  | StringLiteral;
 
 export interface V8IntrinsicExpression extends Span {
   type: 'V8IntrinsicExpression';
@@ -898,7 +939,10 @@ export interface JSXClosingFragment extends Span {
   type: 'JSXClosingFragment';
 }
 
-export type JSXElementName = JSXIdentifier | JSXNamespacedName | JSXMemberExpression;
+export type JSXElementName =
+  | JSXIdentifier
+  | JSXNamespacedName
+  | JSXMemberExpression;
 
 export interface JSXNamespacedName extends Span {
   type: 'JSXNamespacedName';
@@ -940,14 +984,23 @@ export interface JSXSpreadAttribute extends Span {
 
 export type JSXAttributeName = JSXIdentifier | JSXNamespacedName;
 
-export type JSXAttributeValue = StringLiteral | JSXExpressionContainer | JSXElement | JSXFragment;
+export type JSXAttributeValue =
+  | StringLiteral
+  | JSXExpressionContainer
+  | JSXElement
+  | JSXFragment;
 
 export interface JSXIdentifier extends Span {
   type: 'JSXIdentifier';
   name: string;
 }
 
-export type JSXChild = JSXText | JSXElement | JSXFragment | JSXExpressionContainer | JSXSpreadChild;
+export type JSXChild =
+  | JSXText
+  | JSXElement
+  | JSXFragment
+  | JSXExpressionContainer
+  | JSXSpreadChild;
 
 export interface JSXSpreadChild extends Span {
   type: 'JSXSpreadChild';
@@ -1516,7 +1569,14 @@ export type BinaryOperator =
 
 export type LogicalOperator = '||' | '&&' | '??';
 
-export type UnaryOperator = '+' | '-' | '!' | '~' | 'typeof' | 'void' | 'delete';
+export type UnaryOperator =
+  | '+'
+  | '-'
+  | '!'
+  | '~'
+  | 'typeof'
+  | 'void'
+  | 'delete';
 
 export type UpdateOperator = '++' | '--';
 

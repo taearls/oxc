@@ -2,7 +2,10 @@ import { join as pathJoin } from 'node:path';
 import { describe, it } from 'vitest';
 import { testFixtureWithCommand } from './utils.js';
 
-const ESLINT_PATH = pathJoin(import.meta.dirname, '../node_modules/.bin/eslint');
+const ESLINT_PATH = pathJoin(
+  import.meta.dirname,
+  '../node_modules/.bin/eslint',
+);
 
 /**
  * Run ESLint on a test fixture.

@@ -1,2 +1,1 @@
-const
-enum A {}
+const enum A {}

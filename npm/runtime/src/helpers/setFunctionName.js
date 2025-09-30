@@ -4,9 +4,11 @@ function setFunctionName(e, t, n) {
   try {
     Object.defineProperty(e, "name", {
       configurable: !0,
-      value: n ? n + " " + t : t
+      value: n ? n + " " + t : t,
     });
   } catch (e) {}
   return e;
 }
-module.exports = setFunctionName, module.exports.__esModule = true, module.exports["default"] = module.exports;
+(module.exports = setFunctionName),
+  (module.exports.__esModule = true),
+  (module.exports["default"] = module.exports);

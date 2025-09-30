@@ -1,13 +1,13 @@
 // Examples of incorrect code for no-unsafe-enum-comparison rule
 
 enum Status {
-  Open = 'open',
-  Closed = 'closed',
+  Open = "open",
+  Closed = "closed",
 }
 
 enum Color {
-  Red = 'red',
-  Blue = 'blue',
+  Red = "red",
+  Blue = "blue",
 }
 
 // Comparing different enums

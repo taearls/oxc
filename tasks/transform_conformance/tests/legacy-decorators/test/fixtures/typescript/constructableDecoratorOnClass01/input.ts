@@ -3,6 +3,4 @@
 class CtorDtor {}
 
 @CtorDtor
-class C {
-
-}
+class C {}

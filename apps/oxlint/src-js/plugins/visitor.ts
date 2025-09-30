@@ -95,7 +95,9 @@ type CompilingNonLeafVisitorEntry = {
   enter: VisitFn | VisitFn[] | null;
   exit: VisitFn | VisitFn[] | null;
 } | null;
-type CompilingVisitor = Array<CompilingLeafVisitorEntry | CompilingNonLeafVisitorEntry>;
+type CompilingVisitor = Array<
+  CompilingLeafVisitorEntry | CompilingNonLeafVisitorEntry
+>;
 
 // Compiled visitor used for visiting each file.
 // Same array is reused for each file.
@@ -207,7 +209,9 @@ export function initCompiledVisitor(): void {
  */
 export function addVisitorToCompiled(visitor: Visitor): void {
   if (visitor === null || typeof visitor !== 'object') {
-    throw new TypeError('Visitor returned from `create` method must be an object');
+    throw new TypeError(
+      'Visitor returned from `create` method must be an object',
+    );
   }
 
   // Exit if is empty visitor
@@ -223,14 +227,18 @@ export function addVisitorToCompiled(visitor: Visitor): void {
 
     const visitFn = (visitor as { [key: string]: VisitFn })[name];
     if (typeof visitFn !== 'function') {
-      throw new TypeError(`'${name}' property of visitor object is not a function`);
+      throw new TypeError(
+        `'${name}' property of visitor object is not a function`,
+      );
     }
 
     const isExit = name.endsWith(':exit');
     if (isExit) name = name.slice(0, -5);
 
     const typeId = NODE_TYPE_IDS_MAP.get(name);
-    if (typeId === void 0) throw new Error(`Unknown node type '${name}' in visitor object`);
+    if (typeId === void 0) {
+      throw new Error(`Unknown node type '${name}' in visitor object`);
+    }
 
     const existing = (compiledVisitor as CompilingVisitor)[typeId];
     if (typeId < LEAF_NODE_TYPES_COUNT) {
@@ -262,7 +270,7 @@ export function addVisitorToCompiled(visitor: Visitor): void {
       assertIs<CompilingNonLeafVisitorEntry>(existing);
 
       if (existing === null) {
-        const enterExit = compiledVisitor[typeId] = getEnterExitObject();
+        const enterExit = (compiledVisitor[typeId] = getEnterExitObject());
         if (isExit) {
           enterExit.exit = visitFn;
         } else {
@@ -307,7 +315,9 @@ export function finalizeCompiledVisitor() {
   // or enter+exit functions for leaf nodes
   for (let i = mergedLeafVisitorTypeIds.length - 1; i >= 0; i--) {
     const typeId = mergedLeafVisitorTypeIds[i];
-    compiledVisitor[typeId] = mergeVisitFns(compiledVisitor[typeId] as unknown as VisitFn[]);
+    compiledVisitor[typeId] = mergeVisitFns(
+      compiledVisitor[typeId] as unknown as VisitFn[],
+    );
   }
 
   for (let i = mergedEnterVisitorTypeIds.length - 1; i >= 0; i--) {
@@ -363,7 +373,9 @@ function mergeVisitFns(visitFns: VisitFn[]): VisitFn {
     mergers.push(merger);
   } else {
     merger = mergers[numVisitFns];
-    if (merger === null) merger = mergers[numVisitFns] = createMerger(numVisitFns);
+    if (merger === null) {
+      merger = mergers[numVisitFns] = createMerger(numVisitFns);
+    }
   }
 
   // Merge functions
@@ -415,7 +427,14 @@ const mergers: (Merger | null)[] = [
     visit3(node);
     visit4(node);
   },
-  (visit1: VisitFn, visit2: VisitFn, visit3: VisitFn, visit4: VisitFn, visit5: VisitFn) => (node: Node) => {
+  (
+    visit1: VisitFn,
+    visit2: VisitFn,
+    visit3: VisitFn,
+    visit4: VisitFn,
+    visit5: VisitFn,
+  ) =>
+  (node: Node) => {
     visit1(node);
     visit2(node);
     visit3(node);

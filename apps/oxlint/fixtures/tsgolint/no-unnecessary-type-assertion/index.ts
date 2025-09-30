@@ -1,10 +1,10 @@
 // Examples of incorrect code for no-unnecessary-type-assertion rule
 
-const str: string = 'hello';
+const str: string = "hello";
 const redundant = str as string; // unnecessary, str is already string
 
 function getString(): string {
-  return 'hello';
+  return "hello";
 }
 const result = getString() as string; // unnecessary, getString() already returns string
 

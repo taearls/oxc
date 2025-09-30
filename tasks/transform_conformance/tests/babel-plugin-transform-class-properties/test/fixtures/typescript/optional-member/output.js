@@ -1,7 +1,7 @@
 class X {
   method() {
     const o = {
-      X
+      X,
     };
     babelHelpers.assertClassBrand(X, o.X, _a)._;
     babelHelpers.assertClassBrand(X, o.X, _a)._;
@@ -9,5 +9,5 @@ class X {
   }
 }
 var _a = {
-  _: 0
+  _: 0,
 };

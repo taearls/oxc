@@ -41,7 +41,8 @@ export function parseAsyncRaw(filename, sourceText, options) {
   return parseAsyncRawImpl(filename, sourceText, options, deserialize);
 }
 
-let deserializeJS = null, deserializeTS = null;
+let deserializeJS = null,
+  deserializeTS = null;
 
 /**
  * Deserialize whole AST from buffer.
@@ -55,7 +56,9 @@ function deserialize(buffer, sourceText, sourceByteLen) {
   // Lazy load deserializer, and deserialize buffer to JS objects
   let data;
   if (isJsAst(buffer)) {
-    if (deserializeJS === null) deserializeJS = require('../../generated/deserialize/js.js').deserialize;
+    if (deserializeJS === null) {
+      deserializeJS = require('../../generated/deserialize/js.js').deserialize;
+    }
 
     // `preserveParens` argument is unconditionally `true` here. If `options` contains `preserveParens: false`,
     // `ParenthesizedExpression` nodes won't be in AST anyway, so the value is irrelevant.
@@ -64,10 +67,17 @@ function deserialize(buffer, sourceText, sourceByteLen) {
     // Add a line comment for hashbang
     const { hashbang } = data.program;
     if (hashbang !== null) {
-      data.comments.unshift({ type: 'Line', value: hashbang.value, start: hashbang.start, end: hashbang.end });
+      data.comments.unshift({
+        type: 'Line',
+        value: hashbang.value,
+        start: hashbang.start,
+        end: hashbang.end,
+      });
     }
   } else {
-    if (deserializeTS === null) deserializeTS = require('../../generated/deserialize/ts.js').deserialize;
+    if (deserializeTS === null) {
+      deserializeTS = require('../../generated/deserialize/ts.js').deserialize;
+    }
 
     // `preserveParens` argument is unconditionally `true` here. If `options` contains `preserveParens: false`,
     // `ParenthesizedExpression` nodes won't be in AST anyway, so the value is irrelevant.

@@ -1,19 +1,20 @@
-var _nullish = /* @__PURE__ */ babelHelpers.classPrivateFieldLooseKey("nullish");
+var _nullish =
+  /* @__PURE__ */ babelHelpers.classPrivateFieldLooseKey("nullish");
 var _and = /* @__PURE__ */ babelHelpers.classPrivateFieldLooseKey("and");
 var _or = /* @__PURE__ */ babelHelpers.classPrivateFieldLooseKey("or");
 class Foo {
   constructor() {
     Object.defineProperty(this, _nullish, {
       writable: true,
-      value: 0
+      value: 0,
     });
     Object.defineProperty(this, _and, {
       writable: true,
-      value: 0
+      value: 0,
     });
     Object.defineProperty(this, _or, {
       writable: true,
-      value: 0
+      value: 0,
     });
   }
   self() {
@@ -23,6 +24,7 @@ class Foo {
     babelHelpers.classPrivateFieldLooseBase(this, _nullish)[_nullish] ??= 42;
     babelHelpers.classPrivateFieldLooseBase(this, _and)[_and] &&= 0;
     babelHelpers.classPrivateFieldLooseBase(this, _or)[_or] ||= 0;
-    babelHelpers.classPrivateFieldLooseBase(this.self(), _nullish)[_nullish] ??= 42;
+    babelHelpers.classPrivateFieldLooseBase(this.self(), _nullish)[_nullish] ??=
+      42;
   }
 }

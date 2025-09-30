@@ -45,7 +45,8 @@ var FUNC_TOSTRING = `
             if (!/^F[0-9]{6}N$/.test(n)) {
                 n = "F" + ++id + "N";
                 ${
-  Object.getOwnPropertyDescriptor(Function.prototype, 'name').configurable
+  Object.getOwnPropertyDescriptor(Function.prototype, 'name')
+      .configurable
     ? 'Object.defineProperty(this, "name", { get: () => n });'
     : ''
 }
@@ -76,7 +77,7 @@ export function run_code(code, prepend_code = '') {
           );
         },
       },
-      id: x => x,
+      id: (x) => x,
       leak: () => {},
       pass: () => {
         global.console.log('PASS');
@@ -87,12 +88,7 @@ export function run_code(code, prepend_code = '') {
     };
     global.global = global;
     vm.runInNewContext(
-      [
-        FUNC_TOSTRING,
-        '!function() {',
-        prepend_code + code,
-        '}();',
-      ].join('\n'),
+      [FUNC_TOSTRING, '!function() {', prepend_code + code, '}();'].join('\n'),
       global,
     );
     return stdout;
@@ -104,5 +100,8 @@ export function run_code(code, prepend_code = '') {
 }
 
 export function same_stdout(expected, actual) {
-  return typeof expected == typeof actual && strip_func_ids(expected) == strip_func_ids(actual);
+  return (
+    typeof expected == typeof actual &&
+    strip_func_ids(expected) == strip_func_ids(actual)
+  );
 }

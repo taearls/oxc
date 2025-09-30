@@ -20,14 +20,19 @@ import { jsx as _jsx } from "react/jsx-runtime";
 /* @__PURE__ */ _jsx("div", { children: "edge fart guppy" });
 /* @__PURE__ */ _jsx("div", { children: "help island jug" });
 /* @__PURE__ */ _jsx("div", { children: "kaos lmao moon" });
-/* @__PURE__ */ _jsx("div", { children: "noob ogre 	 patrick 	 quiz roger 	 slash 	 toaster" });
+/* @__PURE__ */ _jsx("div", {
+  children: "noob ogre 	 patrick 	 quiz roger 	 slash 	 toaster",
+});
 
 // Whitespace after opening and before closing tags
 /* @__PURE__ */ _jsx("div", { children: "aging" });
 /* @__PURE__ */ _jsx("div", { children: " 	 boris cod dante 	 " });
 /* @__PURE__ */ _jsx("div", { children: "elephant fuzz gerald" });
 /* @__PURE__ */ _jsx("div", { children: " 	 herbert ice jump 	 " });
-/* @__PURE__ */ _jsx("div", { children: " 	 klan 	 lover 	 mango nolan 	 opus 	 pavel queen 	 road 	 shovel 	 " });
+/* @__PURE__ */ _jsx("div", {
+  children:
+    " 	 klan 	 lover 	 mango nolan 	 opus 	 pavel queen 	 road 	 shovel 	 ",
+});
 
 // Whitespace before + after text, and after opening + before closing tags
 /* @__PURE__ */ _jsx("div", { children: "antler" });
@@ -35,4 +40,7 @@ import { jsx as _jsx } from "react/jsx-runtime";
 /* @__PURE__ */ _jsx("div", { children: "elton flip granny" });
 /* @__PURE__ */ _jsx("div", { children: " 	 hoover idol jack 	 " });
 /* @__PURE__ */ _jsx("div", { children: "kermit lemur mangle" });
-/* @__PURE__ */ _jsx("div", { children: "nascent 	 oats 	 panda quotation 	 rug 	 sloth tundra 	 uber 	 veggie" });
+/* @__PURE__ */ _jsx("div", {
+  children:
+    "nascent 	 oats 	 panda quotation 	 rug 	 sloth tundra 	 uber 	 veggie",
+});

@@ -1,9 +1,13 @@
 // @target: ES5
 // @experimentaldecorators: true
-declare function dec<T>(target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<T>): TypedPropertyDescriptor<T>;
+declare function dec<T>(
+  target: any,
+  propertyKey: string,
+  descriptor: TypedPropertyDescriptor<T>,
+): TypedPropertyDescriptor<T>;
 
 class C {
-    method()
-    @dec
-    method() { }
+  method();
+  @dec
+  method() {}
 }

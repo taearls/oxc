@@ -13,11 +13,11 @@ class C {
     return () => {};
   };
 
-  static fn = function() {
+  static fn = function () {
     if (true) {
       if (true) {
         {
-          let f = function foo() {}
+          let f = function foo() {};
         }
       }
     }
@@ -26,20 +26,23 @@ class C {
 
   static arrowStrict = () => {
     "use strict";
-    if (true) {}
+    if (true) {
+    }
     return () => {};
   };
 
-  static fnStrict = function() {
+  static fnStrict = function () {
     "use strict";
-    if (true) {}
+    if (true) {
+    }
     return () => {};
   };
 
-  static klass = class extends function() {} {
+  static klass = class extends function () {} {
     constructor() {}
     method() {
-      if (true) {}
+      if (true) {
+      }
       function foo() {}
     }
     [() => {}]() {}

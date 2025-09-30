@@ -15,7 +15,7 @@ _C = C;
       super[prop];
       super.prop();
       super[prop]();
-    }
+    },
   };
 
   class Inner {

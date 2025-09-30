@@ -1,4 +1,4 @@
-import source from 'x';
-import source from from "x";
-import source x from 'x';
-import source s from "x" with { attr: "val" };
+import source from "x";
+import from from "x";
+import x from "x";
+import s from "x" with { attr: "val" };

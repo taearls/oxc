@@ -7,8 +7,11 @@ class C {
   noClash2 = unbound2;
   noClash3 = bound3;
   noClash4 = unbound3;
-  noClash5 = x => x;
-  noClash6 = () => { let y; return y; };
+  noClash5 = (x) => x;
+  noClash6 = () => {
+    let y;
+    return y;
+  };
 
   constructor(bound, x, y) {
     {

@@ -15,7 +15,7 @@ babelHelpers.defineProperty(C, "prop", () => {
       super[prop];
       super.prop();
       super[prop]();
-    }
+    },
   };
 
   class Inner {

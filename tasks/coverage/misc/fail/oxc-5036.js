@@ -1,3 +1,3 @@
 Test: {
-    Test: console.log('Test');
+  Test: console.log("Test");
 }

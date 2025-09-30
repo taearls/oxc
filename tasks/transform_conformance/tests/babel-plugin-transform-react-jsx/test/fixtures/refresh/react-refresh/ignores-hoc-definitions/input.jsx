@@ -13,5 +13,5 @@ function withRouter() {
   return function Child() {
     const handleClick = () => {};
     return <h1 onClick={handleClick}>Hi</h1>;
-  }
-};
+  };
+}

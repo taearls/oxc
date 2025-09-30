@@ -57,8 +57,8 @@ class Outer {
   }
 }
 
-let OuterExpr = (
-  _prop2 = new WeakMap(),
+let OuterExpr =
+  ((_prop2 = new WeakMap()),
   class {
     constructor() {
       babelHelpers.classPrivateFieldInitSpec(this, _prop2, 1);
@@ -71,10 +71,10 @@ let OuterExpr = (
     getInner() {
       let _this$prop3, _this$shadowed3;
       return (
-        _this$prop3 = babelHelpers.classPrivateFieldGet2(_prop2, this),
+        (_this$prop3 = babelHelpers.classPrivateFieldGet2(_prop2, this)),
         // This isn't an existing helper. We need to add a helper that throws error.
         // Problem only arises when class properties transform enabled and private methods transform isn't.
-        _this$shadowed3 = babelHelpers.illegalPrivateField("shadowed"),
+        (_this$shadowed3 = babelHelpers.illegalPrivateField("shadowed")),
         class InnerExpr {
           constructor() {
             babelHelpers.defineProperty(this, _this$prop3, 4);
@@ -92,11 +92,11 @@ let OuterExpr = (
       var _innerProp2;
       let _this$prop4, _this$shadowed4;
       return (
-        _innerProp2 = new WeakMap(),
-        _this$prop4 = babelHelpers.classPrivateFieldGet2(_prop2, this),
+        (_innerProp2 = new WeakMap()),
+        (_this$prop4 = babelHelpers.classPrivateFieldGet2(_prop2, this)),
         // This isn't an existing helper. We need to add a helper that throws error.
         // Problem only arises when class properties transform enabled and private methods transform isn't.
-        _this$shadowed4 = babelHelpers.illegalPrivateField("shadowed"),
+        (_this$shadowed4 = babelHelpers.illegalPrivateField("shadowed")),
         class InnerExprWithAdditionalProp {
           constructor() {
             babelHelpers.classPrivateFieldInitSpec(this, _innerProp2, 7);
@@ -110,5 +110,4 @@ let OuterExpr = (
         }
       );
     }
-  }
-);
+  });

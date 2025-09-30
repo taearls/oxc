@@ -4,4 +4,6 @@ function _classPrivateFieldSet(e, t, r) {
   var s = classPrivateFieldGet2(t, e);
   return classApplyDescriptorSet(e, s, r), r;
 }
-module.exports = _classPrivateFieldSet, module.exports.__esModule = true, module.exports["default"] = module.exports;
+(module.exports = _classPrivateFieldSet),
+  (module.exports.__esModule = true),
+  (module.exports["default"] = module.exports);

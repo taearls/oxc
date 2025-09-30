@@ -1,2 +1,2 @@
 type Param = string;
-type T = import('').foo<Param>;
+type T = import("").foo<Param>;

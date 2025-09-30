@@ -6,4 +6,6 @@ function _maybeArrayLike(r, a, e) {
   }
   return r(a, e);
 }
-module.exports = _maybeArrayLike, module.exports.__esModule = true, module.exports["default"] = module.exports;
+(module.exports = _maybeArrayLike),
+  (module.exports.__esModule = true),
+  (module.exports["default"] = module.exports);

@@ -1,1 +1,1 @@
-type T = import('');
+type T = import("");

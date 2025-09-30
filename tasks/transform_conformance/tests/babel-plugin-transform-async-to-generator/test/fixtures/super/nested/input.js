@@ -10,9 +10,9 @@ const outer = {
       },
       async method() {
         () => super.value;
-      }
+      },
     };
 
     () => super.value;
-  }
+  },
 };

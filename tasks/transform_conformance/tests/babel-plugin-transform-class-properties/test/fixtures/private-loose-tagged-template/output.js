@@ -4,13 +4,15 @@ class Foo {
   constructor() {
     Object.defineProperty(this, _tag, {
       writable: true,
-      value: function() {
+      value: function () {
         return this;
-      }
+      },
     });
   }
 
   getReceiver() {
-    return babelHelpers.classPrivateFieldLooseBase(this, _tag)[_tag]`tagged template`;
+    return babelHelpers.classPrivateFieldLooseBase(this, _tag)[
+      _tag
+    ]`tagged template`;
   }
 }

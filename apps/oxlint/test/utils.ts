@@ -22,22 +22,33 @@ interface TestFixtureOptions {
   // Name of the snapshot file
   snapshotName: string;
   // Function to get extra data to include in the snapshot
-  getExtraSnapshotData?: (dirPath: string) => Promise<{ [key: string]: string }>;
+  getExtraSnapshotData?: (
+    dirPath: string,
+  ) => Promise<{ [key: string]: string }>;
 }
 
 /**
  * Run a test fixture.
  * @param options - Options for running the test
  */
-export async function testFixtureWithCommand(options: TestFixtureOptions): Promise<void> {
+export async function testFixtureWithCommand(
+  options: TestFixtureOptions,
+): Promise<void> {
   const fixtureDirPath = pathJoin(FIXTURES_DIR_PATH, options.fixtureName);
 
-  let { stdout, stderr, exitCode } = await execa(options.command, options.args, {
-    cwd: fixtureDirPath,
-    reject: false,
-  });
+  let { stdout, stderr, exitCode } = await execa(
+    options.command,
+    options.args,
+    {
+      cwd: fixtureDirPath,
+      reject: false,
+    },
+  );
 
-  const snapshotPath = pathJoin(fixtureDirPath, `${options.snapshotName}.snap.md`);
+  const snapshotPath = pathJoin(
+    fixtureDirPath,
+    `${options.snapshotName}.snap.md`,
+  );
 
   stdout = normalizeStdout(stdout);
   stderr = normalizeStdout(stderr);
@@ -78,7 +89,10 @@ export async function testFixtureWithCommand(options: TestFixtureOptions): Promi
  */
 function normalizeStdout(stdout: string): string {
   // Normalize line breaks, and trim line breaks from start and end
-  stdout = stdout.replace(/\r\n?/g, '\n').replace(/^\n+/, '').replace(/\n+$/, '');
+  stdout = stdout
+    .replace(/\r\n?/g, '\n')
+    .replace(/^\n+/, '')
+    .replace(/\n+$/, '');
   if (stdout === '') return '';
 
   let lines = stdout.split('\n');
@@ -97,16 +111,22 @@ function normalizeStdout(stdout: string): string {
     let match = line.match(/^(\s*\|\s+at (?:.+?\()?)(.+)$/);
     if (match) {
       const [, preamble, at] = match;
-      return at.startsWith(FIXTURES_URL) ? [`${preamble}<root>/${at.slice(ROOT_URL.length)}`] : [];
+      return at.startsWith(FIXTURES_URL)
+        ? [`${preamble}<root>/${at.slice(ROOT_URL.length)}`]
+        : [];
     } else {
       // e.g. ` | File path: /path/to/oxc/apps/oxlint/test/fixtures/foo/bar.js`
       match = line.match(/^(\s*\|\s+File path: )(.+)$/);
       if (match) {
         const [, preamble, path] = match;
-        if (path.startsWith(REPO_ROOT_PATH)) return [`${preamble}<root>/${path.slice(REPO_ROOT_PATH.length)}`];
+        if (path.startsWith(REPO_ROOT_PATH)) {
+          return [`${preamble}<root>/${path.slice(REPO_ROOT_PATH.length)}`];
+        }
       }
     }
-    if (line.startsWith(REPO_ROOT_PATH)) line = `<root>/${line.slice(REPO_ROOT_PATH.length)}`;
+    if (line.startsWith(REPO_ROOT_PATH)) {
+      line = `<root>/${line.slice(REPO_ROOT_PATH.length)}`;
+    }
     return [line];
   });
 

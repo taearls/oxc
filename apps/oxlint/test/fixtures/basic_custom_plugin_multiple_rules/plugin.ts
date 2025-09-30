@@ -34,7 +34,10 @@ const plugin: Plugin = {
         return {
           Identifier(ident) {
             if (ident.name == 'foo') {
-              context.report({ message: 'Unexpected Identifier named foo', node: ident });
+              context.report({
+                message: 'Unexpected Identifier named foo',
+                node: ident,
+              });
             }
           },
         };

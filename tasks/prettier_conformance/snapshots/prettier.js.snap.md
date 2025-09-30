@@ -1,4 +1,4 @@
-js compatibility: 661/699 (94.56%)
+js compatibility: 663/699 (94.85%)
 
 # Failed
 
@@ -17,7 +17,6 @@ js compatibility: 661/699 (94.56%)
 | js/explicit-resource-management/valid-await-using-comments.js | 💥 | 91.89% |
 | js/for/for-in-with-initializer.js | 💥 | 37.50% |
 | js/for/parentheses.js | 💥 | 96.00% |
-| js/functional-composition/pipe-function-calls.js | 💥 | 87.80% |
 | js/identifier/for-of/let.js | 💥 | 92.31% |
 | js/identifier/parentheses/let.js | 💥💥 | 84.09% |
 | js/last-argument-expansion/dangling-comment-in-arrow-function.js | 💥 | 22.22% |
@@ -26,7 +25,6 @@ js compatibility: 661/699 (94.56%)
 | js/quote-props/objects.js | 💥💥✨✨ | 45.10% |
 | js/quote-props/with_numbers.js | 💥💥✨✨ | 46.43% |
 | js/quotes/objects.js | 💥💥 | 80.00% |
-| js/require/require.js | 💥 | 93.51% |
 | js/ternaries/binary.js | 💥💥💥💥✨✨✨✨ | 18.42% |
 | js/ternaries/func-call.js | 💥💥💥💥✨✨✨✨ | 25.00% |
 | js/ternaries/indent-after-paren.js | 💥💥💥💥✨✨✨✨ | 24.59% |

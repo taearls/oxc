@@ -11,7 +11,7 @@ async function processData(): Promise<string> {
     // Should be: return await fetchData();
     return fetchData(); // Missing await in try block
   } catch (error) {
-    throw new Error('Failed to process');
+    throw new Error("Failed to process");
   }
 }
 
@@ -28,5 +28,9 @@ async function handleRequest(): Promise<Response> {
 declare function getUser(): Promise<User>;
 declare function fetchData(): Promise<string>;
 declare function handleAsync(): Promise<Response>;
-declare interface User { id: number; }
-declare interface Response { data: any; }
+declare interface User {
+  id: number;
+}
+declare interface Response {
+  data: any;
+}

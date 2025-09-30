@@ -48,7 +48,10 @@ export class Program {
     const internal = this.#internal,
       cached = internal.$body;
     if (cached !== void 0) return cached;
-    return internal.$body = constructVecStatement(internal.pos + 96, internal.ast);
+    return (internal.$body = constructVecStatement(
+      internal.pos + 96,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -158,7 +161,9 @@ function constructExpression(pos, ast) {
     case 50:
       return constructBoxPrivateFieldExpression(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for Expression`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for Expression`,
+      );
   }
 }
 
@@ -191,7 +196,7 @@ export class IdentifierName {
     const internal = this.#internal,
       cached = internal.$name;
     if (cached !== void 0) return cached;
-    return internal.$name = constructStr(internal.pos + 8, internal.ast);
+    return (internal.$name = constructStr(internal.pos + 8, internal.ast));
   }
 
   toJSON() {
@@ -239,7 +244,7 @@ export class IdentifierReference {
     const internal = this.#internal,
       cached = internal.$name;
     if (cached !== void 0) return cached;
-    return internal.$name = constructStr(internal.pos + 8, internal.ast);
+    return (internal.$name = constructStr(internal.pos + 8, internal.ast));
   }
 
   toJSON() {
@@ -252,7 +257,10 @@ export class IdentifierReference {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugIdentifierReference.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugIdentifierReference.prototype,
+    );
   }
 }
 
@@ -287,7 +295,7 @@ export class BindingIdentifier {
     const internal = this.#internal,
       cached = internal.$name;
     if (cached !== void 0) return cached;
-    return internal.$name = constructStr(internal.pos + 8, internal.ast);
+    return (internal.$name = constructStr(internal.pos + 8, internal.ast));
   }
 
   toJSON() {
@@ -300,7 +308,10 @@ export class BindingIdentifier {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugBindingIdentifier.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugBindingIdentifier.prototype,
+    );
   }
 }
 
@@ -335,7 +346,7 @@ export class LabelIdentifier {
     const internal = this.#internal,
       cached = internal.$name;
     if (cached !== void 0) return cached;
-    return internal.$name = constructStr(internal.pos + 8, internal.ast);
+    return (internal.$name = constructStr(internal.pos + 8, internal.ast));
   }
 
   toJSON() {
@@ -423,7 +434,10 @@ export class ArrayExpression {
     const internal = this.#internal,
       cached = internal.$elements;
     if (cached !== void 0) return cached;
-    return internal.$elements = constructVecArrayExpressionElement(internal.pos + 8, internal.ast);
+    return (internal.$elements = constructVecArrayExpressionElement(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -535,7 +549,9 @@ function constructArrayExpressionElement(pos, ast) {
     case 65:
       return new Elision(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ArrayExpressionElement`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ArrayExpressionElement`,
+      );
   }
 }
 
@@ -608,7 +624,10 @@ export class ObjectExpression {
     const internal = this.#internal,
       cached = internal.$properties;
     if (cached !== void 0) return cached;
-    return internal.$properties = constructVecObjectPropertyKind(internal.pos + 8, internal.ast);
+    return (internal.$properties = constructVecObjectPropertyKind(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -621,7 +640,10 @@ export class ObjectExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugObjectExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugObjectExpression.prototype,
+    );
   }
 }
 
@@ -634,7 +656,9 @@ function constructObjectPropertyKind(pos, ast) {
     case 1:
       return constructBoxSpreadElement(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ObjectPropertyKind`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ObjectPropertyKind`,
+      );
   }
 }
 
@@ -807,7 +831,9 @@ function constructPropertyKey(pos, ast) {
     case 65:
       return constructBoxPrivateIdentifier(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for PropertyKey`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for PropertyKey`,
+      );
   }
 }
 
@@ -820,7 +846,9 @@ function constructPropertyKind(pos, ast) {
     case 2:
       return 'set';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for PropertyKind`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for PropertyKind`,
+      );
   }
 }
 
@@ -853,14 +881,20 @@ export class TemplateLiteral {
     const internal = this.#internal,
       cached = internal.$quasis;
     if (cached !== void 0) return cached;
-    return internal.$quasis = constructVecTemplateElement(internal.pos + 8, internal.ast);
+    return (internal.$quasis = constructVecTemplateElement(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   get expressions() {
     const internal = this.#internal,
       cached = internal.$expressions;
     if (cached !== void 0) return cached;
-    return internal.$expressions = constructVecExpression(internal.pos + 32, internal.ast);
+    return (internal.$expressions = constructVecExpression(
+      internal.pos + 32,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -912,7 +946,10 @@ export class TaggedTemplateExpression {
 
   get typeArguments() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterInstantiation(internal.pos + 24, internal.ast);
+    return constructOptionBoxTSTypeParameterInstantiation(
+      internal.pos + 24,
+      internal.ast,
+    );
   }
 
   get quasi() {
@@ -932,7 +969,10 @@ export class TaggedTemplateExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTaggedTemplateExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTaggedTemplateExpression.prototype,
+    );
   }
 }
 
@@ -1008,14 +1048,17 @@ export class TemplateElementValue {
     const internal = this.#internal,
       cached = internal.$raw;
     if (cached !== void 0) return cached;
-    return internal.$raw = constructStr(internal.pos, internal.ast);
+    return (internal.$raw = constructStr(internal.pos, internal.ast));
   }
 
   get cooked() {
     const internal = this.#internal,
       cached = internal.$cooked;
     if (cached !== void 0) return cached;
-    return internal.$cooked = constructOptionStr(internal.pos + 16, internal.ast);
+    return (internal.$cooked = constructOptionStr(
+      internal.pos + 16,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -1026,7 +1069,10 @@ export class TemplateElementValue {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTemplateElementValue.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTemplateElementValue.prototype,
+    );
   }
 }
 
@@ -1041,7 +1087,9 @@ function constructMemberExpression(pos, ast) {
     case 50:
       return constructBoxPrivateFieldExpression(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for MemberExpression`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for MemberExpression`,
+      );
   }
 }
 
@@ -1097,7 +1145,10 @@ export class ComputedMemberExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugComputedMemberExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugComputedMemberExpression.prototype,
+    );
   }
 }
 
@@ -1155,7 +1206,10 @@ export class StaticMemberExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugStaticMemberExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugStaticMemberExpression.prototype,
+    );
   }
 }
 
@@ -1213,7 +1267,10 @@ export class PrivateFieldExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugPrivateFieldExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugPrivateFieldExpression.prototype,
+    );
   }
 }
 
@@ -1251,14 +1308,20 @@ export class CallExpression {
 
   get typeArguments() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterInstantiation(internal.pos + 24, internal.ast);
+    return constructOptionBoxTSTypeParameterInstantiation(
+      internal.pos + 24,
+      internal.ast,
+    );
   }
 
   get arguments() {
     const internal = this.#internal,
       cached = internal.$arguments;
     if (cached !== void 0) return cached;
-    return internal.$arguments = constructVecArgument(internal.pos + 32, internal.ast);
+    return (internal.$arguments = constructVecArgument(
+      internal.pos + 32,
+      internal.ast,
+    ));
   }
 
   get optional() {
@@ -1317,14 +1380,20 @@ export class NewExpression {
 
   get typeArguments() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterInstantiation(internal.pos + 24, internal.ast);
+    return constructOptionBoxTSTypeParameterInstantiation(
+      internal.pos + 24,
+      internal.ast,
+    );
   }
 
   get arguments() {
     const internal = this.#internal,
       cached = internal.$arguments;
     if (cached !== void 0) return cached;
-    return internal.$arguments = constructVecArgument(internal.pos + 32, internal.ast);
+    return (internal.$arguments = constructVecArgument(
+      internal.pos + 32,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -1534,7 +1603,9 @@ function constructArgument(pos, ast) {
     case 64:
       return constructBoxSpreadElement(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for Argument`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for Argument`,
+      );
   }
 }
 
@@ -1590,7 +1661,10 @@ export class UpdateExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugUpdateExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugUpdateExpression.prototype,
+    );
   }
 }
 
@@ -1700,7 +1774,10 @@ export class BinaryExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugBinaryExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugBinaryExpression.prototype,
+    );
   }
 }
 
@@ -1752,7 +1829,10 @@ export class PrivateInExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugPrivateInExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugPrivateInExpression.prototype,
+    );
   }
 }
 
@@ -1810,7 +1890,10 @@ export class LogicalExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugLogicalExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugLogicalExpression.prototype,
+    );
   }
 }
 
@@ -1868,7 +1951,10 @@ export class ConditionalExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugConditionalExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugConditionalExpression.prototype,
+    );
   }
 }
 
@@ -1926,7 +2012,10 @@ export class AssignmentExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugAssignmentExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugAssignmentExpression.prototype,
+    );
   }
 }
 
@@ -1955,7 +2044,9 @@ function constructAssignmentTarget(pos, ast) {
     case 50:
       return constructBoxPrivateFieldExpression(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for AssignmentTarget`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for AssignmentTarget`,
+      );
   }
 }
 
@@ -1978,7 +2069,9 @@ function constructSimpleAssignmentTarget(pos, ast) {
     case 50:
       return constructBoxPrivateFieldExpression(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for SimpleAssignmentTarget`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for SimpleAssignmentTarget`,
+      );
   }
 }
 
@@ -1989,7 +2082,9 @@ function constructAssignmentTargetPattern(pos, ast) {
     case 9:
       return constructBoxObjectAssignmentTarget(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for AssignmentTargetPattern`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for AssignmentTargetPattern`,
+      );
   }
 }
 
@@ -2022,7 +2117,10 @@ export class ArrayAssignmentTarget {
     const internal = this.#internal,
       cached = internal.$elements;
     if (cached !== void 0) return cached;
-    return internal.$elements = constructVecOptionAssignmentTargetMaybeDefault(internal.pos + 8, internal.ast);
+    return (internal.$elements = constructVecOptionAssignmentTargetMaybeDefault(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -2035,7 +2133,10 @@ export class ArrayAssignmentTarget {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugArrayAssignmentTarget.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugArrayAssignmentTarget.prototype,
+    );
   }
 }
 
@@ -2070,7 +2171,10 @@ export class ObjectAssignmentTarget {
     const internal = this.#internal,
       cached = internal.$properties;
     if (cached !== void 0) return cached;
-    return internal.$properties = constructVecAssignmentTargetProperty(internal.pos + 8, internal.ast);
+    return (internal.$properties = constructVecAssignmentTargetProperty(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -2083,7 +2187,10 @@ export class ObjectAssignmentTarget {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugObjectAssignmentTarget.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugObjectAssignmentTarget.prototype,
+    );
   }
 }
 
@@ -2129,7 +2236,10 @@ export class AssignmentTargetRest {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugAssignmentTargetRest.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugAssignmentTargetRest.prototype,
+    );
   }
 }
 
@@ -2160,7 +2270,9 @@ function constructAssignmentTargetMaybeDefault(pos, ast) {
     case 50:
       return constructBoxPrivateFieldExpression(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for AssignmentTargetMaybeDefault`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for AssignmentTargetMaybeDefault`,
+      );
   }
 }
 
@@ -2210,7 +2322,10 @@ export class AssignmentTargetWithDefault {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugAssignmentTargetWithDefault.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugAssignmentTargetWithDefault.prototype,
+    );
   }
 }
 
@@ -2223,7 +2338,9 @@ function constructAssignmentTargetProperty(pos, ast) {
     case 1:
       return constructBoxAssignmentTargetPropertyProperty(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for AssignmentTargetProperty`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for AssignmentTargetProperty`,
+      );
   }
 }
 
@@ -2273,7 +2390,10 @@ export class AssignmentTargetPropertyIdentifier {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugAssignmentTargetPropertyIdentifier.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugAssignmentTargetPropertyIdentifier.prototype,
+    );
   }
 }
 
@@ -2311,7 +2431,10 @@ export class AssignmentTargetPropertyProperty {
 
   get value() {
     const internal = this.#internal;
-    return constructAssignmentTargetMaybeDefault(internal.pos + 24, internal.ast);
+    return constructAssignmentTargetMaybeDefault(
+      internal.pos + 24,
+      internal.ast,
+    );
   }
 
   get computed() {
@@ -2331,7 +2454,10 @@ export class AssignmentTargetPropertyProperty {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugAssignmentTargetPropertyProperty.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugAssignmentTargetPropertyProperty.prototype,
+    );
   }
 }
 
@@ -2366,7 +2492,10 @@ export class SequenceExpression {
     const internal = this.#internal,
       cached = internal.$expressions;
     if (cached !== void 0) return cached;
-    return internal.$expressions = constructVecExpression(internal.pos + 8, internal.ast);
+    return (internal.$expressions = constructVecExpression(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -2379,7 +2508,10 @@ export class SequenceExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugSequenceExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugSequenceExpression.prototype,
+    );
   }
 }
 
@@ -2530,7 +2662,9 @@ function constructChainElement(pos, ast) {
     case 50:
       return constructBoxPrivateFieldExpression(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ChainElement`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ChainElement`,
+      );
   }
 }
 
@@ -2574,7 +2708,10 @@ export class ParenthesizedExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugParenthesizedExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugParenthesizedExpression.prototype,
+    );
   }
 }
 
@@ -2647,7 +2784,9 @@ function constructStatement(pos, ast) {
     case 69:
       return constructBoxTSNamespaceExportDeclaration(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for Statement`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for Statement`,
+      );
   }
 }
 
@@ -2685,7 +2824,10 @@ export class Directive {
     const internal = this.#internal,
       cached = internal.$directive;
     if (cached !== void 0) return cached;
-    return internal.$directive = constructStr(internal.pos + 56, internal.ast);
+    return (internal.$directive = constructStr(
+      internal.pos + 56,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -2734,7 +2876,7 @@ export class Hashbang {
     const internal = this.#internal,
       cached = internal.$value;
     if (cached !== void 0) return cached;
-    return internal.$value = constructStr(internal.pos + 8, internal.ast);
+    return (internal.$value = constructStr(internal.pos + 8, internal.ast));
   }
 
   toJSON() {
@@ -2782,7 +2924,10 @@ export class BlockStatement {
     const internal = this.#internal,
       cached = internal.$body;
     if (cached !== void 0) return cached;
-    return internal.$body = constructVecStatement(internal.pos + 8, internal.ast);
+    return (internal.$body = constructVecStatement(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -2820,7 +2965,9 @@ function constructDeclaration(pos, ast) {
     case 39:
       return constructBoxTSImportEqualsDeclaration(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for Declaration`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for Declaration`,
+      );
   }
 }
 
@@ -2858,7 +3005,10 @@ export class VariableDeclaration {
     const internal = this.#internal,
       cached = internal.$declarations;
     if (cached !== void 0) return cached;
-    return internal.$declarations = constructVecVariableDeclarator(internal.pos + 8, internal.ast);
+    return (internal.$declarations = constructVecVariableDeclarator(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   get declare() {
@@ -2878,7 +3028,10 @@ export class VariableDeclaration {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugVariableDeclaration.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugVariableDeclaration.prototype,
+    );
   }
 }
 
@@ -2897,7 +3050,9 @@ function constructVariableDeclarationKind(pos, ast) {
     case 4:
       return 'await using';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for VariableDeclarationKind`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for VariableDeclarationKind`,
+      );
   }
 }
 
@@ -2953,7 +3108,10 @@ export class VariableDeclarator {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugVariableDeclarator.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugVariableDeclarator.prototype,
+    );
   }
 }
 
@@ -3039,7 +3197,10 @@ export class ExpressionStatement {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugExpressionStatement.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugExpressionStatement.prototype,
+    );
   }
 }
 
@@ -3149,7 +3310,10 @@ export class DoWhileStatement {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugDoWhileStatement.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugDoWhileStatement.prototype,
+    );
   }
 }
 
@@ -3362,7 +3526,9 @@ function constructForStatementInit(pos, ast) {
     case 64:
       return constructBoxVariableDeclaration(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ForStatementInit`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ForStatementInit`,
+      );
   }
 }
 
@@ -3449,7 +3615,9 @@ function constructForStatementLeft(pos, ast) {
     case 50:
       return constructBoxPrivateFieldExpression(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ForStatementLeft`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ForStatementLeft`,
+      );
   }
 }
 
@@ -3557,7 +3725,10 @@ export class ContinueStatement {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugContinueStatement.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugContinueStatement.prototype,
+    );
   }
 }
 
@@ -3741,7 +3912,10 @@ export class SwitchStatement {
     const internal = this.#internal,
       cached = internal.$cases;
     if (cached !== void 0) return cached;
-    return internal.$cases = constructVecSwitchCase(internal.pos + 24, internal.ast);
+    return (internal.$cases = constructVecSwitchCase(
+      internal.pos + 24,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -3795,7 +3969,10 @@ export class SwitchCase {
     const internal = this.#internal,
       cached = internal.$consequent;
     if (cached !== void 0) return cached;
-    return internal.$consequent = constructVecStatement(internal.pos + 24, internal.ast);
+    return (internal.$consequent = constructVecStatement(
+      internal.pos + 24,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -3861,7 +4038,10 @@ export class LabeledStatement {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugLabeledStatement.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugLabeledStatement.prototype,
+    );
   }
 }
 
@@ -4089,7 +4269,10 @@ export class DebuggerStatement {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugDebuggerStatement.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugDebuggerStatement.prototype,
+    );
   }
 }
 
@@ -4150,7 +4333,9 @@ function constructBindingPatternKind(pos, ast) {
     case 3:
       return constructBoxAssignmentPattern(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for BindingPatternKind`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for BindingPatternKind`,
+      );
   }
 }
 
@@ -4200,7 +4385,10 @@ export class AssignmentPattern {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugAssignmentPattern.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugAssignmentPattern.prototype,
+    );
   }
 }
 
@@ -4235,7 +4423,10 @@ export class ObjectPattern {
     const internal = this.#internal,
       cached = internal.$properties;
     if (cached !== void 0) return cached;
-    return internal.$properties = constructVecBindingProperty(internal.pos + 8, internal.ast);
+    return (internal.$properties = constructVecBindingProperty(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -4347,7 +4538,10 @@ export class ArrayPattern {
     const internal = this.#internal,
       cached = internal.$elements;
     if (cached !== void 0) return cached;
-    return internal.$elements = constructVecOptionBindingPattern(internal.pos + 8, internal.ast);
+    return (internal.$elements = constructVecOptionBindingPattern(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -4406,7 +4600,10 @@ export class BindingRestElement {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugBindingRestElement.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugBindingRestElement.prototype,
+    );
   }
 }
 
@@ -4463,7 +4660,10 @@ export class Function {
 
   get typeParameters() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterDeclaration(internal.pos + 40, internal.ast);
+    return constructOptionBoxTSTypeParameterDeclaration(
+      internal.pos + 40,
+      internal.ast,
+    );
   }
 
   get params() {
@@ -4515,7 +4715,9 @@ function constructFunctionType(pos, ast) {
     case 3:
       return 'TSEmptyBodyFunctionExpression';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for FunctionType`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for FunctionType`,
+      );
   }
 }
 
@@ -4553,7 +4755,10 @@ export class FormalParameters {
     const internal = this.#internal,
       cached = internal.$items;
     if (cached !== void 0) return cached;
-    return internal.$items = constructVecFormalParameter(internal.pos + 8, internal.ast);
+    return (internal.$items = constructVecFormalParameter(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -4567,7 +4772,10 @@ export class FormalParameters {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugFormalParameters.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugFormalParameters.prototype,
+    );
   }
 }
 
@@ -4591,7 +4799,10 @@ export class FormalParameter {
     const internal = this.#internal,
       cached = internal.$decorators;
     if (cached !== void 0) return cached;
-    return internal.$decorators = constructVecDecorator(internal.pos + 8, internal.ast);
+    return (internal.$decorators = constructVecDecorator(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   get pattern() {
@@ -4624,7 +4835,9 @@ function constructFormalParameterKind(pos, ast) {
     case 3:
       return 'Signature';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for FormalParameterKind`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for FormalParameterKind`,
+      );
   }
 }
 
@@ -4657,7 +4870,10 @@ export class FunctionBody {
     const internal = this.#internal,
       cached = internal.$body;
     if (cached !== void 0) return cached;
-    return internal.$body = constructVecStatement(internal.pos + 32, internal.ast);
+    return (internal.$body = constructVecStatement(
+      internal.pos + 32,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -4713,7 +4929,10 @@ export class ArrowFunctionExpression {
 
   get typeParameters() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterDeclaration(internal.pos + 8, internal.ast);
+    return constructOptionBoxTSTypeParameterDeclaration(
+      internal.pos + 8,
+      internal.ast,
+    );
   }
 
   get params() {
@@ -4746,7 +4965,10 @@ export class ArrowFunctionExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugArrowFunctionExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugArrowFunctionExpression.prototype,
+    );
   }
 }
 
@@ -4837,7 +5059,10 @@ export class Class {
     const internal = this.#internal,
       cached = internal.$decorators;
     if (cached !== void 0) return cached;
-    return internal.$decorators = constructVecDecorator(internal.pos + 8, internal.ast);
+    return (internal.$decorators = constructVecDecorator(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   get id() {
@@ -4847,7 +5072,10 @@ export class Class {
 
   get typeParameters() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterDeclaration(internal.pos + 64, internal.ast);
+    return constructOptionBoxTSTypeParameterDeclaration(
+      internal.pos + 64,
+      internal.ast,
+    );
   }
 
   get superClass() {
@@ -4857,14 +5085,20 @@ export class Class {
 
   get superTypeArguments() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterInstantiation(internal.pos + 88, internal.ast);
+    return constructOptionBoxTSTypeParameterInstantiation(
+      internal.pos + 88,
+      internal.ast,
+    );
   }
 
   get implements() {
     const internal = this.#internal,
       cached = internal.$implements;
     if (cached !== void 0) return cached;
-    return internal.$implements = constructVecTSClassImplements(internal.pos + 96, internal.ast);
+    return (internal.$implements = constructVecTSClassImplements(
+      internal.pos + 96,
+      internal.ast,
+    ));
   }
 
   get body() {
@@ -4913,7 +5147,9 @@ function constructClassType(pos, ast) {
     case 1:
       return 'ClassExpression';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ClassType`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ClassType`,
+      );
   }
 }
 
@@ -4946,7 +5182,10 @@ export class ClassBody {
     const internal = this.#internal,
       cached = internal.$body;
     if (cached !== void 0) return cached;
-    return internal.$body = constructVecClassElement(internal.pos + 8, internal.ast);
+    return (internal.$body = constructVecClassElement(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -4978,7 +5217,9 @@ function constructClassElement(pos, ast) {
     case 4:
       return constructBoxTSIndexSignature(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ClassElement`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ClassElement`,
+      );
   }
 }
 
@@ -5015,7 +5256,10 @@ export class MethodDefinition {
     const internal = this.#internal,
       cached = internal.$decorators;
     if (cached !== void 0) return cached;
-    return internal.$decorators = constructVecDecorator(internal.pos + 8, internal.ast);
+    return (internal.$decorators = constructVecDecorator(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   get key() {
@@ -5076,7 +5320,10 @@ export class MethodDefinition {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugMethodDefinition.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugMethodDefinition.prototype,
+    );
   }
 }
 
@@ -5089,7 +5336,9 @@ function constructMethodDefinitionType(pos, ast) {
     case 1:
       return 'TSAbstractMethodDefinition';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for MethodDefinitionType`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for MethodDefinitionType`,
+      );
   }
 }
 
@@ -5126,7 +5375,10 @@ export class PropertyDefinition {
     const internal = this.#internal,
       cached = internal.$decorators;
     if (cached !== void 0) return cached;
-    return internal.$decorators = constructVecDecorator(internal.pos + 8, internal.ast);
+    return (internal.$decorators = constructVecDecorator(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   get key() {
@@ -5205,7 +5457,10 @@ export class PropertyDefinition {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugPropertyDefinition.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugPropertyDefinition.prototype,
+    );
   }
 }
 
@@ -5218,7 +5473,9 @@ function constructPropertyDefinitionType(pos, ast) {
     case 1:
       return 'TSAbstractPropertyDefinition';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for PropertyDefinitionType`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for PropertyDefinitionType`,
+      );
   }
 }
 
@@ -5233,7 +5490,9 @@ function constructMethodDefinitionKind(pos, ast) {
     case 3:
       return 'set';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for MethodDefinitionKind`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for MethodDefinitionKind`,
+      );
   }
 }
 
@@ -5266,7 +5525,7 @@ export class PrivateIdentifier {
     const internal = this.#internal,
       cached = internal.$name;
     if (cached !== void 0) return cached;
-    return internal.$name = constructStr(internal.pos + 8, internal.ast);
+    return (internal.$name = constructStr(internal.pos + 8, internal.ast));
   }
 
   toJSON() {
@@ -5279,7 +5538,10 @@ export class PrivateIdentifier {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugPrivateIdentifier.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugPrivateIdentifier.prototype,
+    );
   }
 }
 
@@ -5314,7 +5576,10 @@ export class StaticBlock {
     const internal = this.#internal,
       cached = internal.$body;
     if (cached !== void 0) return cached;
-    return internal.$body = constructVecStatement(internal.pos + 8, internal.ast);
+    return (internal.$body = constructVecStatement(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -5348,7 +5613,9 @@ function constructModuleDeclaration(pos, ast) {
     case 69:
       return constructBoxTSNamespaceExportDeclaration(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ModuleDeclaration`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ModuleDeclaration`,
+      );
   }
 }
 
@@ -5359,7 +5626,9 @@ function constructAccessorPropertyType(pos, ast) {
     case 1:
       return 'TSAbstractAccessorProperty';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for AccessorPropertyType`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for AccessorPropertyType`,
+      );
   }
 }
 
@@ -5396,7 +5665,10 @@ export class AccessorProperty {
     const internal = this.#internal,
       cached = internal.$decorators;
     if (cached !== void 0) return cached;
-    return internal.$decorators = constructVecDecorator(internal.pos + 8, internal.ast);
+    return (internal.$decorators = constructVecDecorator(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   get key() {
@@ -5457,7 +5729,10 @@ export class AccessorProperty {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugAccessorProperty.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugAccessorProperty.prototype,
+    );
   }
 }
 
@@ -5515,7 +5790,10 @@ export class ImportExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugImportExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugImportExpression.prototype,
+    );
   }
 }
 
@@ -5550,7 +5828,10 @@ export class ImportDeclaration {
     const internal = this.#internal,
       cached = internal.$specifiers;
     if (cached !== void 0) return cached;
-    return internal.$specifiers = constructOptionVecImportDeclarationSpecifier(internal.pos + 8, internal.ast);
+    return (internal.$specifiers = constructOptionVecImportDeclarationSpecifier(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   get source() {
@@ -5587,7 +5868,10 @@ export class ImportDeclaration {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugImportDeclaration.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugImportDeclaration.prototype,
+    );
   }
 }
 
@@ -5600,7 +5884,9 @@ function constructImportPhase(pos, ast) {
     case 1:
       return 'defer';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ImportPhase`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ImportPhase`,
+      );
   }
 }
 
@@ -5613,7 +5899,9 @@ function constructImportDeclarationSpecifier(pos, ast) {
     case 2:
       return constructBoxImportNamespaceSpecifier(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ImportDeclarationSpecifier`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ImportDeclarationSpecifier`,
+      );
   }
 }
 
@@ -5715,7 +6003,10 @@ export class ImportDefaultSpecifier {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugImportDefaultSpecifier.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugImportDefaultSpecifier.prototype,
+    );
   }
 }
 
@@ -5761,7 +6052,10 @@ export class ImportNamespaceSpecifier {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugImportNamespaceSpecifier.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugImportNamespaceSpecifier.prototype,
+    );
   }
 }
 
@@ -5785,7 +6079,10 @@ export class WithClause {
     const internal = this.#internal,
       cached = internal.$attributes;
     if (cached !== void 0) return cached;
-    return internal.$attributes = constructVecImportAttribute(internal.pos + 8, internal.ast);
+    return (internal.$attributes = constructVecImportAttribute(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -5860,7 +6157,9 @@ function constructImportAttributeKey(pos, ast) {
     case 1:
       return new StringLiteral(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ImportAttributeKey`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ImportAttributeKey`,
+      );
   }
 }
 
@@ -5898,7 +6197,10 @@ export class ExportNamedDeclaration {
     const internal = this.#internal,
       cached = internal.$specifiers;
     if (cached !== void 0) return cached;
-    return internal.$specifiers = constructVecExportSpecifier(internal.pos + 24, internal.ast);
+    return (internal.$specifiers = constructVecExportSpecifier(
+      internal.pos + 24,
+      internal.ast,
+    ));
   }
 
   get source() {
@@ -5930,7 +6232,10 @@ export class ExportNamedDeclaration {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugExportNamedDeclaration.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugExportNamedDeclaration.prototype,
+    );
   }
 }
 
@@ -5963,7 +6268,10 @@ export class ExportDefaultDeclaration {
 
   get declaration() {
     const internal = this.#internal;
-    return constructExportDefaultDeclarationKind(internal.pos + 8, internal.ast);
+    return constructExportDefaultDeclarationKind(
+      internal.pos + 8,
+      internal.ast,
+    );
   }
 
   toJSON() {
@@ -5976,7 +6284,10 @@ export class ExportDefaultDeclaration {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugExportDefaultDeclaration.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugExportDefaultDeclaration.prototype,
+    );
   }
 }
 
@@ -6040,7 +6351,10 @@ export class ExportAllDeclaration {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugExportAllDeclaration.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugExportAllDeclaration.prototype,
+    );
   }
 }
 
@@ -6199,7 +6513,9 @@ function constructExportDefaultDeclarationKind(pos, ast) {
     case 66:
       return constructBoxTSInterfaceDeclaration(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ExportDefaultDeclarationKind`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ExportDefaultDeclarationKind`,
+      );
   }
 }
 
@@ -6212,7 +6528,9 @@ function constructModuleExportName(pos, ast) {
     case 2:
       return new StringLiteral(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ModuleExportName`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ModuleExportName`,
+      );
   }
 }
 
@@ -6250,7 +6568,10 @@ export class V8IntrinsicExpression {
     const internal = this.#internal,
       cached = internal.$arguments;
     if (cached !== void 0) return cached;
-    return internal.$arguments = constructVecArgument(internal.pos + 32, internal.ast);
+    return (internal.$arguments = constructVecArgument(
+      internal.pos + 32,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -6264,7 +6585,10 @@ export class V8IntrinsicExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugV8IntrinsicExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugV8IntrinsicExpression.prototype,
+    );
   }
 }
 
@@ -6390,7 +6714,10 @@ export class NumericLiteral {
     const internal = this.#internal,
       cached = internal.$raw;
     if (cached !== void 0) return cached;
-    return internal.$raw = constructOptionStr(internal.pos + 16, internal.ast);
+    return (internal.$raw = constructOptionStr(
+      internal.pos + 16,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -6439,14 +6766,17 @@ export class StringLiteral {
     const internal = this.#internal,
       cached = internal.$value;
     if (cached !== void 0) return cached;
-    return internal.$value = constructStr(internal.pos + 8, internal.ast);
+    return (internal.$value = constructStr(internal.pos + 8, internal.ast));
   }
 
   get raw() {
     const internal = this.#internal,
       cached = internal.$raw;
     if (cached !== void 0) return cached;
-    return internal.$raw = constructOptionStr(internal.pos + 24, internal.ast);
+    return (internal.$raw = constructOptionStr(
+      internal.pos + 24,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -6495,14 +6825,17 @@ export class BigIntLiteral {
     const internal = this.#internal,
       cached = internal.$value;
     if (cached !== void 0) return cached;
-    return internal.$value = constructStr(internal.pos + 8, internal.ast);
+    return (internal.$value = constructStr(internal.pos + 8, internal.ast));
   }
 
   get raw() {
     const internal = this.#internal,
       cached = internal.$raw;
     if (cached !== void 0) return cached;
-    return internal.$raw = constructOptionStr(internal.pos + 24, internal.ast);
+    return (internal.$raw = constructOptionStr(
+      internal.pos + 24,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -6556,7 +6889,10 @@ export class RegExpLiteral {
     const internal = this.#internal,
       cached = internal.$raw;
     if (cached !== void 0) return cached;
-    return internal.$raw = constructOptionStr(internal.pos + 40, internal.ast);
+    return (internal.$raw = constructOptionStr(
+      internal.pos + 40,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -6633,7 +6969,7 @@ export class RegExpPattern {
     const internal = this.#internal,
       cached = internal.$pattern;
     if (cached !== void 0) return cached;
-    return internal.$pattern = constructStr(internal.pos, internal.ast);
+    return (internal.$pattern = constructStr(internal.pos, internal.ast));
   }
 
   toJSON() {
@@ -6708,7 +7044,10 @@ export class JSXElement {
     const internal = this.#internal,
       cached = internal.$children;
     if (cached !== void 0) return cached;
-    return internal.$children = constructVecJSXChild(internal.pos + 16, internal.ast);
+    return (internal.$children = constructVecJSXChild(
+      internal.pos + 16,
+      internal.ast,
+    ));
   }
 
   get closingElement() {
@@ -6766,14 +7105,20 @@ export class JSXOpeningElement {
 
   get typeArguments() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterInstantiation(internal.pos + 24, internal.ast);
+    return constructOptionBoxTSTypeParameterInstantiation(
+      internal.pos + 24,
+      internal.ast,
+    );
   }
 
   get attributes() {
     const internal = this.#internal,
       cached = internal.$attributes;
     if (cached !== void 0) return cached;
-    return internal.$attributes = constructVecJSXAttributeItem(internal.pos + 32, internal.ast);
+    return (internal.$attributes = constructVecJSXAttributeItem(
+      internal.pos + 32,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -6788,7 +7133,10 @@ export class JSXOpeningElement {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugJSXOpeningElement.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugJSXOpeningElement.prototype,
+    );
   }
 }
 
@@ -6834,7 +7182,10 @@ export class JSXClosingElement {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugJSXClosingElement.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugJSXClosingElement.prototype,
+    );
   }
 }
 
@@ -6874,7 +7225,10 @@ export class JSXFragment {
     const internal = this.#internal,
       cached = internal.$children;
     if (cached !== void 0) return cached;
-    return internal.$children = constructVecJSXChild(internal.pos + 16, internal.ast);
+    return (internal.$children = constructVecJSXChild(
+      internal.pos + 16,
+      internal.ast,
+    ));
   }
 
   get closingFragment() {
@@ -6934,7 +7288,10 @@ export class JSXOpeningFragment {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugJSXOpeningFragment.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugJSXOpeningFragment.prototype,
+    );
   }
 }
 
@@ -6974,7 +7331,10 @@ export class JSXClosingFragment {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugJSXClosingFragment.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugJSXClosingFragment.prototype,
+    );
   }
 }
 
@@ -6993,7 +7353,9 @@ function constructJSXElementName(pos, ast) {
     case 4:
       return constructBoxThisExpression(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for JSXElementName`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for JSXElementName`,
+      );
   }
 }
 
@@ -7043,7 +7405,10 @@ export class JSXNamespacedName {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugJSXNamespacedName.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugJSXNamespacedName.prototype,
+    );
   }
 }
 
@@ -7095,7 +7460,10 @@ export class JSXMemberExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugJSXMemberExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugJSXMemberExpression.prototype,
+    );
   }
 }
 
@@ -7110,7 +7478,9 @@ function constructJSXMemberExpressionObject(pos, ast) {
     case 2:
       return constructBoxThisExpression(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for JSXMemberExpressionObject`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for JSXMemberExpressionObject`,
+      );
   }
 }
 
@@ -7154,7 +7524,10 @@ export class JSXExpressionContainer {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugJSXExpressionContainer.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugJSXExpressionContainer.prototype,
+    );
   }
 }
 
@@ -7251,7 +7624,9 @@ function constructJSXExpression(pos, ast) {
     case 64:
       return new JSXEmptyExpression(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for JSXExpression`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for JSXExpression`,
+      );
   }
 }
 
@@ -7289,7 +7664,10 @@ export class JSXEmptyExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugJSXEmptyExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugJSXEmptyExpression.prototype,
+    );
   }
 }
 
@@ -7302,7 +7680,9 @@ function constructJSXAttributeItem(pos, ast) {
     case 1:
       return constructBoxJSXSpreadAttribute(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for JSXAttributeItem`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for JSXAttributeItem`,
+      );
   }
 }
 
@@ -7398,7 +7778,10 @@ export class JSXSpreadAttribute {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugJSXSpreadAttribute.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugJSXSpreadAttribute.prototype,
+    );
   }
 }
 
@@ -7411,7 +7794,9 @@ function constructJSXAttributeName(pos, ast) {
     case 1:
       return constructBoxJSXNamespacedName(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for JSXAttributeName`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for JSXAttributeName`,
+      );
   }
 }
 
@@ -7426,7 +7811,9 @@ function constructJSXAttributeValue(pos, ast) {
     case 3:
       return constructBoxJSXFragment(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for JSXAttributeValue`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for JSXAttributeValue`,
+      );
   }
 }
 
@@ -7459,7 +7846,7 @@ export class JSXIdentifier {
     const internal = this.#internal,
       cached = internal.$name;
     if (cached !== void 0) return cached;
-    return internal.$name = constructStr(internal.pos + 8, internal.ast);
+    return (internal.$name = constructStr(internal.pos + 8, internal.ast));
   }
 
   toJSON() {
@@ -7491,7 +7878,9 @@ function constructJSXChild(pos, ast) {
     case 4:
       return constructBoxJSXSpreadChild(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for JSXChild`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for JSXChild`,
+      );
   }
 }
 
@@ -7570,14 +7959,17 @@ export class JSXText {
     const internal = this.#internal,
       cached = internal.$value;
     if (cached !== void 0) return cached;
-    return internal.$value = constructStr(internal.pos + 8, internal.ast);
+    return (internal.$value = constructStr(internal.pos + 8, internal.ast));
   }
 
   get raw() {
     const internal = this.#internal,
       cached = internal.$raw;
     if (cached !== void 0) return cached;
-    return internal.$raw = constructOptionStr(internal.pos + 24, internal.ast);
+    return (internal.$raw = constructOptionStr(
+      internal.pos + 24,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -7701,7 +8093,10 @@ export class TSEnumDeclaration {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSEnumDeclaration.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSEnumDeclaration.prototype,
+    );
   }
 }
 
@@ -7736,7 +8131,10 @@ export class TSEnumBody {
     const internal = this.#internal,
       cached = internal.$members;
     if (cached !== void 0) return cached;
-    return internal.$members = constructVecTSEnumMember(internal.pos + 8, internal.ast);
+    return (internal.$members = constructVecTSEnumMember(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -7818,7 +8216,9 @@ function constructTSEnumMemberName(pos, ast) {
     case 3:
       return constructBoxTemplateLiteral(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSEnumMemberName`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for TSEnumMemberName`,
+      );
   }
 }
 
@@ -7862,7 +8262,10 @@ export class TSTypeAnnotation {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSTypeAnnotation.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSTypeAnnotation.prototype,
+    );
   }
 }
 
@@ -7929,7 +8332,9 @@ function constructTSLiteral(pos, ast) {
     case 5:
       return constructBoxUnaryExpression(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSLiteral`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for TSLiteral`,
+      );
   }
 }
 
@@ -8072,7 +8477,10 @@ export class TSConditionalType {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSConditionalType.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSConditionalType.prototype,
+    );
   }
 }
 
@@ -8107,7 +8515,10 @@ export class TSUnionType {
     const internal = this.#internal,
       cached = internal.$types;
     if (cached !== void 0) return cached;
-    return internal.$types = constructVecTSType(internal.pos + 8, internal.ast);
+    return (internal.$types = constructVecTSType(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -8155,7 +8566,10 @@ export class TSIntersectionType {
     const internal = this.#internal,
       cached = internal.$types;
     if (cached !== void 0) return cached;
-    return internal.$types = constructVecTSType(internal.pos + 8, internal.ast);
+    return (internal.$types = constructVecTSType(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -8168,7 +8582,10 @@ export class TSIntersectionType {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSIntersectionType.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSIntersectionType.prototype,
+    );
   }
 }
 
@@ -8214,7 +8631,10 @@ export class TSParenthesizedType {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSParenthesizedType.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSParenthesizedType.prototype,
+    );
   }
 }
 
@@ -8281,7 +8701,9 @@ function constructTSTypeOperatorOperator(pos, ast) {
     case 2:
       return 'readonly';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSTypeOperatorOperator`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for TSTypeOperatorOperator`,
+      );
   }
 }
 
@@ -8377,7 +8799,10 @@ export class TSIndexedAccessType {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSIndexedAccessType.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSIndexedAccessType.prototype,
+    );
   }
 }
 
@@ -8412,7 +8837,10 @@ export class TSTupleType {
     const internal = this.#internal,
       cached = internal.$elementTypes;
     if (cached !== void 0) return cached;
-    return internal.$elementTypes = constructVecTSTupleElement(internal.pos + 8, internal.ast);
+    return (internal.$elementTypes = constructVecTSTupleElement(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -8483,7 +8911,10 @@ export class TSNamedTupleMember {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSNamedTupleMember.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSNamedTupleMember.prototype,
+    );
   }
 }
 
@@ -8662,7 +9093,9 @@ function constructTSTupleElement(pos, ast) {
     case 65:
       return constructBoxTSRestType(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSTupleElement`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for TSTupleElement`,
+      );
   }
 }
 
@@ -8780,7 +9213,10 @@ export class TSBooleanKeyword {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSBooleanKeyword.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSBooleanKeyword.prototype,
+    );
   }
 }
 
@@ -8900,7 +9336,10 @@ export class TSIntrinsicKeyword {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSIntrinsicKeyword.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSIntrinsicKeyword.prototype,
+    );
   }
 }
 
@@ -8940,7 +9379,10 @@ export class TSUnknownKeyword {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSUnknownKeyword.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSUnknownKeyword.prototype,
+    );
   }
 }
 
@@ -9020,7 +9462,10 @@ export class TSUndefinedKeyword {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSUndefinedKeyword.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSUndefinedKeyword.prototype,
+    );
   }
 }
 
@@ -9258,7 +9703,10 @@ export class TSTypeReference {
 
   get typeArguments() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterInstantiation(internal.pos + 24, internal.ast);
+    return constructOptionBoxTSTypeParameterInstantiation(
+      internal.pos + 24,
+      internal.ast,
+    );
   }
 
   toJSON() {
@@ -9287,7 +9735,9 @@ function constructTSTypeName(pos, ast) {
     case 2:
       return constructBoxThisExpression(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSTypeName`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for TSTypeName`,
+      );
   }
 }
 
@@ -9372,7 +9822,10 @@ export class TSTypeParameterInstantiation {
     const internal = this.#internal,
       cached = internal.$params;
     if (cached !== void 0) return cached;
-    return internal.$params = constructVecTSType(internal.pos + 8, internal.ast);
+    return (internal.$params = constructVecTSType(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -9385,7 +9838,10 @@ export class TSTypeParameterInstantiation {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSTypeParameterInstantiation.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSTypeParameterInstantiation.prototype,
+    );
   }
 }
 
@@ -9496,7 +9952,10 @@ export class TSTypeParameterDeclaration {
     const internal = this.#internal,
       cached = internal.$params;
     if (cached !== void 0) return cached;
-    return internal.$params = constructVecTSTypeParameter(internal.pos + 8, internal.ast);
+    return (internal.$params = constructVecTSTypeParameter(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -9509,7 +9968,10 @@ export class TSTypeParameterDeclaration {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSTypeParameterDeclaration.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSTypeParameterDeclaration.prototype,
+    );
   }
 }
 
@@ -9547,7 +10009,10 @@ export class TSTypeAliasDeclaration {
 
   get typeParameters() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterDeclaration(internal.pos + 40, internal.ast);
+    return constructOptionBoxTSTypeParameterDeclaration(
+      internal.pos + 40,
+      internal.ast,
+    );
   }
 
   get typeAnnotation() {
@@ -9573,7 +10038,10 @@ export class TSTypeAliasDeclaration {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSTypeAliasDeclaration.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSTypeAliasDeclaration.prototype,
+    );
   }
 }
 
@@ -9588,7 +10056,9 @@ function constructTSAccessibility(pos, ast) {
     case 2:
       return 'public';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSAccessibility`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for TSAccessibility`,
+      );
   }
 }
 
@@ -9624,7 +10094,10 @@ export class TSClassImplements {
 
   get typeArguments() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterInstantiation(internal.pos + 24, internal.ast);
+    return constructOptionBoxTSTypeParameterInstantiation(
+      internal.pos + 24,
+      internal.ast,
+    );
   }
 
   toJSON() {
@@ -9638,7 +10111,10 @@ export class TSClassImplements {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSClassImplements.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSClassImplements.prototype,
+    );
   }
 }
 
@@ -9676,14 +10152,20 @@ export class TSInterfaceDeclaration {
 
   get typeParameters() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterDeclaration(internal.pos + 40, internal.ast);
+    return constructOptionBoxTSTypeParameterDeclaration(
+      internal.pos + 40,
+      internal.ast,
+    );
   }
 
   get extends() {
     const internal = this.#internal,
       cached = internal.$extends;
     if (cached !== void 0) return cached;
-    return internal.$extends = constructVecTSInterfaceHeritage(internal.pos + 48, internal.ast);
+    return (internal.$extends = constructVecTSInterfaceHeritage(
+      internal.pos + 48,
+      internal.ast,
+    ));
   }
 
   get body() {
@@ -9710,7 +10192,10 @@ export class TSInterfaceDeclaration {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSInterfaceDeclaration.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSInterfaceDeclaration.prototype,
+    );
   }
 }
 
@@ -9745,7 +10230,10 @@ export class TSInterfaceBody {
     const internal = this.#internal,
       cached = internal.$body;
     if (cached !== void 0) return cached;
-    return internal.$body = constructVecTSSignature(internal.pos + 8, internal.ast);
+    return (internal.$body = constructVecTSSignature(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -9828,7 +10316,10 @@ export class TSPropertySignature {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSPropertySignature.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSPropertySignature.prototype,
+    );
   }
 }
 
@@ -9847,7 +10338,9 @@ function constructTSSignature(pos, ast) {
     case 4:
       return constructBoxTSMethodSignature(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSSignature`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for TSSignature`,
+      );
   }
 }
 
@@ -9880,7 +10373,10 @@ export class TSIndexSignature {
     const internal = this.#internal,
       cached = internal.$parameters;
     if (cached !== void 0) return cached;
-    return internal.$parameters = constructVecTSIndexSignatureName(internal.pos + 8, internal.ast);
+    return (internal.$parameters = constructVecTSIndexSignatureName(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   get typeAnnotation() {
@@ -9911,7 +10407,10 @@ export class TSIndexSignature {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSIndexSignature.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSIndexSignature.prototype,
+    );
   }
 }
 
@@ -9944,7 +10443,10 @@ export class TSCallSignatureDeclaration {
 
   get typeParameters() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterDeclaration(internal.pos + 8, internal.ast);
+    return constructOptionBoxTSTypeParameterDeclaration(
+      internal.pos + 8,
+      internal.ast,
+    );
   }
 
   get params() {
@@ -9969,7 +10471,10 @@ export class TSCallSignatureDeclaration {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSCallSignatureDeclaration.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSCallSignatureDeclaration.prototype,
+    );
   }
 }
 
@@ -9984,7 +10489,9 @@ function constructTSMethodSignatureKind(pos, ast) {
     case 2:
       return 'set';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSMethodSignatureKind`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for TSMethodSignatureKind`,
+      );
   }
 }
 
@@ -10035,7 +10542,10 @@ export class TSMethodSignature {
 
   get typeParameters() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterDeclaration(internal.pos + 24, internal.ast);
+    return constructOptionBoxTSTypeParameterDeclaration(
+      internal.pos + 24,
+      internal.ast,
+    );
   }
 
   get params() {
@@ -10064,7 +10574,10 @@ export class TSMethodSignature {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSMethodSignature.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSMethodSignature.prototype,
+    );
   }
 }
 
@@ -10097,7 +10610,10 @@ export class TSConstructSignatureDeclaration {
 
   get typeParameters() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterDeclaration(internal.pos + 8, internal.ast);
+    return constructOptionBoxTSTypeParameterDeclaration(
+      internal.pos + 8,
+      internal.ast,
+    );
   }
 
   get params() {
@@ -10122,7 +10638,10 @@ export class TSConstructSignatureDeclaration {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSConstructSignatureDeclaration.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSConstructSignatureDeclaration.prototype,
+    );
   }
 }
 
@@ -10157,7 +10676,7 @@ export class TSIndexSignatureName {
     const internal = this.#internal,
       cached = internal.$name;
     if (cached !== void 0) return cached;
-    return internal.$name = constructStr(internal.pos + 8, internal.ast);
+    return (internal.$name = constructStr(internal.pos + 8, internal.ast));
   }
 
   get typeAnnotation() {
@@ -10176,7 +10695,10 @@ export class TSIndexSignatureName {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSIndexSignatureName.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSIndexSignatureName.prototype,
+    );
   }
 }
 
@@ -10214,7 +10736,10 @@ export class TSInterfaceHeritage {
 
   get typeArguments() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterInstantiation(internal.pos + 24, internal.ast);
+    return constructOptionBoxTSTypeParameterInstantiation(
+      internal.pos + 24,
+      internal.ast,
+    );
   }
 
   toJSON() {
@@ -10228,7 +10753,10 @@ export class TSInterfaceHeritage {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSInterfaceHeritage.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSInterfaceHeritage.prototype,
+    );
   }
 }
 
@@ -10299,7 +10827,9 @@ function constructTSTypePredicateName(pos, ast) {
     case 1:
       return new TSThisType(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSTypePredicateName`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for TSTypePredicateName`,
+      );
   }
 }
 
@@ -10335,7 +10865,10 @@ export class TSModuleDeclaration {
 
   get body() {
     const internal = this.#internal;
-    return constructOptionTSModuleDeclarationBody(internal.pos + 64, internal.ast);
+    return constructOptionTSModuleDeclarationBody(
+      internal.pos + 64,
+      internal.ast,
+    );
   }
 
   get kind() {
@@ -10361,7 +10894,10 @@ export class TSModuleDeclaration {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSModuleDeclaration.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSModuleDeclaration.prototype,
+    );
   }
 }
 
@@ -10376,7 +10912,9 @@ function constructTSModuleDeclarationKind(pos, ast) {
     case 2:
       return 'namespace';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSModuleDeclarationKind`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for TSModuleDeclarationKind`,
+      );
   }
 }
 
@@ -10387,7 +10925,9 @@ function constructTSModuleDeclarationName(pos, ast) {
     case 1:
       return new StringLiteral(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSModuleDeclarationName`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for TSModuleDeclarationName`,
+      );
   }
 }
 
@@ -10398,7 +10938,9 @@ function constructTSModuleDeclarationBody(pos, ast) {
     case 1:
       return constructBoxTSModuleBlock(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSModuleDeclarationBody`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for TSModuleDeclarationBody`,
+      );
   }
 }
 
@@ -10431,7 +10973,10 @@ export class TSModuleBlock {
     const internal = this.#internal,
       cached = internal.$body;
     if (cached !== void 0) return cached;
-    return internal.$body = constructVecStatement(internal.pos + 32, internal.ast);
+    return (internal.$body = constructVecStatement(
+      internal.pos + 32,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -10479,7 +11024,10 @@ export class TSTypeLiteral {
     const internal = this.#internal,
       cached = internal.$members;
     if (cached !== void 0) return cached;
-    return internal.$members = constructVecTSSignature(internal.pos + 8, internal.ast);
+    return (internal.$members = constructVecTSSignature(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -10576,7 +11124,10 @@ export class TSTypeQuery {
 
   get typeArguments() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterInstantiation(internal.pos + 24, internal.ast);
+    return constructOptionBoxTSTypeParameterInstantiation(
+      internal.pos + 24,
+      internal.ast,
+    );
   }
 
   toJSON() {
@@ -10607,7 +11158,9 @@ function constructTSTypeQueryExprName(pos, ast) {
     case 3:
       return constructBoxTSImportType(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSTypeQueryExprName`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for TSTypeQueryExprName`,
+      );
   }
 }
 
@@ -10648,12 +11201,18 @@ export class TSImportType {
 
   get qualifier() {
     const internal = this.#internal;
-    return constructOptionTSImportTypeQualifier(internal.pos + 32, internal.ast);
+    return constructOptionTSImportTypeQualifier(
+      internal.pos + 32,
+      internal.ast,
+    );
   }
 
   get typeArguments() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterInstantiation(internal.pos + 48, internal.ast);
+    return constructOptionBoxTSTypeParameterInstantiation(
+      internal.pos + 48,
+      internal.ast,
+    );
   }
 
   toJSON() {
@@ -10682,7 +11241,9 @@ function constructTSImportTypeQualifier(pos, ast) {
     case 1:
       return constructBoxTSImportTypeQualifiedName(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSImportTypeQualifier`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for TSImportTypeQualifier`,
+      );
   }
 }
 
@@ -10732,7 +11293,10 @@ export class TSImportTypeQualifiedName {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSImportTypeQualifiedName.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSImportTypeQualifiedName.prototype,
+    );
   }
 }
 
@@ -10765,7 +11329,10 @@ export class TSFunctionType {
 
   get typeParameters() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterDeclaration(internal.pos + 8, internal.ast);
+    return constructOptionBoxTSTypeParameterDeclaration(
+      internal.pos + 8,
+      internal.ast,
+    );
   }
 
   get params() {
@@ -10828,7 +11395,10 @@ export class TSConstructorType {
 
   get typeParameters() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeParameterDeclaration(internal.pos + 8, internal.ast);
+    return constructOptionBoxTSTypeParameterDeclaration(
+      internal.pos + 8,
+      internal.ast,
+    );
   }
 
   get params() {
@@ -10854,7 +11424,10 @@ export class TSConstructorType {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSConstructorType.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSConstructorType.prototype,
+    );
   }
 }
 
@@ -10897,12 +11470,18 @@ export class TSMappedType {
 
   get optional() {
     const internal = this.#internal;
-    return constructOptionTSMappedTypeModifierOperator(internal.pos + 52, internal.ast);
+    return constructOptionTSMappedTypeModifierOperator(
+      internal.pos + 52,
+      internal.ast,
+    );
   }
 
   get readonly() {
     const internal = this.#internal;
-    return constructOptionTSMappedTypeModifierOperator(internal.pos + 53, internal.ast);
+    return constructOptionTSMappedTypeModifierOperator(
+      internal.pos + 53,
+      internal.ast,
+    );
   }
 
   toJSON() {
@@ -10933,7 +11512,9 @@ function constructTSMappedTypeModifierOperator(pos, ast) {
     case 2:
       return '-';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSMappedTypeModifierOperator`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for TSMappedTypeModifierOperator`,
+      );
   }
 }
 
@@ -10966,14 +11547,20 @@ export class TSTemplateLiteralType {
     const internal = this.#internal,
       cached = internal.$quasis;
     if (cached !== void 0) return cached;
-    return internal.$quasis = constructVecTemplateElement(internal.pos + 8, internal.ast);
+    return (internal.$quasis = constructVecTemplateElement(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   get types() {
     const internal = this.#internal,
       cached = internal.$types;
     if (cached !== void 0) return cached;
-    return internal.$types = constructVecTSType(internal.pos + 32, internal.ast);
+    return (internal.$types = constructVecTSType(
+      internal.pos + 32,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -10987,7 +11574,10 @@ export class TSTemplateLiteralType {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSTemplateLiteralType.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSTemplateLiteralType.prototype,
+    );
   }
 }
 
@@ -11091,7 +11681,10 @@ export class TSSatisfiesExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSSatisfiesExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSSatisfiesExpression.prototype,
+    );
   }
 }
 
@@ -11201,7 +11794,10 @@ export class TSImportEqualsDeclaration {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSImportEqualsDeclaration.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSImportEqualsDeclaration.prototype,
+    );
   }
 }
 
@@ -11218,7 +11814,9 @@ function constructTSModuleReference(pos, ast) {
     case 3:
       return constructBoxTSExternalModuleReference(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSModuleReference`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for TSModuleReference`,
+      );
   }
 }
 
@@ -11262,7 +11860,10 @@ export class TSExternalModuleReference {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSExternalModuleReference.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSExternalModuleReference.prototype,
+    );
   }
 }
 
@@ -11308,7 +11909,10 @@ export class TSNonNullExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSNonNullExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSNonNullExpression.prototype,
+    );
   }
 }
 
@@ -11400,7 +12004,10 @@ export class TSExportAssignment {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSExportAssignment.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSExportAssignment.prototype,
+    );
   }
 }
 
@@ -11446,7 +12053,10 @@ export class TSNamespaceExportDeclaration {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSNamespaceExportDeclaration.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSNamespaceExportDeclaration.prototype,
+    );
   }
 }
 
@@ -11484,7 +12094,10 @@ export class TSInstantiationExpression {
 
   get typeArguments() {
     const internal = this.#internal;
-    return constructBoxTSTypeParameterInstantiation(internal.pos + 24, internal.ast);
+    return constructBoxTSTypeParameterInstantiation(
+      internal.pos + 24,
+      internal.ast,
+    );
   }
 
   toJSON() {
@@ -11498,7 +12111,10 @@ export class TSInstantiationExpression {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugTSInstantiationExpression.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugTSInstantiationExpression.prototype,
+    );
   }
 }
 
@@ -11511,7 +12127,9 @@ function constructImportOrExportKind(pos, ast) {
     case 1:
       return 'type';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ImportOrExportKind`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ImportOrExportKind`,
+      );
   }
 }
 
@@ -11561,7 +12179,10 @@ export class JSDocNullableType {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugJSDocNullableType.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugJSDocNullableType.prototype,
+    );
   }
 }
 
@@ -11613,7 +12234,10 @@ export class JSDocNonNullableType {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugJSDocNonNullableType.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugJSDocNonNullableType.prototype,
+    );
   }
 }
 
@@ -11653,7 +12277,10 @@ export class JSDocUnknownType {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugJSDocUnknownType.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugJSDocUnknownType.prototype,
+    );
   }
 }
 
@@ -11666,7 +12293,9 @@ function constructCommentKind(pos, ast) {
     case 1:
       return 'Block';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for CommentKind`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for CommentKind`,
+      );
   }
 }
 
@@ -11732,7 +12361,7 @@ export class NameSpan {
     const internal = this.#internal,
       cached = internal.$value;
     if (cached !== void 0) return cached;
-    return internal.$value = constructStr(internal.pos + 8, internal.ast);
+    return (internal.$value = constructStr(internal.pos + 8, internal.ast));
   }
 
   get start() {
@@ -11813,7 +12442,9 @@ function constructImportImportName(pos, ast) {
     case 2:
       return new Span(pos + 8, ast);
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ImportImportName`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ImportImportName`,
+      );
   }
 }
 
@@ -11896,7 +12527,9 @@ function constructExportImportName(pos, ast) {
     case 3:
       return 'null';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ExportImportName`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ExportImportName`,
+      );
   }
 }
 
@@ -11909,7 +12542,9 @@ function constructExportExportName(pos, ast) {
     case 2:
       return 'null';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ExportExportName`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ExportExportName`,
+      );
   }
 }
 
@@ -11922,7 +12557,9 @@ function constructExportLocalName(pos, ast) {
     case 2:
       return 'null';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ExportLocalName`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ExportLocalName`,
+      );
   }
 }
 
@@ -12005,7 +12642,9 @@ function constructAssignmentOperator(pos, ast) {
     case 15:
       return '??=';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for AssignmentOperator`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for AssignmentOperator`,
+      );
   }
 }
 
@@ -12056,7 +12695,9 @@ function constructBinaryOperator(pos, ast) {
     case 21:
       return 'instanceof';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for BinaryOperator`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for BinaryOperator`,
+      );
   }
 }
 
@@ -12069,7 +12710,9 @@ function constructLogicalOperator(pos, ast) {
     case 2:
       return '??';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for LogicalOperator`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for LogicalOperator`,
+      );
   }
 }
 
@@ -12090,7 +12733,9 @@ function constructUnaryOperator(pos, ast) {
     case 6:
       return 'delete';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for UnaryOperator`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for UnaryOperator`,
+      );
   }
 }
 
@@ -12101,7 +12746,9 @@ function constructUpdateOperator(pos, ast) {
     case 1:
       return '--';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for UpdateOperator`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for UpdateOperator`,
+      );
   }
 }
 
@@ -12182,7 +12829,9 @@ function constructModuleKind(pos, ast) {
     case 1:
       return 'module';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ModuleKind`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ModuleKind`,
+      );
   }
 }
 
@@ -12210,7 +12859,10 @@ export class RawTransferData {
     const internal = this.#internal,
       cached = internal.$comments;
     if (cached !== void 0) return cached;
-    return internal.$comments = constructVecComment(internal.pos + 128, internal.ast);
+    return (internal.$comments = constructVecComment(
+      internal.pos + 128,
+      internal.ast,
+    ));
   }
 
   get module() {
@@ -12222,7 +12874,10 @@ export class RawTransferData {
     const internal = this.#internal,
       cached = internal.$errors;
     if (cached !== void 0) return cached;
-    return internal.$errors = constructVecError(internal.pos + 256, internal.ast);
+    return (internal.$errors = constructVecError(
+      internal.pos + 256,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -12251,7 +12906,14 @@ export class Error {
     const cached = nodes.get(pos);
     if (cached !== void 0) return cached;
 
-    this.#internal = { pos, ast, $message: void 0, $labels: void 0, $helpMessage: void 0, $codeframe: void 0 };
+    this.#internal = {
+      pos,
+      ast,
+      $message: void 0,
+      $labels: void 0,
+      $helpMessage: void 0,
+      $codeframe: void 0,
+    };
     nodes.set(pos, this);
   }
 
@@ -12264,28 +12926,37 @@ export class Error {
     const internal = this.#internal,
       cached = internal.$message;
     if (cached !== void 0) return cached;
-    return internal.$message = constructStr(internal.pos, internal.ast);
+    return (internal.$message = constructStr(internal.pos, internal.ast));
   }
 
   get labels() {
     const internal = this.#internal,
       cached = internal.$labels;
     if (cached !== void 0) return cached;
-    return internal.$labels = constructVecErrorLabel(internal.pos + 16, internal.ast);
+    return (internal.$labels = constructVecErrorLabel(
+      internal.pos + 16,
+      internal.ast,
+    ));
   }
 
   get helpMessage() {
     const internal = this.#internal,
       cached = internal.$helpMessage;
     if (cached !== void 0) return cached;
-    return internal.$helpMessage = constructOptionStr(internal.pos + 40, internal.ast);
+    return (internal.$helpMessage = constructOptionStr(
+      internal.pos + 40,
+      internal.ast,
+    ));
   }
 
   get codeframe() {
     const internal = this.#internal,
       cached = internal.$codeframe;
     if (cached !== void 0) return cached;
-    return internal.$codeframe = constructStr(internal.pos + 56, internal.ast);
+    return (internal.$codeframe = constructStr(
+      internal.pos + 56,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -12314,7 +12985,9 @@ function constructErrorSeverity(pos, ast) {
     case 2:
       return 'Advice';
     default:
-      throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ErrorSeverity`);
+      throw new Error(
+        `Unexpected discriminant ${ast.buffer[pos]} for ErrorSeverity`,
+      );
   }
 }
 
@@ -12336,7 +13009,10 @@ export class ErrorLabel {
     const internal = this.#internal,
       cached = internal.$message;
     if (cached !== void 0) return cached;
-    return internal.$message = constructOptionStr(internal.pos + 8, internal.ast);
+    return (internal.$message = constructOptionStr(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   get start() {
@@ -12394,28 +13070,40 @@ export class EcmaScriptModule {
     const internal = this.#internal,
       cached = internal.$staticImports;
     if (cached !== void 0) return cached;
-    return internal.$staticImports = constructVecStaticImport(internal.pos, internal.ast);
+    return (internal.$staticImports = constructVecStaticImport(
+      internal.pos,
+      internal.ast,
+    ));
   }
 
   get staticExports() {
     const internal = this.#internal,
       cached = internal.$staticExports;
     if (cached !== void 0) return cached;
-    return internal.$staticExports = constructVecStaticExport(internal.pos + 24, internal.ast);
+    return (internal.$staticExports = constructVecStaticExport(
+      internal.pos + 24,
+      internal.ast,
+    ));
   }
 
   get dynamicImports() {
     const internal = this.#internal,
       cached = internal.$dynamicImports;
     if (cached !== void 0) return cached;
-    return internal.$dynamicImports = constructVecDynamicImport(internal.pos + 48, internal.ast);
+    return (internal.$dynamicImports = constructVecDynamicImport(
+      internal.pos + 48,
+      internal.ast,
+    ));
   }
 
   get importMetas() {
     const internal = this.#internal,
       cached = internal.$importMetas;
     if (cached !== void 0) return cached;
-    return internal.$importMetas = constructVecSpan(internal.pos + 72, internal.ast);
+    return (internal.$importMetas = constructVecSpan(
+      internal.pos + 72,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -12429,7 +13117,10 @@ export class EcmaScriptModule {
   }
 
   [inspectSymbol]() {
-    return Object.setPrototypeOf(this.toJSON(), DebugEcmaScriptModule.prototype);
+    return Object.setPrototypeOf(
+      this.toJSON(),
+      DebugEcmaScriptModule.prototype,
+    );
   }
 }
 
@@ -12468,7 +13159,10 @@ export class StaticImport {
     const internal = this.#internal,
       cached = internal.$entries;
     if (cached !== void 0) return cached;
-    return internal.$entries = constructVecImportEntry(internal.pos + 32, internal.ast);
+    return (internal.$entries = constructVecImportEntry(
+      internal.pos + 32,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -12515,7 +13209,10 @@ export class StaticExport {
     const internal = this.#internal,
       cached = internal.$entries;
     if (cached !== void 0) return cached;
-    return internal.$entries = constructVecExportEntry(internal.pos + 8, internal.ast);
+    return (internal.$entries = constructVecExportEntry(
+      internal.pos + 8,
+      internal.ast,
+    ));
   }
 
   toJSON() {
@@ -12549,7 +13246,9 @@ function constructStr(pos, ast) {
   if (len === 0) return '';
 
   pos = uint32[pos32];
-  if (ast.sourceIsAscii && pos < ast.sourceByteLen) return ast.sourceText.substr(pos, len);
+  if (ast.sourceIsAscii && pos < ast.sourceByteLen) {
+    return ast.sourceText.substr(pos, len);
+  }
 
   // Longer strings use `TextDecoder`
   // TODO: Find best switch-over point
@@ -12589,7 +13288,12 @@ function constructComment(pos, ast) {
 }
 
 function constructOptionHashbang(pos, ast) {
-  if (ast.buffer.uint32[(pos + 8) >> 2] === 0 && ast.buffer.uint32[(pos + 12) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[(pos + 8) >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 12) >> 2] === 0
+  ) {
+    return null;
+  }
   return new Hashbang(pos, ast);
 }
 
@@ -12858,12 +13562,22 @@ function constructBoxTSTypeParameterInstantiation(pos, ast) {
 }
 
 function constructOptionBoxTSTypeParameterInstantiation(pos, ast) {
-  if (ast.buffer.uint32[pos >> 2] === 0 && ast.buffer.uint32[(pos + 4) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[pos >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 4) >> 2] === 0
+  ) {
+    return null;
+  }
   return constructBoxTSTypeParameterInstantiation(pos, ast);
 }
 
 function constructOptionStr(pos, ast) {
-  if (ast.buffer.uint32[pos >> 2] === 0 && ast.buffer.uint32[(pos + 4) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[pos >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 4) >> 2] === 0
+  ) {
+    return null;
+  }
   return constructStr(pos, ast);
 }
 
@@ -12921,7 +13635,12 @@ function constructBoxAssignmentTargetRest(pos, ast) {
 }
 
 function constructOptionBoxAssignmentTargetRest(pos, ast) {
-  if (ast.buffer.uint32[pos >> 2] === 0 && ast.buffer.uint32[(pos + 4) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[pos >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 4) >> 2] === 0
+  ) {
+    return null;
+  }
   return constructBoxAssignmentTargetRest(pos, ast);
 }
 
@@ -12942,7 +13661,10 @@ function constructBoxAssignmentTargetWithDefault(pos, ast) {
 }
 
 function constructBoxAssignmentTargetPropertyIdentifier(pos, ast) {
-  return new AssignmentTargetPropertyIdentifier(ast.buffer.uint32[pos >> 2], ast);
+  return new AssignmentTargetPropertyIdentifier(
+    ast.buffer.uint32[pos >> 2],
+    ast,
+  );
 }
 
 function constructBoxAssignmentTargetPropertyProperty(pos, ast) {
@@ -13077,7 +13799,12 @@ function constructOptionForStatementInit(pos, ast) {
 }
 
 function constructOptionLabelIdentifier(pos, ast) {
-  if (ast.buffer.uint32[(pos + 8) >> 2] === 0 && ast.buffer.uint32[(pos + 12) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[(pos + 8) >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 12) >> 2] === 0
+  ) {
+    return null;
+  }
   return new LabelIdentifier(pos, ast);
 }
 
@@ -13102,12 +13829,22 @@ function constructBoxCatchClause(pos, ast) {
 }
 
 function constructOptionBoxCatchClause(pos, ast) {
-  if (ast.buffer.uint32[pos >> 2] === 0 && ast.buffer.uint32[(pos + 4) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[pos >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 4) >> 2] === 0
+  ) {
+    return null;
+  }
   return constructBoxCatchClause(pos, ast);
 }
 
 function constructOptionBoxBlockStatement(pos, ast) {
-  if (ast.buffer.uint32[pos >> 2] === 0 && ast.buffer.uint32[(pos + 4) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[pos >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 4) >> 2] === 0
+  ) {
+    return null;
+  }
   return constructBoxBlockStatement(pos, ast);
 }
 
@@ -13121,7 +13858,12 @@ function constructBoxTSTypeAnnotation(pos, ast) {
 }
 
 function constructOptionBoxTSTypeAnnotation(pos, ast) {
-  if (ast.buffer.uint32[pos >> 2] === 0 && ast.buffer.uint32[(pos + 4) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[pos >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 4) >> 2] === 0
+  ) {
+    return null;
+  }
   return constructBoxTSTypeAnnotation(pos, ast);
 }
 
@@ -13162,7 +13904,12 @@ function constructBoxBindingRestElement(pos, ast) {
 }
 
 function constructOptionBoxBindingRestElement(pos, ast) {
-  if (ast.buffer.uint32[pos >> 2] === 0 && ast.buffer.uint32[(pos + 4) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[pos >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 4) >> 2] === 0
+  ) {
+    return null;
+  }
   return constructBoxBindingRestElement(pos, ast);
 }
 
@@ -13184,7 +13931,12 @@ function constructVecOptionBindingPattern(pos, ast) {
 }
 
 function constructOptionBindingIdentifier(pos, ast) {
-  if (ast.buffer.uint32[(pos + 8) >> 2] === 0 && ast.buffer.uint32[(pos + 12) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[(pos + 8) >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 12) >> 2] === 0
+  ) {
+    return null;
+  }
   return new BindingIdentifier(pos, ast);
 }
 
@@ -13193,7 +13945,12 @@ function constructBoxTSTypeParameterDeclaration(pos, ast) {
 }
 
 function constructOptionBoxTSTypeParameterDeclaration(pos, ast) {
-  if (ast.buffer.uint32[pos >> 2] === 0 && ast.buffer.uint32[(pos + 4) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[pos >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 4) >> 2] === 0
+  ) {
+    return null;
+  }
   return constructBoxTSTypeParameterDeclaration(pos, ast);
 }
 
@@ -13202,7 +13959,12 @@ function constructBoxTSThisParameter(pos, ast) {
 }
 
 function constructOptionBoxTSThisParameter(pos, ast) {
-  if (ast.buffer.uint32[pos >> 2] === 0 && ast.buffer.uint32[(pos + 4) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[pos >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 4) >> 2] === 0
+  ) {
+    return null;
+  }
   return constructBoxTSThisParameter(pos, ast);
 }
 
@@ -13215,7 +13977,12 @@ function constructBoxFunctionBody(pos, ast) {
 }
 
 function constructOptionBoxFunctionBody(pos, ast) {
-  if (ast.buffer.uint32[pos >> 2] === 0 && ast.buffer.uint32[(pos + 4) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[pos >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 4) >> 2] === 0
+  ) {
+    return null;
+  }
   return constructBoxFunctionBody(pos, ast);
 }
 
@@ -13350,7 +14117,12 @@ function constructVecImportDeclarationSpecifier(pos, ast) {
 }
 
 function constructOptionVecImportDeclarationSpecifier(pos, ast) {
-  if (ast.buffer.uint32[pos >> 2] === 0 && ast.buffer.uint32[(pos + 4) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[pos >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 4) >> 2] === 0
+  ) {
+    return null;
+  }
   return constructVecImportDeclarationSpecifier(pos, ast);
 }
 
@@ -13359,7 +14131,12 @@ function constructBoxWithClause(pos, ast) {
 }
 
 function constructOptionBoxWithClause(pos, ast) {
-  if (ast.buffer.uint32[pos >> 2] === 0 && ast.buffer.uint32[(pos + 4) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[pos >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 4) >> 2] === 0
+  ) {
+    return null;
+  }
   return constructBoxWithClause(pos, ast);
 }
 
@@ -13447,7 +14224,12 @@ function constructBoxJSXClosingElement(pos, ast) {
 }
 
 function constructOptionBoxJSXClosingElement(pos, ast) {
-  if (ast.buffer.uint32[pos >> 2] === 0 && ast.buffer.uint32[(pos + 4) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[pos >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 4) >> 2] === 0
+  ) {
+    return null;
+  }
   return constructBoxJSXClosingElement(pos, ast);
 }
 
@@ -13799,7 +14581,12 @@ function constructBoxTSTypeParameter(pos, ast) {
 }
 
 function constructOptionBoxObjectExpression(pos, ast) {
-  if (ast.buffer.uint32[pos >> 2] === 0 && ast.buffer.uint32[(pos + 4) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[pos >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 4) >> 2] === 0
+  ) {
+    return null;
+  }
   return constructBoxObjectExpression(pos, ast);
 }
 
@@ -13828,7 +14615,12 @@ function constructU64(pos, ast) {
 }
 
 function constructOptionNameSpan(pos, ast) {
-  if (ast.buffer.uint32[(pos + 8) >> 2] === 0 && ast.buffer.uint32[(pos + 12) >> 2] === 0) return null;
+  if (
+    ast.buffer.uint32[(pos + 8) >> 2] === 0 &&
+    ast.buffer.uint32[(pos + 12) >> 2] === 0
+  ) {
+    return null;
+  }
   return new NameSpan(pos, ast);
 }
 
@@ -13920,13 +14712,7 @@ function constructDynamicImport(pos, ast) {
 function constructVecSpan(pos, ast) {
   const { uint32 } = ast.buffer,
     pos32 = pos >> 2;
-  return new NodeArray(
-    uint32[pos32],
-    uint32[pos32 + 2],
-    8,
-    constructSpan,
-    ast,
-  );
+  return new NodeArray(uint32[pos32], uint32[pos32 + 2], 8, constructSpan, ast);
 }
 
 function constructSpan(pos, ast) {

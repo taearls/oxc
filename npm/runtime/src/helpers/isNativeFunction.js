@@ -5,4 +5,6 @@ function _isNativeFunction(t) {
     return "function" == typeof t;
   }
 }
-module.exports = _isNativeFunction, module.exports.__esModule = true, module.exports["default"] = module.exports;
+(module.exports = _isNativeFunction),
+  (module.exports.__esModule = true),
+  (module.exports["default"] = module.exports);

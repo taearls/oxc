@@ -124,7 +124,12 @@ describe('lodash', async () => {
 });
 
 describe('es-toolkit', async () => {
-  const modules = await getModules('es-toolkit/dist/', 'browser.global.js', 'iife', code => code + '\nwindow._ = _');
+  const modules = await getModules(
+    'es-toolkit/dist/',
+    'browser.global.js',
+    'iife',
+    (code) => code + '\nwindow._ = _',
+  );
   test.each(modules)(info, ({ module: window }) => {
     expect(window._.isObject({})).toBe(true);
   });
@@ -133,12 +138,18 @@ describe('es-toolkit', async () => {
 describe('date-fns', async () => {
   const modules = await getModules('date-fns/', 'cdn.js', 'iife');
   test.each(modules)(info, ({ module: window }) => {
-    expect(window.dateFns.format(new Date(2023, 0, 1), 'yyyy-MM-dd')).toBe('2023-01-01');
+    expect(window.dateFns.format(new Date(2023, 0, 1), 'yyyy-MM-dd')).toBe(
+      '2023-01-01',
+    );
   });
 });
 
 describe('moment', async () => {
-  const modules = await getModules('moment/min/', 'moment-with-locales.js', 'cjs');
+  const modules = await getModules(
+    'moment/min/',
+    'moment-with-locales.js',
+    'cjs',
+  );
   test.each(modules)(info, ({ module: Moment }) => {
     expect(Moment('2023-01-01').format('YYYY-MM-DD')).toBe('2023-01-01');
   });
@@ -154,14 +165,18 @@ describe('dayjs', async () => {
 describe('luxon', async () => {
   const modules = await getModules('luxon/build/node/', 'luxon.js', 'cjs');
   test.each(modules)(info, ({ module: Luxon }) => {
-    expect(Luxon.DateTime.fromISO('2023-01-01').toFormat('yyyy-MM-dd')).toBe('2023-01-01');
+    expect(Luxon.DateTime.fromISO('2023-01-01').toFormat('yyyy-MM-dd')).toBe(
+      '2023-01-01',
+    );
   });
 });
 
 describe('yup', async () => {
   const modules = await getModules('yup/', 'index.js', 'cjs');
   test.each(modules)(info, ({ module: Yup }) => {
-    expect(Yup.object({ name: Yup.string() }).isValidSync({ name: 'John' })).toBe(true);
+    expect(
+      Yup.object({ name: Yup.string() }).isValidSync({ name: 'John' }),
+    ).toBe(true);
   });
 });
 
@@ -177,7 +192,11 @@ describe('rxjs', async () => {
 });
 
 describe('immer', async () => {
-  const modules = await getModules('immer/dist/cjs/', 'immer.cjs.development.js', 'cjs');
+  const modules = await getModules(
+    'immer/dist/cjs/',
+    'immer.cjs.development.js',
+    'cjs',
+  );
   test.each(modules)(info, ({ module: Immer }) => {
     expect(
       Immer.produce({ count: 1 }, (draft) => {

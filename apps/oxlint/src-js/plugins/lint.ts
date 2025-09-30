@@ -54,7 +54,12 @@ const afterHooks: AfterHook[] = [];
  * @param ruleIds - IDs of rules to run on this file
  * @returns JSON result
  */
-export function lintFile(filePath: string, bufferId: number, buffer: Uint8Array | null, ruleIds: number[]): string {
+export function lintFile(
+  filePath: string,
+  bufferId: number,
+  buffer: Uint8Array | null,
+  ruleIds: number[],
+): string {
   try {
     lintFileImpl(filePath, bufferId, buffer, ruleIds);
     return JSON.stringify({ Success: diagnostics });
@@ -76,7 +81,12 @@ export function lintFile(filePath: string, bufferId: number, buffer: Uint8Array 
  * @throws {Error} If any parameters are invalid
  * @throws {*} If any rule throws
  */
-function lintFileImpl(filePath: string, bufferId: number, buffer: Uint8Array | null, ruleIds: number[]) {
+function lintFileImpl(
+  filePath: string,
+  bufferId: number,
+  buffer: Uint8Array | null,
+  ruleIds: number[],
+) {
   // If new buffer, add it to `buffers` array. Otherwise, get existing buffer from array.
   // Do this before checks below, to make sure buffer doesn't get garbage collected when not expected
   // if there's an error.
@@ -147,7 +157,12 @@ function lintFileImpl(filePath: string, bufferId: number, buffer: Uint8Array | n
 
     // `preserveParens` argument is `false`, to match ESLint.
     // ESLint does not include `ParenthesizedExpression` nodes in its AST.
-    const program = deserializeProgramOnly(buffer, sourceText, sourceByteLen, false);
+    const program = deserializeProgramOnly(
+      buffer,
+      sourceText,
+      sourceByteLen,
+      false,
+    );
     walkProgram(program, compiledVisitor);
 
     // Lazy implementation

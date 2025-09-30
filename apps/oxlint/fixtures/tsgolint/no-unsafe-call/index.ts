@@ -6,7 +6,7 @@ anyValue(); // unsafe call
 
 anyValue(1, 2, 3); // unsafe call
 
-const result = anyValue('hello'); // unsafe call
+const result = anyValue("hello"); // unsafe call
 
 // Chained unsafe calls
 anyValue().then().catch(); // unsafe

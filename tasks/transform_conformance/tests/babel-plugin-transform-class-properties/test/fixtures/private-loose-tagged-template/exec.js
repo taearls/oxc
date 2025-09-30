@@ -1,5 +1,7 @@
 class Foo {
-  #tag = function() { return this };
+  #tag = function () {
+    return this;
+  };
 
   getReceiver() {
     return this.#tag`tagged template`;

@@ -40,7 +40,11 @@ function loadRawTransfer() {
  */
 function loadRawTransferLazy() {
   if (parseSyncLazy === null) {
-    ({ parseSyncLazy, parseAsyncLazy, Visitor: LazyVisitor } = require('./raw-transfer/lazy.js'));
+    ({
+      parseSyncLazy,
+      parseAsyncLazy,
+      Visitor: LazyVisitor,
+    } = require('./raw-transfer/lazy.js'));
   }
 }
 

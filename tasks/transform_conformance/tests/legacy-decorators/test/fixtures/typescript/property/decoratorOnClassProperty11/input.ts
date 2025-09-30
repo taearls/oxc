@@ -3,5 +3,5 @@
 declare function dec(): <T>(target: any, propertyKey: string) => void;
 
 class C {
-    @dec prop;
+  @dec prop;
 }

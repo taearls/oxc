@@ -1,12 +1,12 @@
 class C {
-  function = function() {};
+  function = function () {};
   functions = [
-    function() {
+    function () {
       function foo() {}
     },
-    function() {
+    function () {
       function foo() {}
-    }
+    },
   ];
   arrow = () => {};
   arrows = [() => () => {}, () => () => {}];
@@ -28,6 +28,6 @@ class C {
       method2() {
         class E {}
       }
-    }
+    },
   ];
 }

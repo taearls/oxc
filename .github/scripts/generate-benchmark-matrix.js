@@ -10,7 +10,16 @@ const process = require('process');
 const https = require('https');
 
 // All available benchmark components
-const ALL_COMPONENTS = ['lexer', 'parser', 'transformer', 'semantic', 'minifier', 'codegen', 'formatter', 'linter'];
+const ALL_COMPONENTS = [
+  'lexer',
+  'parser',
+  'transformer',
+  'semantic',
+  'minifier',
+  'codegen',
+  'formatter',
+  'linter',
+];
 
 // Files that when changed affect all benchmarks
 const GLOBAL_FILES = [
@@ -27,7 +36,10 @@ const GLOBAL_FILES = [
  */
 function exec(command) {
   try {
-    return execSync(command, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    return execSync(command, {
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
   } catch (error) {
     console.error(error);
     return '';
@@ -46,7 +58,7 @@ function githubApi(path) {
       path,
       headers: {
         'User-Agent': 'oxc-benchmark-matrix',
-        'Accept': 'application/vnd.github.v3+json',
+        Accept: 'application/vnd.github.v3+json',
       },
     };
 
@@ -56,17 +68,19 @@ function githubApi(path) {
       options.headers['Authorization'] = `token ${token}`;
     }
 
-    https.get(options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        if (res.statusCode === 200) {
-          resolve(JSON.parse(data));
-        } else {
-          reject(new Error(`GitHub API error: ${res.statusCode} ${data}`));
-        }
-      });
-    }).on('error', reject);
+    https
+      .get(options, (res) => {
+        let data = '';
+        res.on('data', (chunk) => (data += chunk));
+        res.on('end', () => {
+          if (res.statusCode === 200) {
+            resolve(JSON.parse(data));
+          } else {
+            reject(new Error(`GitHub API error: ${res.statusCode} ${data}`));
+          }
+        });
+      })
+      .on('error', reject);
   });
 }
 
@@ -97,16 +111,20 @@ async function getChangedFiles() {
     if (eventName === 'pull_request' && prNumber) {
       // For PR, use GitHub API to get changed files
       console.error(`Getting changed files for PR #${prNumber}`);
-      const prFiles = await githubApi(`/repos/${repository}/pulls/${prNumber}/files?per_page=100`);
-      files = prFiles.map(f => f.filename);
+      const prFiles = await githubApi(
+        `/repos/${repository}/pulls/${prNumber}/files?per_page=100`,
+      );
+      files = prFiles.map((f) => f.filename);
     } else if (sha && repository) {
       // For push to main, get the commit and compare with parent
       console.error(`Getting changed files for commit ${sha}`);
       const commit = await githubApi(`/repos/${repository}/commits/${sha}`);
-      files = commit.files ? commit.files.map(f => f.filename) : [];
+      files = commit.files ? commit.files.map((f) => f.filename) : [];
     } else {
       // No valid parameters for API calls
-      console.error('Error: Missing required environment variables for GitHub API');
+      console.error(
+        'Error: Missing required environment variables for GitHub API',
+      );
       console.error('Will run all benchmarks as fallback');
       return null; // Signal to run all benchmarks
     }
@@ -117,7 +135,7 @@ async function getChangedFiles() {
   }
 
   console.error(`Changed files (${files.length}):`);
-  files.forEach(f => console.error(`  - ${f}`));
+  files.forEach((f) => console.error(`  - ${f}`));
 
   return files;
 }
@@ -133,7 +151,11 @@ function checkGlobalChanges(changedFiles) {
   }
 
   for (const file of changedFiles) {
-    if (GLOBAL_FILES.some(globalFile => file === globalFile || file.endsWith(`/${globalFile}`))) {
+    if (
+      GLOBAL_FILES.some(
+        (globalFile) => file === globalFile || file.endsWith(`/${globalFile}`),
+      )
+    ) {
       console.error(`Global file changed: ${file}`);
       return true;
     }
@@ -166,11 +188,13 @@ function getComponentDependencies(component) {
   const output = exec(command);
 
   if (!output) {
-    console.error(`Warning: Could not get dependencies for ${component} (feature: ${feature})`);
+    console.error(
+      `Warning: Could not get dependencies for ${component} (feature: ${feature})`,
+    );
     return [];
   }
 
-  return output.split('\n').filter(dep => dep && dep !== 'oxc_benchmark');
+  return output.split('\n').filter((dep) => dep && dep !== 'oxc_benchmark');
 }
 
 /**
@@ -186,20 +210,30 @@ function isComponentAffected(component, changedFiles) {
 
   // Get component dependencies
   const dependencies = getComponentDependencies(component);
-  console.error(`Component ${component} dependencies: ${dependencies.join(', ')}`);
+  console.error(
+    `Component ${component} dependencies: ${dependencies.join(', ')}`,
+  );
 
   // Check if any dependency files changed
   for (const dep of dependencies) {
     const depPath = `crates/${dep}/`;
-    if (changedFiles.some(file => file.startsWith(depPath))) {
-      console.error(`  Component ${component} affected by changes in ${depPath}`);
+    if (changedFiles.some((file) => file.startsWith(depPath))) {
+      console.error(
+        `  Component ${component} affected by changes in ${depPath}`,
+      );
       return true;
     }
   }
 
   // Check benchmark and common task files
-  if (changedFiles.some(file => file.startsWith('tasks/benchmark/') || file.startsWith('tasks/common/'))) {
-    console.error(`  Component ${component} affected by benchmark/common file changes`);
+  if (
+    changedFiles.some(
+      (file) => file.startsWith('tasks/benchmark/') || file.startsWith('tasks/common/'),
+    )
+  ) {
+    console.error(
+      `  Component ${component} affected by benchmark/common file changes`,
+    );
     return true;
   }
 
@@ -215,7 +249,7 @@ async function determineAffectedComponents() {
 
   // Manual trigger - run all benchmarks
   if (changedFiles === null) {
-    return ALL_COMPONENTS.map(component => ({
+    return ALL_COMPONENTS.map((component) => ({
       component,
       feature: getFeatureForComponent(component),
     }));
@@ -224,7 +258,7 @@ async function determineAffectedComponents() {
   // Check for global changes
   if (checkGlobalChanges(changedFiles)) {
     console.error('Global changes detected - will run all benchmarks');
-    return ALL_COMPONENTS.map(component => ({
+    return ALL_COMPONENTS.map((component) => ({
       component,
       feature: getFeatureForComponent(component),
     }));
@@ -246,7 +280,9 @@ async function determineAffectedComponents() {
   if (affectedComponents.length === 0) {
     console.error('\nNo components were affected by the changes');
   } else {
-    console.error(`\nAffected components: ${affectedComponents.map(obj => obj.component).join(', ')}`);
+    console.error(
+      `\nAffected components: ${affectedComponents.map((obj) => obj.component).join(', ')}`,
+    );
   }
 
   return affectedComponents;
@@ -265,17 +301,23 @@ async function main() {
 
     // Set GitHub Actions notice
     if (affectedComponents.length === 0) {
-      console.error('::notice title=No benchmarks to run::No components were affected by the changes');
+      console.error(
+        '::notice title=No benchmarks to run::No components were affected by the changes',
+      );
     } else {
-      const componentNames = affectedComponents.map(obj => obj.component).join(', ');
-      console.error(`::notice title=Running benchmarks::Affected components: ${componentNames}`);
+      const componentNames = affectedComponents
+        .map((obj) => obj.component)
+        .join(', ');
+      console.error(
+        `::notice title=Running benchmarks::Affected components: ${componentNames}`,
+      );
     }
 
     process.exit(0);
   } catch (error) {
     console.error('Error generating benchmark matrix:', error);
     // On error, run all benchmarks as a fallback
-    const fallbackMatrix = ALL_COMPONENTS.map(component => ({
+    const fallbackMatrix = ALL_COMPONENTS.map((component) => ({
       component,
       feature: getFeatureForComponent(component),
     }));

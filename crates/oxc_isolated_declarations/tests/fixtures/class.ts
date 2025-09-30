@@ -67,18 +67,17 @@ export class PrivateFieldsWithConstructorAssignments {
   constructor(public first: number) {}
 }
 
-
 export class PrivateMethodClass {
   private good(a): void {}
   private get goodGetter() {
-    return {[('x')]: 1};
+    return { ["x"]: 1 };
   }
 }
 
 export class PublicMethodClass {
   public bad(a): void {}
   public get badGetter() {
-    return {[('x')]: 1};
+    return { ["x"]: 1 };
   }
 }
 
@@ -89,69 +88,66 @@ export class ConstructorOverloadsClass {
 }
 
 export class ClassParameterProperties {
-	constructor(
-		a: number,
-		readonly b: string,
-	) {}
+  constructor(
+    a: number,
+    readonly b: string,
+  ) {}
 }
 
 export class PrivateConstructorWithParameterProperties {
-	private constructor(
-		foo: string,
-		readonly bar: string,
-	) {}
+  private constructor(
+    foo: string,
+    readonly bar: string,
+  ) {}
 }
 
 export class ProtectedConstructorWithParameterProperties {
-	protected constructor(
-		public foo: string,
-		private readonly bar: number,
-		protected baz: boolean,
-		readonly qux: string,
-	) {}
+  protected constructor(
+    public foo: string,
+    private readonly bar: number,
+    protected baz: boolean,
+    readonly qux: string,
+  ) {}
 }
 
 export class PrivateConstructorMixedParameterProperties {
-	private constructor(
-		public publicProp: string,
-		private privateProp: number,
-		protected protectedProp: boolean,
-		readonly readonlyProp: string,
-		public readonly publicReadonlyProp: number,
-		private readonly privateReadonlyProp: boolean,
-		normalParam: string,
-	) {}
+  private constructor(
+    public publicProp: string,
+    private privateProp: number,
+    protected protectedProp: boolean,
+    readonly readonlyProp: string,
+    public readonly publicReadonlyProp: number,
+    private readonly privateReadonlyProp: boolean,
+    normalParam: string,
+  ) {}
 }
 
 export class PrivateConstructorWithOverloads {
-	private constructor(a: number);
-	private constructor(a: string);
-	private constructor(a: number, b: string);
-	private constructor(a: any, b?: string) {}
+  private constructor(a: number);
+  private constructor(a: string);
+  private constructor(a: number, b: string);
+  private constructor(a: any, b?: string) {}
 }
 
 export class PrivateConstructorWithOptionalParameters {
-	private constructor(
-		required: string,
-		optional?: number,
-		public publicOptional?: boolean,
-		private privateOptional?: string,
-		readonly readonlyOptional?: number,
-	) {}
+  private constructor(
+    required: string,
+    optional?: number,
+    public publicOptional?: boolean,
+    private privateOptional?: string,
+    readonly readonlyOptional?: number,
+  ) {}
 }
 
 export class PrivateConstructorWithRestParameters {
-	private constructor(
-		first: string,
-		...rest: number[]
-	) {}
+  private constructor(first: string, ...rest: number[]) {}
 }
 
 export class PrivateConstructorWithDefaultParameters {
-	private constructor(
-		public prop1: string = "default",
-		private prop2: number = 42,
-		readonly prop3: boolean = true,
-		normalParam: string = "normal",
-	) {}
+  private constructor(
+    public prop1: string = "default",
+    private prop2: number = 42,
+    readonly prop3: boolean = true,
+    normalParam: string = "normal",
+  ) {}
 }

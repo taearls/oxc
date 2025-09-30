@@ -1,4 +1,4 @@
 // should report cycle detected
-import { b } from '@/dep-b';
+import { b } from "@/dep-b";
 
 b();

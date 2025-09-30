@@ -25,7 +25,9 @@ class C2 extends S {
 
 class C3 extends S {
   constructor() {
-    var _super = (..._args) => (super(..._args), babelHelpers.defineProperty(this, "prop", 1), this);
+    var _super = (..._args) => (
+      super(..._args), babelHelpers.defineProperty(this, "prop", 1), this
+    );
 
     if (condition) {
       // Transform to `_super()`

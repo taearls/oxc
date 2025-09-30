@@ -1,4 +1,4 @@
-ts compatibility: 528/573 (92.15%)
+ts compatibility: 530/573 (92.50%)
 
 # Failed
 
@@ -14,7 +14,6 @@ ts compatibility: 528/573 (92.15%)
 | typescript/angular-component-examples/test.component.ts | 💥💥 | 41.18% |
 | typescript/arrow/comments.ts | 💥✨ | 44.44% |
 | typescript/as/nested-await-and-as.ts | 💥 | 42.86% |
-| typescript/cast/generic-cast.ts | 💥 | 97.37% |
 | typescript/cast/tuple-and-record.ts | 💥 | 0.00% |
 | typescript/chain-expression/call-expression.ts | 💥 | 82.81% |
 | typescript/chain-expression/member-expression.ts | 💥 | 82.09% |
@@ -33,7 +32,6 @@ ts compatibility: 528/573 (92.15%)
 | typescript/decorators-ts/angular.ts | 💥 | 87.50% |
 | typescript/definite/without-annotation.ts | 💥 | 83.33% |
 | typescript/enum/computed-members.ts | 💥 | 0.00% |
-| typescript/functional-composition/pipe-function-calls.ts | 💥 | 82.76% |
 | typescript/interface/ignore.ts | 💥✨ | 40.09% |
 | typescript/intersection/intersection-parens.ts | 💥💥 | 86.17% |
 | typescript/intersection/consistent-with-flow/intersection-parens.ts | 💥 | 69.77% |

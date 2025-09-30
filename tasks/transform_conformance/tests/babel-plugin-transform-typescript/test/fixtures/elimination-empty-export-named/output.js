@@ -1,3 +1,3 @@
-export {} from 'mod';
-export {} from './app.ts';
-export {}
+export {} from "mod";
+export {} from "./app.ts";
+export {};

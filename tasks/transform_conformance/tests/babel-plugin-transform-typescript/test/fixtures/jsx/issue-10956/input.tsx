@@ -1,3 +1,3 @@
 /** @jsx h */
 /** @jsxRuntime classic */
-export const foo = <div></div>
+export const foo = <div></div>;

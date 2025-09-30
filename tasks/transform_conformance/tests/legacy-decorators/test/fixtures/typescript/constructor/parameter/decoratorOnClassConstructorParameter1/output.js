@@ -1,6 +1,4 @@
 let C = class C {
-    constructor(p) { }
+  constructor(p) {}
 };
-C = babelHelpers.decorate([
-    babelHelpers.decorateParam(0, dec)
-], C);
+C = babelHelpers.decorate([babelHelpers.decorateParam(0, dec)], C);

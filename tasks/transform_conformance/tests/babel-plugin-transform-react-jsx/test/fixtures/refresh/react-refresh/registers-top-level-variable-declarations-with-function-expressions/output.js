@@ -1,9 +1,9 @@
 import { jsx as _jsx } from "react/jsx-runtime";
-let Hello = function() {
+let Hello = function () {
   function handleClick() {}
   return /* @__PURE__ */ _jsx("h1", {
     onClick: handleClick,
-    children: "Hi"
+    children: "Hi",
   });
 };
 _c = Hello;

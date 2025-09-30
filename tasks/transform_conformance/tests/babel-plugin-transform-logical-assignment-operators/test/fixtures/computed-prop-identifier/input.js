@@ -1,6 +1,6 @@
 let boundObj, boundProp, mutatedObj, mutatedProp;
-mutatedObj = 'x';
-mutatedProp = 'x';
+mutatedObj = "x";
+mutatedProp = "x";
 
 boundObj[boundProp] &&= 1;
 boundObj[unboundProp] &&= 2;

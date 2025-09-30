@@ -2,7 +2,7 @@ class C {
   x = this;
 }
 
-f = function() {
+f = function () {
   class C {
     x = this;
   }

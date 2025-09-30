@@ -1,6 +1,6 @@
 class Cls {
-	x: number;
-	y = 1;
-	@dce
-	z: string;
+  x: number;
+  y = 1;
+  @dce
+  z: string;
 }

@@ -9,8 +9,13 @@ export default class CustomReporter extends JsonReporter {
   async writeReport(report) {
     const { testResults, numPassedTestSuites, numTotalTestSuites } = JSON.parse(report);
 
-    const percentPassed = (numPassedTestSuites * 100 / numTotalTestSuites).toFixed(2);
-    console.log(`\nPassed: ${numPassedTestSuites} of ${numTotalTestSuites} (${percentPassed}%)`);
+    const percentPassed = (
+      (numPassedTestSuites * 100) /
+      numTotalTestSuites
+    ).toFixed(2);
+    console.log(
+      `\nPassed: ${numPassedTestSuites} of ${numTotalTestSuites} (${percentPassed}%)`,
+    );
 
     if (numPassedTestSuites === numTotalTestSuites) return;
 
@@ -22,7 +27,9 @@ export default class CustomReporter extends JsonReporter {
       const name = testResult.name.replace(currentDir, './');
       const message = testResult.message
         ? testResult.message.replace(rootDir, './')
-        : testResult.assertionResults.flatMap(result => result.failureMessages.map(formatMessage)).join('\n');
+        : testResult.assertionResults
+          .flatMap((result) => result.failureMessages.map(formatMessage))
+          .join('\n');
       console.log();
       console.log(name);
       console.log(message);
@@ -32,7 +39,9 @@ export default class CustomReporter extends JsonReporter {
 
 function formatMessage(message) {
   const lines = message.split('\n');
-  const index = lines.findIndex(line => line.includes(vitestPath));
+  const index = lines.findIndex((line) => line.includes(vitestPath));
   if (index !== -1) lines.length = index;
-  return lines.map(line => line.replace('file://', '').replace(rootDir, './')).join('\n');
+  return lines
+    .map((line) => line.replace('file://', '').replace(rootDir, './'))
+    .join('\n');
 }

@@ -1,5 +1,5 @@
 function outer() {
-  return function() {
+  return function () {
     class C {
       static {
         t = this;

@@ -36,7 +36,10 @@ const CLASS_PLUGINS = [
   'transform-private-property-in-object',
 ];
 
-const PACKAGES_PATH = pathJoin(import.meta.dirname, '../coverage/babel/packages');
+const PACKAGES_PATH = pathJoin(
+  import.meta.dirname,
+  '../coverage/babel/packages',
+);
 
 // These fixtures transform incorrectly by Babel. Haven't figured out why yet.
 const IGNORED_FIXTURES = [
@@ -61,7 +64,7 @@ for (const packageName of PACKAGES) {
  * @returns {Promise<undefined>}
  */
 async function updateDir(dirPath, options, hasChangedOptions) {
-  if (IGNORED_FIXTURES.some(p => dirPath.endsWith(p))) {
+  if (IGNORED_FIXTURES.some((p) => dirPath.endsWith(p))) {
     return;
   }
 
@@ -152,7 +155,7 @@ function ensureAllClassPluginsEnabled(options) {
 
   let already_enabled = [];
   let pluginOptions;
-  plugins.forEach(plugin => {
+  plugins.forEach((plugin) => {
     let pluginName = getName(plugin);
     if (CLASS_PLUGINS.includes(pluginName)) {
       if (Array.isArray(plugin) && plugin[1]) {
@@ -165,7 +168,7 @@ function ensureAllClassPluginsEnabled(options) {
   });
 
   if (already_enabled.length) {
-    CLASS_PLUGINS.forEach(pluginName => {
+    CLASS_PLUGINS.forEach((pluginName) => {
       if (!already_enabled.includes(pluginName)) {
         if (pluginOptions) {
           plugins.push([pluginName, pluginOptions]);

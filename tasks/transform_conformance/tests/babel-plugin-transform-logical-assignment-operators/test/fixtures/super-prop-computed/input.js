@@ -1,5 +1,5 @@
 let boundProp, mutatedProp;
-mutatedProp = 'x';
+mutatedProp = "x";
 
 class C extends S {
   method() {

@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 // Test case from issue #13312
 const StyledRemoveButton = styled.button``;

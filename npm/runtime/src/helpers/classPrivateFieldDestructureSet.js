@@ -4,4 +4,6 @@ function _classPrivateFieldDestructureSet(e, t) {
   var r = classPrivateFieldGet2(t, e);
   return classApplyDescriptorDestructureSet(e, r);
 }
-module.exports = _classPrivateFieldDestructureSet, module.exports.__esModule = true, module.exports["default"] = module.exports;
+(module.exports = _classPrivateFieldDestructureSet),
+  (module.exports.__esModule = true),
+  (module.exports["default"] = module.exports);

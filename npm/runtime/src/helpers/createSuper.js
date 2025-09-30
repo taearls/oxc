@@ -13,4 +13,6 @@ function _createSuper(t) {
     return possibleConstructorReturn(this, e);
   };
 }
-module.exports = _createSuper, module.exports.__esModule = true, module.exports["default"] = module.exports;
+(module.exports = _createSuper),
+  (module.exports.__esModule = true),
+  (module.exports["default"] = module.exports);

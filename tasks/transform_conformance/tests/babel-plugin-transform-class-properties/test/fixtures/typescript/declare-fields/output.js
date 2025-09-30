@@ -1,4 +1,3 @@
-
 class B {
   constructor(value) {
     babelHelpers.defineProperty(this, "value", 3);

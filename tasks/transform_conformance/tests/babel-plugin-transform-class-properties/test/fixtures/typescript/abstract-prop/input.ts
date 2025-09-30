@@ -1,3 +1,3 @@
 abstract class A {
-	public abstract field: string;
+  public abstract field: string;
 }

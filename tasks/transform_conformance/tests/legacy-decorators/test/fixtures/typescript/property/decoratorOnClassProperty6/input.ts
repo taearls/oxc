@@ -3,5 +3,5 @@
 declare function dec(target: Function): void;
 
 class C {
-    @dec prop;
+  @dec prop;
 }

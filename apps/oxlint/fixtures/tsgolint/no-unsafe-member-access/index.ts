@@ -6,6 +6,6 @@ anyValue.foo; // unsafe member access
 
 anyValue.bar.baz; // unsafe nested member access
 
-anyValue['key']; // unsafe computed member access
+anyValue["key"]; // unsafe computed member access
 
 const result = anyValue.method(); // unsafe method access

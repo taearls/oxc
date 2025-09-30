@@ -2,7 +2,7 @@ let f;
 class C {
   static {
     var _this = this;
-    f = function() {
+    f = function () {
       return _this;
     };
   }

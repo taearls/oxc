@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 const PADDING = 2;
 
@@ -9,7 +9,7 @@ const Button = styled.div`
 
 // Multiple interpolations with spaces before
 const Box = styled.div`
-  margin: ${props => props.margin}px ${props => props.margin}px;
+  margin: ${(props) => props.margin}px ${(props) => props.margin}px;
   padding: 0 ${PADDING}px;
 `;
 

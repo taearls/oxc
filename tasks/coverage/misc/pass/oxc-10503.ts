@@ -1,5 +1,5 @@
-using
+using;
 foo = bar();
 
-await using
+await using;
 foo = bar();

@@ -15,7 +15,12 @@ function loadPluginWrapper(path: string): Promise<string> {
   return loadPlugin(path);
 }
 
-function lintFileWrapper(filePath: string, bufferId: number, buffer: Uint8Array | null, ruleIds: number[]): string {
+function lintFileWrapper(
+  filePath: string,
+  bufferId: number,
+  buffer: Uint8Array | null,
+  ruleIds: number[],
+): string {
   // `lintFile` is never called without `loadPlugin` being called first, so `lintFile` must be defined here
   return lintFile(filePath, bufferId, buffer, ruleIds);
 }

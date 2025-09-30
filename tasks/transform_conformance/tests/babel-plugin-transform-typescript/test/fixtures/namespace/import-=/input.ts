@@ -1,4 +1,4 @@
-import A from 'mod';
+import A from "mod";
 namespace N1 {
   // Remove because `X` has not been referenced
   import X = A.B;
@@ -10,4 +10,3 @@ namespace N2 {
   import X = A.B;
   const V = X;
 }
-

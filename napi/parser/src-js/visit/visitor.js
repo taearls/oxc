@@ -192,7 +192,9 @@ export function initCompiledVisitor() {
  * @param visitor - Visitor object
  */
 export function addVisitorToCompiled(visitor) {
-  if (visitor === null || typeof visitor !== 'object') throw new TypeError('Visitor must be an object');
+  if (visitor === null || typeof visitor !== 'object') {
+    throw new TypeError('Visitor must be an object');
+  }
 
   // Exit if is empty visitor
   const keys = Object.keys(visitor),
@@ -207,14 +209,18 @@ export function addVisitorToCompiled(visitor) {
 
     const visitFn = visitor[name];
     if (typeof visitFn !== 'function') {
-      throw new TypeError(`'${name}' property of visitor object is not a function`);
+      throw new TypeError(
+        `'${name}' property of visitor object is not a function`,
+      );
     }
 
     const isExit = name.endsWith(':exit');
     if (isExit) name = name.slice(0, -5);
 
     const typeId = NODE_TYPE_IDS_MAP.get(name);
-    if (typeId === void 0) throw new Error(`Unknown node type '${name}' in visitor object`);
+    if (typeId === void 0) {
+      throw new Error(`Unknown node type '${name}' in visitor object`);
+    }
 
     const existing = compiledVisitor[typeId];
     if (typeId < LEAF_NODE_TYPES_COUNT) {
@@ -242,7 +248,7 @@ export function addVisitorToCompiled(visitor) {
     } else {
       // Not leaf node - store enter+exit pair
       if (existing === null) {
-        const enterExit = compiledVisitor[typeId] = getEnterExitObject();
+        const enterExit = (compiledVisitor[typeId] = getEnterExitObject());
         if (isExit) {
           enterExit.exit = visitFn;
         } else {
@@ -343,7 +349,9 @@ function mergeVisitFns(visitFns) {
     mergers.push(merger);
   } else {
     merger = mergers[numVisitFns];
-    if (merger === null) merger = mergers[numVisitFns] = createMerger(numVisitFns);
+    if (merger === null) {
+      merger = mergers[numVisitFns] = createMerger(numVisitFns);
+    }
   }
 
   // Merge functions

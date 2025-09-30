@@ -1,4 +1,4 @@
-var _bar = /*#__PURE__*/new WeakMap();
+var _bar = /*#__PURE__*/ new WeakMap();
 class Foo extends Bar {
   constructor() {
     var _super = (..._args) => (

@@ -1,4 +1,4 @@
-const ArgumentsAssignment = /*#__PURE__*/function () {
+const ArgumentsAssignment = /*#__PURE__*/ (function () {
   var _ref = babelHelpers.asyncToGenerator(function* () {
     let _arguments = _arguments;
     console.log(_arguments);
@@ -6,4 +6,4 @@ const ArgumentsAssignment = /*#__PURE__*/function () {
   return function ArgumentsAssignment() {
     return _ref.apply(this, arguments);
   };
-}();
+})();

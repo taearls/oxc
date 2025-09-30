@@ -1,5 +1,5 @@
 function sloppy() {
-  let _super = function() {
+  let _super = function () {
     "use strict";
     babelHelpers.defineProperty(this, "prop", 1);
     return this;
@@ -11,7 +11,7 @@ function sloppy() {
 
 function strict() {
   "use strict";
-  let _super2 = function() {
+  let _super2 = function () {
     babelHelpers.defineProperty(this, "prop", 1);
     return this;
   };

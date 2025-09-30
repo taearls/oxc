@@ -1,6 +1,6 @@
 class Root {}
 class Outer extends Root {
-  value = 0
+  value = 0;
   async method() {
     () => super.value;
 

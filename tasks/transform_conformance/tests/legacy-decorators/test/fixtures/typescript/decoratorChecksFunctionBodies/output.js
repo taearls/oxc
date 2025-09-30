@@ -1,16 +1,19 @@
 // @target:es5
 // @experimentaldecorators: true
 // from #2971
-function func(s) {
-}
+function func(s) {}
 class A {
-    m() {
-    }
+  m() {}
 }
-babelHelpers.decorate([
-    ((x, p, d) => {
-        var a = 3;
-        func(a);
-        return d;
-    })
-], A.prototype, "m", null);
+babelHelpers.decorate(
+  [
+    (x, p, d) => {
+      var a = 3;
+      func(a);
+      return d;
+    },
+  ],
+  A.prototype,
+  "m",
+  null,
+);

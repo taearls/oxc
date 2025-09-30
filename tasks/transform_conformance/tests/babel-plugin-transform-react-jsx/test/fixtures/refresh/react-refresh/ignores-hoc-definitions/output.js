@@ -4,7 +4,7 @@ let connect = () => {
     const handleClick = () => {};
     return /* @__PURE__ */ _jsx("h1", {
       onClick: handleClick,
-      children: "Hi"
+      children: "Hi",
     });
   }
   return Comp;
@@ -14,8 +14,7 @@ function withRouter() {
     const handleClick = () => {};
     return /* @__PURE__ */ _jsx("h1", {
       onClick: handleClick,
-      children: "Hi"
+      children: "Hi",
     });
   };
 }
-;

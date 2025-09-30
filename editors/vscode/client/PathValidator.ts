@@ -41,7 +41,14 @@ export function validateSafeBinaryPath(binary: string): boolean {
 
   // Check if the filename contains `oxc_language_server`
   // Malicious projects might try to point to a different binary.
-  if (!binary.replaceAll('\\', '/').toLowerCase().split('/').pop()?.includes('oxc_language_server')) {
+  if (
+    !binary
+      .replaceAll('\\', '/')
+      .toLowerCase()
+      .split('/')
+      .pop()
+      ?.includes('oxc_language_server')
+  ) {
     return false;
   }
 

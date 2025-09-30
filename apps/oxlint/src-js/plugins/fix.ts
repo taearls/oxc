@@ -12,7 +12,12 @@ const { prototype: ArrayPrototype, from: ArrayFrom } = Array,
 // e.g. `(function*() { yield fix1; yield fix2; })()`
 export type FixFn = (
   fixer: Fixer,
-) => Fix | Array<Fix | null | undefined> | IterableIterator<Fix | null | undefined> | null | undefined;
+) =>
+  | Fix
+  | Array<Fix | null | undefined>
+  | IterableIterator<Fix | null | undefined>
+  | null
+  | undefined;
 
 // Type of a fix, as returned by `fix` function.
 export type Fix = { range: Range; text: string };
@@ -89,7 +94,10 @@ export type Fixer = typeof FIXER;
  * @throws {Error} If rule is not marked as fixable but `fix` function returns fixes,
  *   or if `fix` function returns any invalid `Fix` objects
  */
-export function getFixes(diagnostic: Diagnostic, internal: InternalContext): Fix[] | null {
+export function getFixes(
+  diagnostic: Diagnostic,
+  internal: InternalContext,
+): Fix[] | null {
   // ESLint silently ignores non-function `fix` values, so we do the same
   const { fix } = diagnostic;
   if (typeof fix !== 'function') return null;
@@ -145,7 +153,9 @@ export function getFixes(diagnostic: Diagnostic, internal: InternalContext): Fix
   // ESLint does not throw this error if `fix` function returns only falsy values.
   // We've already exited if that is the case, so we're reproducing that behavior.
   if (internal.isFixable === false) {
-    throw new Error('Fixable rules must set the `meta.fixable` property to "code" or "whitespace".');
+    throw new Error(
+      'Fixable rules must set the `meta.fixable` property to "code" or "whitespace".',
+    );
   }
 
   return fixes;
@@ -177,8 +187,11 @@ function validateAndConformFix(fix: unknown): Fix {
   // Note: `ownKeys(fix).length === 2` rules out `fix` having a custom `toJSON` method.
   const fixPrototype = getPrototypeOf(fix);
   if (
-    (fixPrototype === ObjectPrototype || fixPrototype === null) && ownKeys(fix).length === 2 &&
-    getPrototypeOf(range) === ArrayPrototype && !hasOwn(range, 'toJSON') && range.length === 2 &&
+    (fixPrototype === ObjectPrototype || fixPrototype === null) &&
+    ownKeys(fix).length === 2 &&
+    getPrototypeOf(range) === ArrayPrototype &&
+    !hasOwn(range, 'toJSON') &&
+    range.length === 2 &&
     typeof text === 'string'
   ) {
     return fix;

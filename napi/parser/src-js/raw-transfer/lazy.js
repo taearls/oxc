@@ -93,7 +93,14 @@ const bufferRecycleRegistry = typeof FinalizationRegistry === 'undefined'
 function construct(buffer, sourceText, sourceByteLen) {
   // Create AST object
   const sourceIsAscii = sourceText.length === sourceByteLen;
-  const ast = { buffer, sourceText, sourceByteLen, sourceIsAscii, nodes: new Map(), token: TOKEN };
+  const ast = {
+    buffer,
+    sourceText,
+    sourceByteLen,
+    sourceIsAscii,
+    nodes: new Map(),
+    token: TOKEN,
+  };
 
   // Register `ast` with the recycle registry so buffer is returned to cache
   // when `ast` is garbage collected

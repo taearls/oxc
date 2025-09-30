@@ -39,9 +39,9 @@ class Outer {
   }
 }
 
-let OuterExpr = (
-  _prop2 = new WeakMap(),
-  _shadowed2 = new WeakMap(),
+let OuterExpr =
+  ((_prop2 = new WeakMap()),
+  (_shadowed2 = new WeakMap()),
   class {
     constructor() {
       babelHelpers.classPrivateFieldInitSpec(this, _prop2, 1);
@@ -60,8 +60,8 @@ let OuterExpr = (
         }
       };
 
-      let InnerExprWithAdditionalProp = (
-        _innerProp2 = new WeakMap(),
+      let InnerExprWithAdditionalProp =
+        ((_innerProp2 = new WeakMap()),
         class {
           constructor() {
             babelHelpers.classPrivateFieldInitSpec(this, _innerProp2, 3);
@@ -73,8 +73,6 @@ let OuterExpr = (
             babelHelpers.classPrivateFieldGet2(_prop2, this);
             this.#shadowed;
           }
-        }
-      );
+        });
     }
-  }
-);
+  });

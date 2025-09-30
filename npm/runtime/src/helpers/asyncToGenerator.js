@@ -11,7 +11,7 @@ function _asyncToGenerator(n) {
   return function () {
     var t = this,
       e = arguments;
-    return new Promise(function (r, o) {
+    return new Promise((function (r, o) {
       var a = n.apply(t, e);
       function _next(n) {
         asyncGeneratorStep(a, r, o, _next, _throw, "next", n);
@@ -20,7 +20,9 @@ function _asyncToGenerator(n) {
         asyncGeneratorStep(a, r, o, _next, _throw, "throw", n);
       }
       _next(void 0);
-    });
+    }));
   };
 }
-module.exports = _asyncToGenerator, module.exports.__esModule = true, module.exports["default"] = module.exports;
+(module.exports = _asyncToGenerator),
+  (module.exports.__esModule = true),
+  (module.exports["default"] = module.exports);

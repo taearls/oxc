@@ -74,13 +74,17 @@ let OuterExpr = class {
 };
 
 const outer = new Outer();
-expect(() => outer.getInner()).toThrowError("Receiver must be an instance of class Inner");
+expect(() => outer.getInner()).toThrowError(
+  "Receiver must be an instance of class Inner",
+);
 expect(() => outer.getInnerWithAdditionalProp()).toThrowError(
-  "Receiver must be an instance of class InnerWithAdditionalProp"
+  "Receiver must be an instance of class InnerWithAdditionalProp",
 );
 
 const outerExpr = new OuterExpr();
-expect(() => outerExpr.getInner()).toThrowError("Receiver must be an instance of class InnerExpr");
+expect(() => outerExpr.getInner()).toThrowError(
+  "Receiver must be an instance of class InnerExpr",
+);
 expect(() => outerExpr.getInnerWithAdditionalProp()).toThrowError(
-  "Receiver must be an instance of class InnerExprWithAdditionalProp"
+  "Receiver must be an instance of class InnerExprWithAdditionalProp",
 );

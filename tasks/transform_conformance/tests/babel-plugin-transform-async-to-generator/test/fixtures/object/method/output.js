@@ -3,5 +3,5 @@ const Obj2 = {
     return babelHelpers.asyncToGenerator(function* () {
       console.log(log);
     })();
-  }
+  },
 };

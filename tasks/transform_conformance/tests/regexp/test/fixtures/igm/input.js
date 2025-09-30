@@ -1,1 +1,1 @@
-a1 = /a.b/igm;
+a1 = /a.b/gim;

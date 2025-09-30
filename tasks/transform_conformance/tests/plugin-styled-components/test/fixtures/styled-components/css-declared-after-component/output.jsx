@@ -7,5 +7,5 @@ export default function Example() {
 const someCss = css(["color:red;"]);
 var _StyledDiv = _styled("div").withConfig({
   displayName: "input___StyledDiv",
-  componentId: "sc-7mydya-0"
+  componentId: "sc-7mydya-0",
 })(["", ""], someCss);

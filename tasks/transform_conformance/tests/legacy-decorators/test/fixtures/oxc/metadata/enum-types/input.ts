@@ -1,25 +1,27 @@
 enum StringEnum {
-  foo = 'string',
-  bar = 'another'
+  foo = "string",
+  bar = "another",
 }
 
 enum TemplateStringEnum {
   template = `template literal`,
-  mixed = `prefix_${'suffix'}`
+  mixed = `prefix_${"suffix"}`,
 }
 
 enum NumberEnum {
   a = 1,
-  b = 2
+  b = 2,
 }
 
 enum UnaryEnum {
   negative = -1,
   positive = +2,
-  bitwise = ~3
+  bitwise = ~3,
 }
 
-function getString() { return 'string'; }
+function getString() {
+  return "string";
+}
 
 enum UnaryOtherEnum {
   negative = -getString(),
@@ -28,19 +30,19 @@ enum UnaryOtherEnum {
 }
 
 enum AutoIncrementEnum {
-  first,  // 0
+  first, // 0
   second, // 1
-  third   // 2
+  third, // 2
 }
 
 enum MixedEnum {
-  str = 'string',
-  num = 1
+  str = "string",
+  num = 1,
 }
 
 enum ComputedEnum {
   computed = Math.PI,
-  expression = 1 + 2
+  expression = 1 + 2,
 }
 
 function decorate(target: any, property: string) {}
@@ -71,5 +73,7 @@ export class Foo {
   computedProp: ComputedEnum;
 
   @decorate
-  method(param: StringEnum): NumberEnum { return NumberEnum.a; }
+  method(param: StringEnum): NumberEnum {
+    return NumberEnum.a;
+  }
 }

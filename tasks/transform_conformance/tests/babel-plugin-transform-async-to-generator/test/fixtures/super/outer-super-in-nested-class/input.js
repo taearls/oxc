@@ -1,17 +1,17 @@
 class Outer extends OuterSuper {
   constructor() {
-    @(super().decorate)
+    @super().decorate
     class Inner extends super() {
-      @(super().decorate)
+      @super().decorate
       [super()] = 1;
 
-      @(super().decorate)
+      @super().decorate
       static [super()] = 2;
 
-      @(super().decorate)
+      @super().decorate
       [super()]() {}
 
-      @(super().decorate)
+      @super().decorate
       static [super()]() {}
     }
 

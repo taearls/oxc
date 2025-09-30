@@ -1,4 +1,9 @@
-var _s = $RefreshSig$(), _s2 = $RefreshSig$(), _s3 = $RefreshSig$(), _s4 = $RefreshSig$(), _s5 = $RefreshSig$(), _s6 = $RefreshSig$();
+var _s = $RefreshSig$(),
+  _s2 = $RefreshSig$(),
+  _s3 = $RefreshSig$(),
+  _s4 = $RefreshSig$(),
+  _s5 = $RefreshSig$(),
+  _s6 = $RefreshSig$();
 export default _s(() => {
   _s();
   return useContext(X);
@@ -19,10 +24,15 @@ const Bar = () => {
 };
 _s4(Bar, "useContext{}");
 _c2 = Bar;
-const Baz = _s5(memo(_c3 = _s5(() => {
-  _s5();
-  return useContext(X);
-}, "useContext{}")), "useContext{}");
+const Baz = _s5(
+  memo(
+    (_c3 = _s5(() => {
+      _s5();
+      return useContext(X);
+    }, "useContext{}")),
+  ),
+  "useContext{}",
+);
 _c4 = Baz;
 const Qux = () => {
   _s6();

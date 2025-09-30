@@ -1,1 +1,3 @@
-function* x() { yield* /z/ }
+function* x() {
+  yield* /z/;
+}

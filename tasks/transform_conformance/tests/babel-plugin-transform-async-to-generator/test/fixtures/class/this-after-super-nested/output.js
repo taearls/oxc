@@ -10,7 +10,7 @@ class Outer {
         var _this2;
 
         if (condition) {
-          const _super = (super(), _this2 = this);
+          const _super = (super(), (_this2 = this));
           this.fn = babelHelpers.asyncToGenerator(function* () {
             return [_this2, 2];
           });
@@ -38,7 +38,7 @@ class Outer2 {
         var _this4;
 
         if (condition) {
-          const _super = (super(), _this4 = this);
+          const _super = (super(), (_this4 = this));
           this.fn = babelHelpers.asyncToGenerator(function* () {
             return [_this4, 5];
           });

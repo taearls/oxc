@@ -35,11 +35,14 @@ async function main() {
               path,
             };
           });
-          build.onLoad({ namespace: 'new-url-asset', filter: /.*/ }, async (args) => {
-            return {
-              contents: `export default new URL(${JSON.stringify(args.path)}, import.meta.url).href`,
-            };
-          });
+          build.onLoad(
+            { namespace: 'new-url-asset', filter: /.*/ },
+            async (args) => {
+              return {
+                contents: `export default new URL(${JSON.stringify(args.path)}, import.meta.url).href`,
+              };
+            },
+          );
         },
       },
     ],

@@ -1,6 +1,4 @@
 class C {
-    accessor prop;
+  accessor prop;
 }
-babelHelpers.decorate([
-    dec
-], C.prototype, "prop", null);
+babelHelpers.decorate([dec], C.prototype, "prop", null);

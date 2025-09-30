@@ -1,6 +1,6 @@
 export namespace Foo {
-	export type T = 0;
+  export type T = 0;
 }
 export namespace Foo {
-	export const Bar = 1;
+  export const Bar = 1;
 }

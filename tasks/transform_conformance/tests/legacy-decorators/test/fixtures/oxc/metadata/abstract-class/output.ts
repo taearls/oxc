@@ -6,6 +6,17 @@ let AbstractClass = class AbstractClass {
     this.dependency = dependency;
   }
 };
-AbstractClass = babelHelpers.decorate([dce(), babelHelpers.decorateMetadata("design:paramtypes", [typeof (_ref = typeof Dependency !== "undefined" && Dependency) === "function" ? _ref : Object])], AbstractClass);
+AbstractClass = babelHelpers.decorate(
+  [
+    dce(),
+    babelHelpers.decorateMetadata("design:paramtypes", [
+      typeof (_ref = typeof Dependency !== "undefined" && Dependency) ===
+      "function"
+        ? _ref
+        : Object,
+    ]),
+  ],
+  AbstractClass,
+);
 
 export { AbstractClass };
