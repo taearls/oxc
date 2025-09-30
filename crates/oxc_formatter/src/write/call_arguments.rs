@@ -121,7 +121,6 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
         if has_empty_line
             || is_function_composition_args(self)
             || is_pipe_function_call(self, self.parent)
-            || is_long_curried_arrow_argument(self, call_like_span)
         {
             return format_all_args_broken_out(self, true, f);
         }
