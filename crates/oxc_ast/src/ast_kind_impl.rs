@@ -122,6 +122,54 @@ impl<'a> AstKind<'a> {
         matches!(self, Self::Function(_) | Self::ArrowFunctionExpression(_))
     }
 
+    /// Check if this CallExpression or NewExpression has an argument with the given span
+    ///
+    /// This is useful for determining if a node is an argument to a call expression
+    /// when traversing the AST, particularly after the removal of `AstKind::Argument`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// // Check if a node is an argument to its parent call expression
+    /// if parent.has_argument_with_span(node.span()) {
+    ///     // This node is an argument
+    /// }
+    /// ```
+    #[inline]
+    pub fn has_argument_with_span(&self, span: oxc_span::Span) -> bool {
+        match self {
+            Self::CallExpression(call) => call.arguments.iter().any(|arg| arg.span() == span),
+            Self::NewExpression(new_expr) => {
+                new_expr.arguments.iter().any(|arg| arg.span() == span)
+            }
+            _ => false,
+        }
+    }
+
+    /// Check if this CallExpression or NewExpression has the given span as its callee
+    ///
+    /// This is useful for determining if a node is the callee of a call expression
+    /// when traversing the AST.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// // Detect eval() calls
+    /// if let AstKind::IdentifierReference(ident) = node.kind() {
+    ///     if parent.is_callee_with_span(ident.span) && ident.name == "eval" {
+    ///         // This is an eval() call
+    ///     }
+    /// }
+    /// ```
+    #[inline]
+    pub fn is_callee_with_span(&self, span: oxc_span::Span) -> bool {
+        match self {
+            Self::CallExpression(call) => call.callee.span() == span,
+            Self::NewExpression(new_expr) => new_expr.callee.span() == span,
+            _ => false,
+        }
+    }
+
     /// Get the name of an identifier node
     ///
     /// Returns the identifier name if this is any kind of identifier node,
@@ -762,5 +810,52 @@ impl GetSpan for PropertyKeyKind<'_> {
             Self::Static(ident) => ident.span,
             Self::Private(ident) => ident.span,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use oxc_span::Span;
+
+    // Note: These tests verify the logic of the methods.
+    // Integration tests using real parsed AST are in the linter crate.
+
+    #[test]
+    fn test_has_argument_with_span_returns_false_for_non_call_expressions() {
+        // Test that non-CallExpression/NewExpression AstKinds always return false
+        let test_span = Span::new(0, 5);
+
+        let num_lit = NumericLiteral {
+            span: test_span,
+            value: 42.0,
+            raw: None,
+            base: oxc_syntax::number::NumberBase::Decimal,
+        };
+        let num_kind = AstKind::NumericLiteral(&num_lit);
+        assert!(!num_kind.has_argument_with_span(test_span));
+
+        let bool_lit = BooleanLiteral { span: test_span, value: true };
+        let bool_kind = AstKind::BooleanLiteral(&bool_lit);
+        assert!(!bool_kind.has_argument_with_span(test_span));
+    }
+
+    #[test]
+    fn test_is_callee_with_span_returns_false_for_non_call_expressions() {
+        // Test that non-CallExpression/NewExpression AstKinds always return false
+        let test_span = Span::new(0, 5);
+
+        let num_lit = NumericLiteral {
+            span: test_span,
+            value: 42.0,
+            raw: None,
+            base: oxc_syntax::number::NumberBase::Decimal,
+        };
+        let num_kind = AstKind::NumericLiteral(&num_lit);
+        assert!(!num_kind.is_callee_with_span(test_span));
+
+        let bool_lit = BooleanLiteral { span: test_span, value: true };
+        let bool_kind = AstKind::BooleanLiteral(&bool_lit);
+        assert!(!bool_kind.is_callee_with_span(test_span));
     }
 }
