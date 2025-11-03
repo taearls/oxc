@@ -729,22 +729,10 @@ impl NeedsParentheses<'_> for AstNode<'_, AssignmentExpression<'_>> {
 
                 true
             }
-            // Assignments in computed property keys NEED parentheses per Prettier
-            // - `{ [(a = b)]: 1 }` → parens needed
-            // - `class { [(a = b)] = 1 }` → parens needed
-            // - `class { [(a = b)]() {} }` → parens needed
-            // But TypeScript property signatures don't need them
-            AstNodes::TSPropertySignature(_) => false,
-            // PropertyDefinition: return true (needs parens) for all cases
-            // Prettier wants parens for both keys and values
-            AstNodes::PropertyDefinition(_) => true,
-            // MethodDefinition: assignments in computed keys need parens
-            AstNodes::MethodDefinition(_) => true,
-            // ObjectProperty: return true (needs parens) for all cases
-            AstNodes::ObjectProperty(_) => true,
             // Never need parentheses in these contexts:
+            // - `interface { [a = 1]; }` and `class { [a = 1]; }` (TS property signatures)
             // - `a = (b = c)` = nested assignments don't need extra parens
-            AstNodes::AssignmentExpression(_) => false,
+            AstNodes::TSPropertySignature(_) | AstNodes::AssignmentExpression(_) => false,
             // Computed member expressions: need parens when assignment is the object
             // - `obj[a = b]` = no parens needed for property
             // - `(a = b)[obj]` = parens needed for object
@@ -789,7 +777,7 @@ impl NeedsParentheses<'_> for AstNode<'_, SequenceExpression<'_>> {
             AstNodes::ForStatement(_) | AstNodes::SequenceExpression(_) => false,
             // Arrow function concise bodies don't need parens (unless there are comments)
             AstNodes::ExpressionStatement(stmt) => {
-                !(stmt.is_arrow_function_body() && !f.comments().has_comment_in_span(self.span()))
+                !stmt.is_arrow_function_body() || f.comments().has_comment_in_span(self.span())
             }
             _ => true,
         }
