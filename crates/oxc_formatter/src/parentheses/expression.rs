@@ -729,14 +729,19 @@ impl NeedsParentheses<'_> for AstNode<'_, AssignmentExpression<'_>> {
 
                 true
             }
-            // `interface { [a = 1]; }` and `class { [a = 1]; }` not need parens when in computed property
+            // Assignments in computed property keys NEED parentheses per Prettier
+            // - `{ [(a = b)]: 1 }` → parens needed
+            // - `class { [(a = b)] = 1 }` → parens needed
+            // - `class { [(a = b)]() {} }` → parens needed
+            // But TypeScript property signatures don't need them
             AstNodes::TSPropertySignature(_) => false,
-            // Need parentheses when assignment is used as property value
-            AstNodes::PropertyDefinition(prop) => {
-                prop.value.as_ref().is_some_and(|v| v.span() == self.span())
-            }
-            // Need parentheses when assignment is used as object property value
-            AstNodes::ObjectProperty(prop) => prop.value.span() == self.span(),
+            // PropertyDefinition: return true (needs parens) for all cases
+            // Prettier wants parens for both keys and values
+            AstNodes::PropertyDefinition(_) => true,
+            // MethodDefinition: assignments in computed keys need parens
+            AstNodes::MethodDefinition(_) => true,
+            // ObjectProperty: return true (needs parens) for all cases
+            AstNodes::ObjectProperty(_) => true,
             // Never need parentheses in these contexts:
             // - `a = (b = c)` = nested assignments don't need extra parens
             AstNodes::AssignmentExpression(_) => false,
