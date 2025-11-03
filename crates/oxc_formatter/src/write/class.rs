@@ -229,14 +229,17 @@ impl<'a> Format<'a> for AstNode<'a, Vec<'a, TSClassImplements<'a>>> {
                     format_once(|f| {
                         let last_index = self.len().saturating_sub(1);
 
-                        // Check if any heritage items have comments
-                        let has_comments = self.iter().any(|heritage| {
-                            f.comments().has_comment_in_span(heritage.span())
+                        // Check if any heritage items have inline (block) comments
+                        let has_inline_comments = self.iter().any(|heritage| {
+                            f.comments()
+                                .comments_after(heritage.span().end)
+                                .iter()
+                                .any(|c| !c.is_line())
                         });
 
-                        // Use appropriate separator based on whether comments are present
-                        if has_comments {
-                            // Use space() when comments are present to keep them inline
+                        // Use appropriate separator based on whether inline comments are present
+                        if has_inline_comments {
+                            // Keep inline comments on the same line
                             let mut joiner = f.join_with(space());
 
                             for (i, heritage) in FormatSeparatedIter::new(self.into_iter(), ",")

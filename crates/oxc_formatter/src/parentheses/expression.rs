@@ -710,22 +710,33 @@ impl NeedsParentheses<'_> for AstNode<'_, AssignmentExpression<'_>> {
             AstNodes::SequenceExpression(sequence) => {
                 // Skip through SequenceExpression and ParenthesizedExpression ancestors
                 if let Some(ancestor) = self.ancestors().find(|p| {
-                    !matches!(p, AstNodes::SequenceExpression(_) | AstNodes::ParenthesizedExpression(_))
-                }) && let AstNodes::ForStatement(for_stmt) = ancestor {
-                        let is_initializer = for_stmt
-                            .init
-                            .as_ref()
-                            .is_some_and(|init| init.span().contains_inclusive(self.span()));
-                        let is_update = for_stmt.update.as_ref().is_some_and(|update| {
-                            update.span().contains_inclusive(self.span())
-                        });
-                        return !(is_initializer || is_update);
-                    }
+                    !matches!(
+                        p,
+                        AstNodes::SequenceExpression(_) | AstNodes::ParenthesizedExpression(_)
+                    )
+                }) && let AstNodes::ForStatement(for_stmt) = ancestor
+                {
+                    let is_initializer = for_stmt
+                        .init
+                        .as_ref()
+                        .is_some_and(|init| init.span().contains_inclusive(self.span()));
+                    let is_update = for_stmt
+                        .update
+                        .as_ref()
+                        .is_some_and(|update| update.span().contains_inclusive(self.span()));
+                    return !(is_initializer || is_update);
+                }
 
                 true
             }
-            // `interface { [a = 1]; }` and `class { [a = 1]; }` not need parens
-            AstNodes::TSPropertySignature(_) | AstNodes::PropertyDefinition(_) |
+            // `interface { [a = 1]; }` and `class { [a = 1]; }` not need parens when in computed property
+            AstNodes::TSPropertySignature(_) => false,
+            // Need parentheses when assignment is used as property value
+            AstNodes::PropertyDefinition(prop) => {
+                prop.value.as_ref().is_some_and(|v| v.span() == self.span())
+            }
+            // Need parentheses when assignment is used as object property value
+            AstNodes::ObjectProperty(prop) => prop.value.span() == self.span(),
             // Never need parentheses in these contexts:
             // - `a = (b = c)` = nested assignments don't need extra parens
             AstNodes::AssignmentExpression(_) => false,
@@ -758,20 +769,29 @@ impl NeedsParentheses<'_> for AstNode<'_, SequenceExpression<'_>> {
             return false;
         }
 
+        // Special handling for prettier-ignore comments
+        if f.comments().has_leading_own_line_comment(self.span().start) {
+            return false;
+        }
+
         // Check if we're in an expression statement that is an arrow function body
+        // Be more specific: only avoid parentheses when there are no comments
         let in_arrow_body = matches!(self.parent, AstNodes::ExpressionStatement(stmt) if {
             matches!(stmt.parent, AstNodes::FunctionBody(body) if body.statements().len() == 1 && {
                 matches!(body.parent, AstNodes::ArrowFunctionExpression(_))
-            })
+            }) && !f.comments().has_comment_in_span(self.span())
         });
+
+        // Handle return statements - avoid parentheses only when no comments present
+        let in_return = matches!(self.parent, AstNodes::ReturnStatement(_))
+            && !f.comments().has_comment_in_span(self.span());
 
         !matches!(
             self.parent,
-            AstNodes::ReturnStatement(_)
             // There's a precedence for writing `x++, y++`
-            | AstNodes::ForStatement(_)
-            | AstNodes::SequenceExpression(_)
+            AstNodes::ForStatement(_) | AstNodes::SequenceExpression(_)
         ) && !in_arrow_body
+            && !in_return
     }
 }
 
