@@ -228,21 +228,48 @@ impl<'a> Format<'a> for AstNode<'a, Vec<'a, TSClassImplements<'a>>> {
                     soft_line_break_or_space(),
                     format_once(|f| {
                         let last_index = self.len().saturating_sub(1);
-                        let mut joiner = f.join_with(soft_line_break_or_space());
 
-                        for (i, heritage) in FormatSeparatedIter::new(self.into_iter(), ",")
-                            .with_trailing_separator(TrailingSeparator::Disallowed)
-                            .enumerate()
-                        {
-                            if i == last_index {
-                                // The trailing comments of the last heritage should be printed inside the class declaration
-                                joiner.entry(&FormatNodeWithoutTrailingComments(&heritage));
-                            } else {
-                                joiner.entry(&heritage);
+                        // Check if any heritage items have comments
+                        let has_comments = self.iter().any(|heritage| {
+                            f.comments().has_comment_in_span(heritage.span())
+                        });
+
+                        // Use appropriate separator based on whether comments are present
+                        if has_comments {
+                            // Use space() when comments are present to keep them inline
+                            let mut joiner = f.join_with(space());
+
+                            for (i, heritage) in FormatSeparatedIter::new(self.into_iter(), ",")
+                                .with_trailing_separator(TrailingSeparator::Disallowed)
+                                .enumerate()
+                            {
+                                if i == last_index {
+                                    // The trailing comments of the last heritage should be printed inside the class declaration
+                                    joiner.entry(&FormatNodeWithoutTrailingComments(&heritage));
+                                } else {
+                                    joiner.entry(&heritage);
+                                }
                             }
-                        }
 
-                        joiner.finish()
+                            joiner.finish()
+                        } else {
+                            // Use soft_line_break_or_space() for normal formatting
+                            let mut joiner = f.join_with(soft_line_break_or_space());
+
+                            for (i, heritage) in FormatSeparatedIter::new(self.into_iter(), ",")
+                                .with_trailing_separator(TrailingSeparator::Disallowed)
+                                .enumerate()
+                            {
+                                if i == last_index {
+                                    // The trailing comments of the last heritage should be printed inside the class declaration
+                                    joiner.entry(&FormatNodeWithoutTrailingComments(&heritage));
+                                } else {
+                                    joiner.entry(&heritage);
+                                }
+                            }
+
+                            joiner.finish()
+                        }
                     })
                 )))
             ]
