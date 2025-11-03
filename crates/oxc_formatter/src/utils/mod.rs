@@ -53,7 +53,7 @@ pub fn is_expression_used_as_call_argument(span: Span, parent: &AstNodes) -> boo
             if call.arguments.is_empty() {
                 return false;
             }
-            if call.callee.span().eq_fast(span) {
+            if call.callee.span().eq(&span) {
                 return false;
             }
 
@@ -62,15 +62,15 @@ pub fn is_expression_used_as_call_argument(span: Span, parent: &AstNodes) -> boo
                 1 => {
                     // Single argument: most common case after empty
                     let arg_span = call.arguments[0].span();
-                    arg_span.eq_fast(span) || arg_span.contains_inclusive(span)
+                    arg_span.eq(&span) || arg_span.contains_inclusive(span)
                 }
                 2 => {
                     // Two arguments: second most common
                     let arg0_span = call.arguments[0].span();
                     let arg1_span = call.arguments[1].span();
-                    arg0_span.eq_fast(span)
+                    arg0_span.eq(&span)
                         || arg0_span.contains_inclusive(span)
-                        || arg1_span.eq_fast(span)
+                        || arg1_span.eq(&span)
                         || arg1_span.contains_inclusive(span)
                 }
                 3 => {
@@ -80,9 +80,9 @@ pub fn is_expression_used_as_call_argument(span: Span, parent: &AstNodes) -> boo
                         call.arguments[1].span(),
                         call.arguments[2].span(),
                     ];
-                    spans.iter().any(|&arg_span| {
-                        arg_span.eq_fast(span) || arg_span.contains_inclusive(span)
-                    })
+                    spans
+                        .iter()
+                        .any(|&arg_span| arg_span.eq(&span) || arg_span.contains_inclusive(span))
                 }
                 _ => {
                     // Rare case (>3 arguments): use cold path
@@ -95,7 +95,7 @@ pub fn is_expression_used_as_call_argument(span: Span, parent: &AstNodes) -> boo
             if new_expr.arguments.is_empty() {
                 return false;
             }
-            if new_expr.callee.span().eq_fast(span) {
+            if new_expr.callee.span().eq(&span) {
                 return false;
             }
 
@@ -103,14 +103,14 @@ pub fn is_expression_used_as_call_argument(span: Span, parent: &AstNodes) -> boo
             match new_expr.arguments.len() {
                 1 => {
                     let arg_span = new_expr.arguments[0].span();
-                    arg_span.eq_fast(span) || arg_span.contains_inclusive(span)
+                    arg_span.eq(&span) || arg_span.contains_inclusive(span)
                 }
                 2 => {
                     let arg0_span = new_expr.arguments[0].span();
                     let arg1_span = new_expr.arguments[1].span();
-                    arg0_span.eq_fast(span)
+                    arg0_span.eq(&span)
                         || arg0_span.contains_inclusive(span)
-                        || arg1_span.eq_fast(span)
+                        || arg1_span.eq(&span)
                         || arg1_span.contains_inclusive(span)
                 }
                 3 => {
@@ -119,9 +119,9 @@ pub fn is_expression_used_as_call_argument(span: Span, parent: &AstNodes) -> boo
                         new_expr.arguments[1].span(),
                         new_expr.arguments[2].span(),
                     ];
-                    spans.iter().any(|&arg_span| {
-                        arg_span.eq_fast(span) || arg_span.contains_inclusive(span)
-                    })
+                    spans
+                        .iter()
+                        .any(|&arg_span| arg_span.eq(&span) || arg_span.contains_inclusive(span))
                 }
                 _ => check_many_arguments_cold(span, &new_expr.arguments),
             }
@@ -137,6 +137,6 @@ fn check_many_arguments_cold(span: Span, arguments: &[Argument]) -> bool {
     // Iterator for rare complex cases (>3 arguments)
     arguments.iter().any(|arg| {
         let arg_span = arg.span();
-        arg_span.eq_fast(span) || arg_span.contains_inclusive(span)
+        arg_span.eq(&span) || arg_span.contains_inclusive(span)
     })
 }
