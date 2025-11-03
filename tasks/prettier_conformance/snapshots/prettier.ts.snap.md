@@ -1,4 +1,4 @@
-ts compatibility: 538/598 (89.97%)
+ts compatibility: 539/598 (90.13%)
 
 # Failed
 
@@ -27,7 +27,6 @@ ts compatibility: 538/598 (89.97%)
 | typescript/comments/16121.ts | 💥 | 72.46% |
 | typescript/comments/mapped_types.ts | 💥 | 96.77% |
 | typescript/comments/method_types.ts | 💥 | 82.05% |
-| typescript/compiler/indexSignatureWithInitializer.ts | 💥 | 87.50% |
 | typescript/conditional-types/comments.ts | 💥✨ | 31.51% |
 | typescript/conditional-types/conditional-types.ts | 💥✨ | 34.48% |
 | typescript/conditional-types/infer-type.ts | 💥✨ | 4.76% |
