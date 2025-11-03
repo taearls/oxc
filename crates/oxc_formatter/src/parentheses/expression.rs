@@ -779,24 +779,20 @@ impl NeedsParentheses<'_> for AstNode<'_, SequenceExpression<'_>> {
             return false;
         }
 
-        // Check if we're in an expression statement that is an arrow function body
-        // Be more specific: only avoid parentheses when there are no comments
-        let in_arrow_body = matches!(self.parent, AstNodes::ExpressionStatement(stmt) if {
-            matches!(stmt.parent, AstNodes::FunctionBody(body) if body.statements().len() == 1 && {
-                matches!(body.parent, AstNodes::ArrowFunctionExpression(_))
-            }) && !f.comments().has_comment_in_span(self.span())
-        });
-
-        // Handle return statements - avoid parentheses only when no comments present
-        let in_return = matches!(self.parent, AstNodes::ReturnStatement(_))
-            && !f.comments().has_comment_in_span(self.span());
-
-        !matches!(
-            self.parent,
+        match self.parent {
+            // Return and throw statements handle their own parentheses
+            // Only add parentheses if there are comments in the sequence
+            AstNodes::ReturnStatement(_) | AstNodes::ThrowStatement(_) => {
+                f.comments().has_comment_in_span(self.span())
+            }
             // There's a precedence for writing `x++, y++`
-            AstNodes::ForStatement(_) | AstNodes::SequenceExpression(_)
-        ) && !in_arrow_body
-            && !in_return
+            AstNodes::ForStatement(_) | AstNodes::SequenceExpression(_) => false,
+            // Arrow function concise bodies don't need parens (unless there are comments)
+            AstNodes::ExpressionStatement(stmt) => {
+                !(stmt.is_arrow_function_body() && !f.comments().has_comment_in_span(self.span()))
+            }
+            _ => true,
+        }
     }
 }
 

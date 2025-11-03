@@ -1,4 +1,4 @@
-js compatibility: 684/749 (91.32%)
+js compatibility: 686/749 (91.59%)
 
 # Failed
 
@@ -48,9 +48,7 @@ js compatibility: 684/749 (91.32%)
 | js/quotes/objects.js | 💥💥 | 80.00% |
 | js/require/comments.js | 💥 | 81.25% |
 | js/require/long-module-name.js | 💥 | 18.18% |
-| js/sequence-break/break.js | 💥 | 96.97% |
 | js/sequence-expression/ignored.js | 💥 | 25.00% |
-| js/strings/non-octal-eight-and-nine.js | 💥💥 | 85.71% |
 | js/strings/template-literals.js | 💥💥 | 98.01% |
 | js/ternaries/binary.js | 💥💥💥💥✨✨✨✨ | 18.42% |
 | js/ternaries/func-call.js | 💥💥💥💥✨✨✨✨ | 25.00% |
