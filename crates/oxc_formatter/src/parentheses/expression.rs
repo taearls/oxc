@@ -764,14 +764,20 @@ impl NeedsParentheses<'_> for AstNode<'_, SequenceExpression<'_>> {
             return false;
         }
 
+        // Check if we're in an expression statement that is an arrow function body
+        let in_arrow_body = matches!(self.parent, AstNodes::ExpressionStatement(stmt) if {
+            matches!(stmt.parent, AstNodes::FunctionBody(body) if body.statements().len() == 1 && {
+                matches!(body.parent, AstNodes::ArrowFunctionExpression(_))
+            })
+        });
+
         !matches!(
             self.parent,
             AstNodes::ReturnStatement(_)
             // There's a precedence for writing `x++, y++`
             | AstNodes::ForStatement(_)
-            | AstNodes::ExpressionStatement(_)
             | AstNodes::SequenceExpression(_)
-        )
+        ) && !in_arrow_body
     }
 }
 
