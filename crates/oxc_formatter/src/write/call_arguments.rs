@@ -91,7 +91,8 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
                     )
                 ));
 
-        if is_commonjs_or_amd_call
+        if is_simple_module_import
+            || is_commonjs_or_amd_call
             || is_multiline_template_only_args(self, f.source_text())
             || is_react_hook_with_deps_array(self, f.comments())
             || should_use_compact_test_formatting
