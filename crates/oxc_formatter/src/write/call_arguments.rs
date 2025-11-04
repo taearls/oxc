@@ -70,7 +70,7 @@ impl<'a> Format<'a> for AstNode<'a, ArenaVec<'a, Argument<'a>>> {
             if let AstNodes::NewExpression(new_expr) = self.parent { Some(new_expr) } else { None };
 
         let (is_commonjs_or_amd_call, is_test_call) = call_expression
-            .map(|call| (is_commonjs_or_amd_call(self, call), is_test_call_expression(call)))
+            .map(|call| (is_commonjs_or_amd_call(self, call, f), is_test_call_expression(call)))
             .unwrap_or_default();
 
         // For test calls: use compact formatting (space-separated, no breaks)
