@@ -19,7 +19,7 @@ ts compatibility: 547/598 (91.47%)
 | typescript/class/extends_implements.ts | 💥 | 90.12% |
 | typescript/class/quoted-property.ts | 💥 | 66.67% |
 | typescript/class-and-interface/long-type-parameters/long-type-parameters.ts | 💥 | 63.64% |
-| typescript/class-comment/class-implements.ts | 💥 | 89.25% |
+| typescript/class-comment/class-implements.ts | 💥 | 98.89% |
 | typescript/class-comment/declare.ts | 💥 | 84.62% |
 | typescript/class-comment/generic.ts | 💥 | 92.00% |
 | typescript/comments/mapped_types.ts | 💥 | 96.77% |
