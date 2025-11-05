@@ -260,7 +260,10 @@ impl<'a> Format<'a> for AstNode<'a, Vec<'a, TSClassImplements<'a>>> {
                             let mut joiner = f.join_with(soft_line_break_or_space());
 
                             for (i, heritage) in self.iter().enumerate() {
-                                joiner.entry(&format_heritage_with_trailing_comments(heritage, i == last_index));
+                                joiner.entry(&format_heritage_with_trailing_comments(
+                                    heritage,
+                                    i == last_index,
+                                ));
                             }
 
                             joiner.finish()
