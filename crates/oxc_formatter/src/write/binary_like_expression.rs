@@ -158,13 +158,7 @@ impl<'a, 'b> BinaryLikeExpression<'a, 'b> {
                 matches!(container.parent, AstNodes::JSXAttribute(_))
             }
             AstNodes::ExpressionStatement(statement) => statement.is_arrow_function_body(),
-            AstNodes::CallExpression(call) => {
-                // https://github.com/prettier/prettier/issues/18057#issuecomment-3472912112
-                // Special case: Boolean(expr) with single argument should not indent
-                // This replaces the old AstKind::Argument logic that was removed
-                call.arguments.len() == 1
-                    && matches!(&call.callee, Expression::Identifier(ident) if ident.name == "Boolean")
-            }
+            AstNodes::CallExpression(call) => is_boolean_type_coercion(call),
             AstNodes::ConditionalExpression(conditional) => {
                 !matches!(
                     parent.parent(),
@@ -590,4 +584,18 @@ pub fn should_flatten(parent_operator: BinaryLikeOperator, operator: BinaryLikeO
         }
         _ => true,
     }
+}
+
+/// Checks if a call expression is a Boolean type coercion pattern.
+///
+/// Boolean(expr) with a single argument should not add extra indentation
+/// because the CallExpression already handles argument indentation.
+///
+/// Excludes optional chaining (Boolean?.()) to match Prettier's behavior.
+///
+/// See: <https://github.com/prettier/prettier/issues/18057#issuecomment-3472912112>
+fn is_boolean_type_coercion(call: &CallExpression) -> bool {
+    !call.optional
+        && call.arguments.len() == 1
+        && matches!(&call.callee, Expression::Identifier(ident) if ident.name == "Boolean")
 }
