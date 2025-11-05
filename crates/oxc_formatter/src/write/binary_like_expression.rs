@@ -158,6 +158,13 @@ impl<'a, 'b> BinaryLikeExpression<'a, 'b> {
                 matches!(container.parent, AstNodes::JSXAttribute(_))
             }
             AstNodes::ExpressionStatement(statement) => statement.is_arrow_function_body(),
+            AstNodes::CallExpression(call) => {
+                // https://github.com/prettier/prettier/issues/18057#issuecomment-3472912112
+                // Special case: Boolean(expr) with single argument should not indent
+                // This replaces the old AstKind::Argument logic that was removed
+                call.arguments.len() == 1
+                    && matches!(&call.callee, Expression::Identifier(ident) if ident.name == "Boolean")
+            }
             AstNodes::ConditionalExpression(conditional) => {
                 !matches!(
                     parent.parent(),
