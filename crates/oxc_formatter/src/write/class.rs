@@ -260,25 +260,7 @@ impl<'a> Format<'a> for AstNode<'a, Vec<'a, TSClassImplements<'a>>> {
                             let mut joiner = f.join_with(soft_line_break_or_space());
 
                             for (i, heritage) in self.iter().enumerate() {
-                                if i == last_index {
-                                    // The trailing comments of the last heritage should be printed inside the class declaration
-                                    joiner.entry(&format_with(|f| {
-                                        FormatNodeWithoutTrailingComments(heritage).fmt(f)?;
-                                        if i < last_index {
-                                            write!(f, ",")?;
-                                        }
-                                        Ok(())
-                                    }));
-                                } else {
-                                    // Explicitly format trailing comments to work around broken comment attachment
-                                    // after AstKind::Argument removal. This ensures trailing line comments like
-                                    // `implements z, // comment` stay on the same line as the interface name.
-                                    joiner.entry(&format_with(|f| {
-                                        heritage.write(f)?;
-                                        heritage.format_trailing_comments(f)?;
-                                        write!(f, ",")
-                                    }));
-                                }
+                                joiner.entry(&format_heritage_with_trailing_comments(heritage, i == last_index));
                             }
 
                             joiner.finish()
@@ -288,6 +270,31 @@ impl<'a> Format<'a> for AstNode<'a, Vec<'a, TSClassImplements<'a>>> {
             ]
         )
     }
+}
+
+/// Formats a heritage item in an implements clause with explicit trailing comment handling.
+///
+/// For non-last items, trailing comments are explicitly formatted to ensure they stay
+/// on the same line as the interface name (e.g., `implements z, // comment`).
+/// For the last item, trailing comments are suppressed here and printed in the class body.
+///
+/// This explicit handling is necessary because the automatic comment attachment mechanism
+/// does not correctly associate trailing line comments with heritage items.
+fn format_heritage_with_trailing_comments<'a>(
+    heritage: &'a AstNode<'a, TSClassImplements<'a>>,
+    is_last: bool,
+) -> impl Format<'a> + 'a {
+    format_with(move |f: &mut Formatter<'_, 'a>| {
+        if is_last {
+            // Last item: no trailing comments (printed in class body), no comma
+            FormatNodeWithoutTrailingComments(heritage).fmt(f)
+        } else {
+            // Non-last items: explicit trailing comments + comma
+            heritage.write(f)?;
+            heritage.format_trailing_comments(f)?;
+            write!(f, ",")
+        }
+    })
 }
 
 impl<'a> FormatWrite<'a> for AstNode<'a, TSClassImplements<'a>> {
