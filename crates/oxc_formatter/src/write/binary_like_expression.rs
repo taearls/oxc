@@ -167,16 +167,27 @@ impl<'a, 'b> BinaryLikeExpression<'a, 'b> {
                         | AstNodes::CallExpression(_)
                         | AstNodes::ImportExpression(_)
                         | AstNodes::MetaProperty(_) // TODO(prettier): Why not include `NewExpression` ???
-                )
+                ) && !Self::is_call_expression_argument(parent.span(), parent.parent())
             }
-            AstNodes::ConditionalExpression(conditional) => !matches!(
-                conditional.parent,
-                AstNodes::ReturnStatement(_)
-                    | AstNodes::ThrowStatement(_)
-                    | AstNodes::CallExpression(_)
-                    | AstNodes::ImportExpression(_)
-                    | AstNodes::MetaProperty(_)
-            ),
+            _ => false,
+        }
+    }
+
+    /// Check if an expression is used as a CallExpression argument (NOT NewExpression).
+    ///
+    /// This specifically checks CallExpression only, excluding NewExpression,
+    /// to match Prettier's behavior for conditional expression indentation.
+    fn is_call_expression_argument(span: Span, grandparent: &AstNodes<'_>) -> bool {
+        match grandparent {
+            AstNodes::CallExpression(call) => {
+                if call.arguments.is_empty() || call.callee.span().eq(&span) {
+                    return false;
+                }
+                call.arguments.iter().any(|arg| {
+                    let arg_span = arg.span();
+                    arg_span.eq(&span) || arg_span.contains_inclusive(span)
+                })
+            }
             _ => false,
         }
     }
