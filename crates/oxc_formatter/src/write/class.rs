@@ -259,15 +259,25 @@ impl<'a> Format<'a> for AstNode<'a, Vec<'a, TSClassImplements<'a>>> {
                             // Use soft_line_break_or_space() for normal formatting
                             let mut joiner = f.join_with(soft_line_break_or_space());
 
-                            for (i, heritage) in FormatSeparatedIter::new(self.into_iter(), ",")
-                                .with_trailing_separator(TrailingSeparator::Disallowed)
-                                .enumerate()
-                            {
+                            for (i, heritage) in self.iter().enumerate() {
                                 if i == last_index {
                                     // The trailing comments of the last heritage should be printed inside the class declaration
-                                    joiner.entry(&FormatNodeWithoutTrailingComments(&heritage));
+                                    joiner.entry(&format_with(|f| {
+                                        FormatNodeWithoutTrailingComments(heritage).fmt(f)?;
+                                        if i < last_index {
+                                            write!(f, ",")?;
+                                        }
+                                        Ok(())
+                                    }));
                                 } else {
-                                    joiner.entry(&heritage);
+                                    // Explicitly format trailing comments to work around broken comment attachment
+                                    // after AstKind::Argument removal. This ensures trailing line comments like
+                                    // `implements z, // comment` stay on the same line as the interface name.
+                                    joiner.entry(&format_with(|f| {
+                                        heritage.write(f)?;
+                                        heritage.format_trailing_comments(f)?;
+                                        write!(f, ",")
+                                    }));
                                 }
                             }
 
