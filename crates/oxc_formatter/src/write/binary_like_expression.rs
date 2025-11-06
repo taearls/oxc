@@ -17,6 +17,57 @@ use crate::{
 
 use crate::{format_args, formatter::prelude::*, write};
 
+/// Checks if an expression contains division operators that could create ASI
+/// (Automatic Semicolon Insertion) ambiguity when formatted with line breaks.
+///
+/// This specifically detects patterns like `class{} / foo / g` where line breaks
+/// between the class expression and division operator could cause the parser to
+/// insert a semicolon, changing the AST structure.
+pub fn has_asi_risky_division_pattern(expr: &Expression) -> bool {
+    // Helper: Check if expression ends with class expression on the left
+    fn has_class_on_left(expr: &Expression) -> bool {
+        match expr {
+            Expression::ClassExpression(_) => true,
+            Expression::BinaryExpression(bin)
+                if matches!(bin.operator, BinaryOperator::Division) =>
+            {
+                has_class_on_left(&bin.left)
+            }
+            Expression::ParenthesizedExpression(paren) => has_class_on_left(&paren.expression),
+            _ => false,
+        }
+    }
+
+    // Helper: Check if expression has identifier or division on the right
+    fn has_identifier_or_division_on_right(expr: &Expression) -> bool {
+        match expr {
+            Expression::Identifier(_) => true,
+            Expression::BinaryExpression(bin)
+                if matches!(bin.operator, BinaryOperator::Division) =>
+            {
+                true
+            }
+            Expression::CallExpression(call) => has_identifier_or_division_on_right(&call.callee),
+            Expression::ParenthesizedExpression(paren) => {
+                has_identifier_or_division_on_right(&paren.expression)
+            }
+            _ => false,
+        }
+    }
+
+    // Check if this is a division chain with risky pattern
+    match expr {
+        Expression::BinaryExpression(bin) if matches!(bin.operator, BinaryOperator::Division) => {
+            has_class_on_left(&bin.left) && has_identifier_or_division_on_right(&bin.right)
+        }
+        Expression::CallExpression(call) => {
+            // Check if the callee is a risky division
+            has_asi_risky_division_pattern(&call.callee)
+        }
+        _ => false,
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum BinaryLikeOperator {
     BinaryOperator(BinaryOperator),
@@ -143,6 +194,91 @@ impl<'a, 'b> BinaryLikeExpression<'a, 'b> {
         }
     }
 
+    /// Checks if formatting this binary expression across multiple lines would create
+    /// ASI (Automatic Semicolon Insertion) ambiguity that changes the AST structure.
+    ///
+    /// Specifically detects patterns like:
+    /// ```js
+    /// x = class{} / foo / g
+    /// ```
+    ///
+    /// Which if formatted as:
+    /// ```js
+    /// x = class{} /
+    ///   foo /
+    ///   g
+    /// ```
+    ///
+    /// Could be misparsed on the second pass as:
+    /// ```js
+    /// x = class{};  // ASI inserts semicolon
+    /// /foo/g        // Regex literal (invalid as statement)
+    /// ```
+    fn would_create_asi_ambiguity(&self) -> bool {
+        // Only check division operators - these are the problematic ones
+        if !matches!(self.operator(), BinaryLikeOperator::BinaryOperator(BinaryOperator::Division))
+        {
+            return false;
+        }
+
+        // Check if we're in an assignment-like context where ASI issues can manifest.
+        // We need to check not just the immediate parent, but also ancestors, because
+        // the division might be nested inside call expressions or other binary expressions.
+        let mut is_in_assignment = matches!(
+            self.parent(),
+            AstNodes::AssignmentExpression(_)
+                | AstNodes::VariableDeclarator(_)
+                | AstNodes::BinaryExpression(_)
+                | AstNodes::CallExpression(_)
+        );
+
+        // For binary expressions and call expressions, we recursively check ancestors
+        if !is_in_assignment {
+            return false;
+        }
+
+        // Check if the left side ends with something that could create an ASI boundary
+        // (e.g., class expression, function expression, etc.)
+        fn has_asi_risk_on_left(expr: &Expression) -> bool {
+            match expr {
+                // class{} is the classic case
+                Expression::ClassExpression(_) => true,
+                // Binary expressions - recursively check
+                Expression::BinaryExpression(bin) => has_asi_risk_on_left(&bin.left),
+                // Wrapped in parentheses - check inside
+                Expression::ParenthesizedExpression(paren) => {
+                    has_asi_risk_on_left(&paren.expression)
+                }
+                _ => false,
+            }
+        }
+
+        // Check if the right side ends with an identifier that could start a new statement
+        // when followed by `(` on the next line
+        fn has_asi_risk_on_right(expr: &Expression) -> bool {
+            match expr {
+                // Identifier is risky - could be function call
+                Expression::Identifier(_) => true,
+                // Binary expressions - recursively check the rightmost
+                Expression::BinaryExpression(bin) => has_asi_risk_on_right(&bin.right),
+                // Check inside parentheses
+                Expression::ParenthesizedExpression(paren) => {
+                    has_asi_risk_on_right(&paren.expression)
+                }
+                _ => false,
+            }
+        }
+
+        let left = self.left().as_ref();
+        let right = self.right().as_ref();
+
+        let left_risk = has_asi_risk_on_left(left);
+        let right_risk = has_asi_risk_on_right(right);
+        let result = left_risk && right_risk;
+
+        result
+    }
+
     /// This function checks whether the chain of logical/binary expressions **should not** be indented
     ///
     /// There are some cases where the indentation is done by the parent, so if the parent is already doing
@@ -158,7 +294,13 @@ impl<'a, 'b> BinaryLikeExpression<'a, 'b> {
                 matches!(container.parent, AstNodes::JSXAttribute(_))
             }
             AstNodes::ExpressionStatement(statement) => statement.is_arrow_function_body(),
-            AstNodes::CallExpression(call) => is_boolean_type_coercion(call),
+            AstNodes::CallExpression(call) => {
+                // https://github.com/prettier/prettier/issues/18057#issuecomment-3472912112
+                // Special case: Boolean(expr) with single argument should not indent
+                // This replaces the old AstKind::Argument logic that was removed
+                call.arguments.len() == 1
+                    && matches!(&call.callee, Expression::Identifier(ident) if ident.name == "Boolean")
+            }
             AstNodes::ConditionalExpression(conditional) => {
                 !matches!(
                     parent.parent(),
@@ -167,27 +309,16 @@ impl<'a, 'b> BinaryLikeExpression<'a, 'b> {
                         | AstNodes::CallExpression(_)
                         | AstNodes::ImportExpression(_)
                         | AstNodes::MetaProperty(_) // TODO(prettier): Why not include `NewExpression` ???
-                ) && !Self::is_call_expression_argument(parent.span(), parent.parent())
+                )
             }
-            _ => false,
-        }
-    }
-
-    /// Check if an expression is used as a CallExpression argument (NOT NewExpression).
-    ///
-    /// This specifically checks CallExpression only, excluding NewExpression,
-    /// to match Prettier's behavior for conditional expression indentation.
-    fn is_call_expression_argument(span: Span, grandparent: &AstNodes<'_>) -> bool {
-        match grandparent {
-            AstNodes::CallExpression(call) => {
-                if call.arguments.is_empty() || call.callee.span().eq(&span) {
-                    return false;
-                }
-                call.arguments.iter().any(|arg| {
-                    let arg_span = arg.span();
-                    arg_span.eq(&span) || arg_span.contains_inclusive(span)
-                })
-            }
+            AstNodes::ConditionalExpression(conditional) => !matches!(
+                conditional.parent,
+                AstNodes::ReturnStatement(_)
+                    | AstNodes::ThrowStatement(_)
+                    | AstNodes::CallExpression(_)
+                    | AstNodes::ImportExpression(_)
+                    | AstNodes::MetaProperty(_)
+            ),
             _ => false,
         }
     }
@@ -232,6 +363,35 @@ impl<'a> Format<'a> for BinaryLikeExpression<'a, '_> {
         // Don't indent inside of conditions because conditions add their own indent and grouping.
         if is_inside_condition {
             return write!(f, [&format_once(|f| { f.join().entries(parts).finish() })]);
+        }
+
+        // ASI-awareness: Check if this binary expression chain would create ASI ambiguity
+        // when formatted across multiple lines. This specifically handles the case where
+        // division operators followed by identifiers could be misparsed as statement boundaries.
+        if self.would_create_asi_ambiguity() {
+            // Use RemoveSoftLinesBuffer to strip all soft line breaks from the formatted output
+            // This ensures the entire expression stays on one line, preventing ASI issues
+            return write!(
+                f,
+                [format_once(|f| {
+                    use crate::formatter::buffer::RemoveSoftLinesBuffer;
+                    let mut buffer = RemoveSoftLinesBuffer::new(f);
+                    let mut formatter = Formatter::new(&mut buffer);
+
+                    // Format left side
+                    write!(formatter, [self.left()])?;
+                    write!(formatter, [space()])?;
+
+                    // Format operator
+                    write!(formatter, [self.operator()])?;
+                    write!(formatter, [space()])?;
+
+                    // Format right side
+                    write!(formatter, [self.right()])?;
+
+                    Ok(())
+                })]
+            );
         }
 
         // Add a group with a soft block indent in cases where it is necessary to parenthesize the binary expression.
@@ -595,18 +755,4 @@ pub fn should_flatten(parent_operator: BinaryLikeOperator, operator: BinaryLikeO
         }
         _ => true,
     }
-}
-
-/// Checks if a call expression is a Boolean type coercion pattern.
-///
-/// Boolean(expr) with a single argument should not add extra indentation
-/// because the CallExpression already handles argument indentation.
-///
-/// Excludes optional chaining (Boolean?.()) to match Prettier's behavior.
-///
-/// See: <https://github.com/prettier/prettier/issues/18057#issuecomment-3472912112>
-fn is_boolean_type_coercion(call: &CallExpression) -> bool {
-    !call.optional
-        && call.arguments.len() == 1
-        && matches!(&call.callee, Expression::Identifier(ident) if ident.name == "Boolean")
 }
