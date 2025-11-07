@@ -17,57 +17,6 @@ use crate::{
 
 use crate::{format_args, formatter::prelude::*, write};
 
-/// Checks if an expression contains division operators that could create ASI
-/// (Automatic Semicolon Insertion) ambiguity when formatted with line breaks.
-///
-/// This specifically detects patterns like `class{} / foo / g` where line breaks
-/// between the class expression and division operator could cause the parser to
-/// insert a semicolon, changing the AST structure.
-pub fn has_asi_risky_division_pattern(expr: &Expression) -> bool {
-    // Helper: Check if expression ends with class expression on the left
-    fn has_class_on_left(expr: &Expression) -> bool {
-        match expr {
-            Expression::ClassExpression(_) => true,
-            Expression::BinaryExpression(bin)
-                if matches!(bin.operator, BinaryOperator::Division) =>
-            {
-                has_class_on_left(&bin.left)
-            }
-            Expression::ParenthesizedExpression(paren) => has_class_on_left(&paren.expression),
-            _ => false,
-        }
-    }
-
-    // Helper: Check if expression has identifier or division on the right
-    fn has_identifier_or_division_on_right(expr: &Expression) -> bool {
-        match expr {
-            Expression::Identifier(_) => true,
-            Expression::BinaryExpression(bin)
-                if matches!(bin.operator, BinaryOperator::Division) =>
-            {
-                true
-            }
-            Expression::CallExpression(call) => has_identifier_or_division_on_right(&call.callee),
-            Expression::ParenthesizedExpression(paren) => {
-                has_identifier_or_division_on_right(&paren.expression)
-            }
-            _ => false,
-        }
-    }
-
-    // Check if this is a division chain with risky pattern
-    match expr {
-        Expression::BinaryExpression(bin) if matches!(bin.operator, BinaryOperator::Division) => {
-            has_class_on_left(&bin.left) && has_identifier_or_division_on_right(&bin.right)
-        }
-        Expression::CallExpression(call) => {
-            // Check if the callee is a risky division
-            has_asi_risky_division_pattern(&call.callee)
-        }
-        _ => false,
-    }
-}
-
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum BinaryLikeOperator {
     BinaryOperator(BinaryOperator),
@@ -193,7 +142,6 @@ impl<'a, 'b> BinaryLikeExpression<'a, 'b> {
             _ => false,
         }
     }
-
 
     /// This function checks whether the chain of logical/binary expressions **should not** be indented
     ///

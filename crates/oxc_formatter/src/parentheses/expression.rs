@@ -824,6 +824,21 @@ impl NeedsParentheses<'_> for AstNode<'_, Class<'_>> {
         let span = self.span();
         let parent = self.parent;
 
+        // Check if this class is the left side of a division that starts a statement
+        // This prevents ASI ambiguity: (class{}) / foo instead of class{} / foo
+        if let AstNodes::BinaryExpression(binary) = parent {
+            if matches!(binary.operator, BinaryOperator::Division)
+                && binary.left.span() == span
+                && is_first_in_statement(
+                    span,
+                    parent,
+                    FirstInStatementMode::ExpressionOrExportDefault,
+                )
+            {
+                return true;
+            }
+        }
+
         // Decorated class expressions need parentheses when used in extends clause
         if !self.decorators.is_empty() && is_class_extends(parent, span) {
             return true;
