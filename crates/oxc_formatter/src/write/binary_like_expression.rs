@@ -161,7 +161,6 @@ impl<'a, 'b> BinaryLikeExpression<'a, 'b> {
             AstNodes::CallExpression(call) => {
                 // https://github.com/prettier/prettier/issues/18057#issuecomment-3472912112
                 // Special case: Boolean(expr) with single argument should not indent
-                // This replaces the old AstKind::Argument logic that was removed
                 !call.optional
                     && call.arguments.len() == 1
                     && matches!(&call.callee, Expression::Identifier(ident) if ident.name == "Boolean")
