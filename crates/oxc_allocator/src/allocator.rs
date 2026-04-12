@@ -420,9 +420,6 @@ impl Allocator {
             "attempted to create a string longer than `isize::MAX` bytes"
         );
 
-        #[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]
-        self.stats.record_allocation();
-
         // Create actual `&str` in a separate function, to ensure that `alloc_concat_strs_array`
         // is inlined, so that compiler has knowledge to remove the overflow checks above.
         // When some of `strings` are static, this function is usually only a few instructions.
@@ -450,7 +447,7 @@ impl Allocator {
         // Allocate `total_len` bytes.
         // SAFETY: Caller guarantees `total_len <= isize::MAX`.
         let layout = unsafe { Layout::from_size_align_unchecked(total_len, 1) };
-        let start_ptr = self.bump().alloc_layout(layout);
+        let start_ptr = self.alloc_layout(layout);
 
         let mut end_ptr = start_ptr;
         for str in strings {
