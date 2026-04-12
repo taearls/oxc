@@ -361,6 +361,11 @@ impl Allocator {
     /// # Panics
     ///
     /// Panics if reserving space matching `layout` fails.
+    //
+    // `#[inline(always)]` because this is a hot path and `Bump::alloc_layout` is a very small function.
+    // We always want it to be inlined.
+    #[expect(clippy::inline_always)]
+    #[inline(always)]
     pub fn alloc_layout(&self, layout: Layout) -> NonNull<u8> {
         #[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]
         self.stats.record_allocation();
