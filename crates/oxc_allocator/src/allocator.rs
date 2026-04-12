@@ -415,6 +415,11 @@ impl Allocator {
             unsafe { assert_unchecked!(len <= (isize::MAX as usize)) };
             total_len.checked_add(len).unwrap()
         });
+
+        if total_len == 0 {
+            return "";
+        }
+
         assert!(
             isize::try_from(total_len).is_ok(),
             "attempted to create a string longer than `isize::MAX` bytes"
@@ -440,10 +445,6 @@ impl Allocator {
         strings: [&str; N],
         total_len: usize,
     ) -> &'a str {
-        if total_len == 0 {
-            return "";
-        }
-
         // Allocate `total_len` bytes.
         // SAFETY: Caller guarantees `total_len <= isize::MAX`.
         let layout = unsafe { Layout::from_size_align_unchecked(total_len, 1) };
