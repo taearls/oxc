@@ -185,6 +185,11 @@ impl<'a> StringBuilder<'a> {
             unsafe { assert_unchecked!(len <= (isize::MAX as usize)) };
             total_len.checked_add(len).unwrap()
         });
+
+        if total_len == 0 {
+            return Self::new_in(allocator);
+        }
+
         assert!(
             isize::try_from(total_len).is_ok(),
             "attempted to create a string longer than `isize::MAX` bytes"
@@ -210,10 +215,6 @@ impl<'a> StringBuilder<'a> {
         total_len: usize,
         allocator: &'a Allocator,
     ) -> StringBuilder<'a> {
-        if total_len == 0 {
-            return Self::new_in(allocator);
-        }
-
         // Allocate `total_len` bytes.
         // SAFETY: Caller guarantees `total_len <= isize::MAX`.
         let layout = unsafe { Layout::from_size_align_unchecked(total_len, 1) };
