@@ -23,6 +23,9 @@ use allocator_api2::alloc::{AllocError, Allocator};
 use crate::bumpalo_alloc::Alloc as BumpaloAlloc;
 pub use crate::bumpalo_alloc::AllocErr;
 
+#[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]
+use crate::tracking::AllocationStats;
+
 /// An error returned from [`Bump::try_alloc_try_with`].
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum AllocOrInitError<E> {
@@ -287,6 +290,9 @@ pub struct Bump<const MIN_ALIGN: usize = 1> {
     // The current chunk we are bump allocating within.
     current_chunk_footer: Cell<NonNull<ChunkFooter>>,
     allocation_limit: Cell<Option<usize>>,
+    /// Used to track number of allocations made in this `Bump` when `track_allocations` feature is enabled
+    #[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]
+    pub(crate) stats: AllocationStats,
 }
 
 #[repr(C)]
@@ -773,6 +779,8 @@ impl<const MIN_ALIGN: usize> Bump<MIN_ALIGN> {
         Self {
             current_chunk_footer: Cell::new(chunk_footer_ptr),
             allocation_limit: Cell::new(allocation_limit),
+            #[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]
+            stats: AllocationStats::default(),
         }
     }
 
@@ -1003,6 +1011,9 @@ impl<const MIN_ALIGN: usize> Bump<MIN_ALIGN> {
     /// }
     ///```
     pub fn reset(&mut self) {
+        #[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]
+        self.stats.reset();
+
         // Takes `&mut self` so `self` must be unique and there can't be any
         // borrows active that would get invalidated by resetting.
         unsafe {
@@ -2046,11 +2057,18 @@ impl<const MIN_ALIGN: usize> Bump<MIN_ALIGN> {
     /// Errors if reserving space matching `layout` fails.
     #[inline(always)]
     pub fn try_alloc_layout(&self, layout: Layout) -> Result<NonNull<u8>, AllocErr> {
-        if let Some(p) = self.try_alloc_layout_fast(layout) {
+        let res = if let Some(p) = self.try_alloc_layout_fast(layout) {
             Ok(p)
         } else {
             self.alloc_layout_slow(layout).ok_or(AllocErr)
+        };
+
+        #[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]
+        if res.is_ok() {
+            self.stats.record_allocation();
         }
+
+        res
     }
 
     #[inline(always)]
@@ -2427,6 +2445,12 @@ impl<const MIN_ALIGN: usize> Bump<MIN_ALIGN> {
             } else {
                 let new_ptr = self.try_alloc_layout(new_layout)?;
 
+                #[cfg(all(
+                    feature = "track_allocations",
+                    not(feature = "disable_track_allocations")
+                ))]
+                self.stats.record_reallocation_after_allocation();
+
                 // We know that these regions are nonoverlapping because
                 // `new_ptr` is a fresh allocation.
                 unsafe {
@@ -2494,6 +2518,12 @@ impl<const MIN_ALIGN: usize> Bump<MIN_ALIGN> {
                 // in the `if` condition.
                 ptr::copy_nonoverlapping(ptr.as_ptr(), new_ptr.as_ptr(), new_size);
 
+                #[cfg(all(
+                    feature = "track_allocations",
+                    not(feature = "disable_track_allocations")
+                ))]
+                self.stats.record_reallocation();
+
                 return Ok(new_ptr);
             }
         }
@@ -2525,6 +2555,13 @@ impl<const MIN_ALIGN: usize> Bump<MIN_ALIGN> {
                 self.try_alloc_layout_fast(layout_from_size_align(delta, old_layout.align())?)
             {
                 unsafe { ptr::copy(ptr.as_ptr(), p.as_ptr(), old_size) };
+
+                #[cfg(all(
+                    feature = "track_allocations",
+                    not(feature = "disable_track_allocations")
+                ))]
+                self.stats.record_reallocation();
+
                 return Ok(p);
             }
         }
@@ -2532,6 +2569,10 @@ impl<const MIN_ALIGN: usize> Bump<MIN_ALIGN> {
         // Fallback: do a fresh allocation and copy the existing data into it.
         let new_ptr = self.try_alloc_layout(new_layout)?;
         unsafe { ptr::copy_nonoverlapping(ptr.as_ptr(), new_ptr.as_ptr(), old_size) };
+
+        #[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]
+        self.stats.record_reallocation_after_allocation();
+
         Ok(new_ptr)
     }
 }
