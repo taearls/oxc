@@ -206,7 +206,6 @@ impl Rule for ArrayType {
     }
 
     fn run<'a>(&self, node: &AstNode<'a>, ctx: &LintContext<'a>) {
-        let readonly_config = self.readonly_config();
         match node.kind() {
             AstKind::TSArrayType(ts_array_type) => {
                 check_array_type(
@@ -214,7 +213,7 @@ impl Rule for ArrayType {
                     ts_array_type.span,
                     &ts_array_type.element_type,
                     self.default_config(),
-                    &readonly_config,
+                    &self.readonly_config(),
                     ctx,
                 );
             }
@@ -223,6 +222,7 @@ impl Rule for ArrayType {
                     |type_name| matches!(type_name.name.as_str(), "Array" | "ReadonlyArray"),
                 ) =>
             {
+                let readonly_config = self.readonly_config();
                 if should_skip_type_reference(node, self.default_config(), &readonly_config, ctx) {
                     return;
                 }
