@@ -653,10 +653,7 @@ impl<const MIN_ALIGN: usize> Bump<MIN_ALIGN> {
             "MIN_ALIGN may not be larger than {CHUNK_ALIGN}; found {MIN_ALIGN}"
         );
 
-        Bump {
-            current_chunk_footer: Cell::new(EMPTY_CHUNK.get()),
-            allocation_limit: Cell::new(None),
-        }
+        Self::new_impl(EMPTY_CHUNK.get(), None)
     }
 
     /// Create a new `Bump` that enforces a minimum alignment and starts with
@@ -748,10 +745,7 @@ impl<const MIN_ALIGN: usize> Bump<MIN_ALIGN> {
         );
 
         if capacity == 0 {
-            return Ok(Bump {
-                current_chunk_footer: Cell::new(EMPTY_CHUNK.get()),
-                allocation_limit: Cell::new(None),
-            });
+            return Ok(Self::new_impl(EMPTY_CHUNK.get(), None));
         }
 
         let layout = layout_from_size_align(capacity, MIN_ALIGN)?;
@@ -768,10 +762,18 @@ impl<const MIN_ALIGN: usize> Bump<MIN_ALIGN> {
             .ok_or(AllocErr)?
         };
 
-        Ok(Bump {
-            current_chunk_footer: Cell::new(chunk_footer),
-            allocation_limit: Cell::new(None),
-        })
+        Ok(Self::new_impl(chunk_footer, None))
+    }
+
+    /// Create a new `Bump` from a chunk footer pointer and an optional allocation limit.
+    ///
+    /// This is a helper function for all code paths which create a `Bump`.
+    #[inline(always)]
+    fn new_impl(chunk_footer_ptr: NonNull<ChunkFooter>, allocation_limit: Option<usize>) -> Self {
+        Self {
+            current_chunk_footer: Cell::new(chunk_footer_ptr),
+            allocation_limit: Cell::new(allocation_limit),
+        }
     }
 
     /// Get this bump arena's minimum alignment.
@@ -2602,10 +2604,7 @@ impl<const MIN_ALIGN: usize> Bump<MIN_ALIGN> {
         // This means that the memory chunk we've just created will remain its only chunk.
         // Therefore it can never be deallocated, until the `Bump` is dropped.
         // `Bump::reset` would only reset the "cursor" pointer, not deallocate the memory.
-        Self {
-            current_chunk_footer: Cell::new(chunk_footer_ptr),
-            allocation_limit: Cell::new(Some(size_without_footer)),
-        }
+        Self::new_impl(chunk_footer_ptr, Some(size_without_footer))
     }
 
     /// Set cursor pointer for this [`Bump`]'s current chunk.
