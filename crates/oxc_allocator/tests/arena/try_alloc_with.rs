@@ -4,7 +4,7 @@
 // We only run them when debug_assertions are not set, as we expect them to fail outside release
 // mode.
 
-use oxc_allocator::bump::Arena;
+use oxc_allocator::arena::Arena;
 
 #[test]
 #[cfg_attr(debug_assertions, ignore)]

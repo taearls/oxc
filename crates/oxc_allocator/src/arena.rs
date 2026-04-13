@@ -101,7 +101,7 @@ impl<E: Display> Display for AllocOrInitError<E> {
 /// # Example
 ///
 /// ```
-/// # use oxc_allocator::bump::Arena;
+/// # use oxc_allocator::arena::Arena;
 ///
 /// // Create a new bump arena.
 /// let arena = Arena::new();
@@ -155,7 +155,7 @@ impl<E: Display> Display for AllocOrInitError<E> {
 /// scenarios, rather than raising a panic on OOM.
 ///
 /// ```
-/// # use oxc_allocator::bump::Arena;
+/// # use oxc_allocator::arena::Arena;
 ///
 /// let arena = Arena::new();
 ///
@@ -227,7 +227,7 @@ impl<E: Display> Display for AllocOrInitError<E> {
 /// payload is returned semantically by value:
 ///
 /// ```rust
-/// # use oxc_allocator::bump::Arena;
+/// # use oxc_allocator::arena::Arena;
 ///
 /// let arena = Arena::new();
 ///
@@ -262,7 +262,7 @@ impl<E: Display> Display for AllocOrInitError<E> {
 /// ### Example
 ///
 /// ```
-/// # use oxc_allocator::bump::Arena;
+/// # use oxc_allocator::arena::Arena;
 ///
 /// let arena = Arena::new();
 ///
@@ -549,7 +549,7 @@ impl Arena<1> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     /// let arena = Arena::new();
     /// # let _ = arena;
     /// ```
@@ -562,7 +562,7 @@ impl Arena<1> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     /// let arena = Arena::try_new();
     /// # let _ = arena.unwrap();
     /// ```
@@ -577,7 +577,7 @@ impl Arena<1> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     /// let arena = Arena::with_capacity(100);
     /// # let _ = arena;
     /// ```
@@ -597,7 +597,7 @@ impl Arena<1> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::{AllocErr, Arena};
+    /// # use oxc_allocator::arena::{AllocErr, Arena};
     /// # fn _foo() -> Result<(), AllocErr> {
     /// let arena = Arena::try_with_capacity(100)?;
     /// # let _ = arena;
@@ -633,7 +633,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// type ArenaAlign8 = Arena<8>;
     /// let arena = ArenaAlign8::with_min_align();
@@ -675,7 +675,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// type ArenaAlign8 = Arena<8>;
     /// let mut arena = ArenaAlign8::with_min_align_and_capacity(8 * 100);
@@ -711,7 +711,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::{AllocErr, Arena};
+    /// # use oxc_allocator::arena::{AllocErr, Arena};
     /// # fn _foo() -> Result<(), AllocErr> {
     /// type ArenaAlign8 = Arena<8>;
     /// let mut arena = ArenaAlign8::try_with_min_align_and_capacity(8 * 100)?;
@@ -791,7 +791,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena2 = Arena::<2>::with_min_align();
     /// assert_eq!(arena2.min_align(), 2);
@@ -810,7 +810,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::with_capacity(0);
     ///
@@ -837,7 +837,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::with_capacity(0);
     ///
@@ -990,7 +990,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let mut arena = Arena::new();
     ///
@@ -1060,7 +1060,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let x = arena.alloc("hello");
@@ -1081,7 +1081,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let x = arena.try_alloc("hello");
@@ -1107,7 +1107,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let x = arena.alloc_with(|| "hello");
@@ -1162,7 +1162,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let x = arena.try_alloc_with(|| "hello");
@@ -1234,7 +1234,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let x = arena.alloc_try_with(|| Ok("hello"))?;
@@ -1345,7 +1345,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::{AllocOrInitError, Arena};
+    /// # use oxc_allocator::arena::{AllocOrInitError, Arena};
     ///
     /// let arena = Arena::new();
     /// let x = arena.try_alloc_try_with(|| Ok("hello"))?;
@@ -1433,7 +1433,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let x = arena.alloc_slice_copy(&[1, 2, 3]);
@@ -1459,7 +1459,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::{AllocErr, Arena};
+    /// # use oxc_allocator::arena::{AllocErr, Arena};
     ///
     /// let arena = Arena::new();
     /// let x = arena.try_alloc_slice_copy(&[1, 2, 3]);
@@ -1503,7 +1503,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// #[derive(Clone, Debug, Eq, PartialEq)]
     /// struct Sheep {
@@ -1573,7 +1573,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let hello = arena.alloc_str("hello world");
@@ -1594,7 +1594,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::{AllocErr, Arena};
+    /// # use oxc_allocator::arena::{AllocErr, Arena};
     ///
     /// let arena = Arena::new();
     /// let hello = arena.try_alloc_str("hello world").unwrap();
@@ -1637,7 +1637,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let x = arena.alloc_slice_fill_with(5, |i| 5 * (i + 1));
@@ -1676,7 +1676,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let x: Result<&mut [usize], ()> = arena.alloc_slice_try_fill_with(5, |i| Ok(5 * i));
@@ -1684,7 +1684,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// ```
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let x: Result<&mut [usize], ()> = arena.alloc_slice_try_fill_with(
@@ -1737,7 +1737,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::{AllocErr, Arena};
+    /// # use oxc_allocator::arena::{AllocErr, Arena};
     ///
     /// let arena = Arena::new();
     /// let x = arena.try_alloc_slice_fill_with(5, |i| 5 * (i + 1));
@@ -1794,7 +1794,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let x = arena.alloc_slice_fill_copy(5, 42);
@@ -1835,7 +1835,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let s: String = "Hello Arena!".to_string();
@@ -1880,7 +1880,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let x: &[i32] = arena.alloc_slice_fill_iter([2, 3, 5].iter().cloned().map(|i| i * i));
@@ -1911,7 +1911,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Examples
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let x: Result<&mut [i32], ()> = arena.alloc_slice_try_fill_iter(
@@ -1921,7 +1921,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// ```
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let x: Result<&mut [i32], ()> = arena.alloc_slice_try_fill_iter(
@@ -1956,7 +1956,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let x: &[i32] = arena.try_alloc_slice_fill_iter([2, 3, 5]
@@ -2003,7 +2003,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let x = arena.alloc_slice_fill_default::<u32>(5);
@@ -2170,7 +2170,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::with_capacity(100);
     ///
@@ -2285,7 +2285,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let mut arena = Arena::new();
     ///
@@ -2371,7 +2371,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # Example
     ///
     /// ```
-    /// # use oxc_allocator::bump::Arena;
+    /// # use oxc_allocator::arena::Arena;
     ///
     /// let arena = Arena::new();
     /// let _x = arena.alloc_slice_fill_default::<u32>(5);

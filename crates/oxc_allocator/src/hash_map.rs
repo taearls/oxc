@@ -20,7 +20,7 @@ use std::{
 
 use rustc_hash::FxBuildHasher;
 
-use crate::bump::Arena;
+use crate::arena::Arena;
 
 // Re-export additional types from `hashbrown`
 pub use hashbrown::{

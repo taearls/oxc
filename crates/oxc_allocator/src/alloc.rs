@@ -8,7 +8,7 @@ use std::{
 
 use allocator_api2::alloc::Allocator;
 
-use crate::bump::Arena;
+use crate::arena::Arena;
 
 /// Trait describing an allocator.
 ///

@@ -1,4 +1,4 @@
-use oxc_allocator::bump::Arena;
+use oxc_allocator::arena::Arena;
 use std::alloc::Layout;
 use std::cmp;
 use std::iter::repeat;

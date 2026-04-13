@@ -1,6 +1,6 @@
 use crate::quickcheck;
 use ::quickcheck::{Arbitrary, Gen};
-use oxc_allocator::bump::Arena;
+use oxc_allocator::arena::Arena;
 use std::mem;
 
 #[derive(Clone, Debug, PartialEq)]

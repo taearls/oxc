@@ -878,7 +878,7 @@ fn handle_error(error: AllocError) -> ! {
 
 #[cfg(test)]
 mod tests {
-    use crate::bump::Arena;
+    use crate::arena::Arena;
 
     use super::*;
 

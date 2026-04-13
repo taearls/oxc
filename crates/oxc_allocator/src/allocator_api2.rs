@@ -6,7 +6,7 @@ use std::{alloc::Layout, ptr::NonNull};
 
 use allocator_api2::alloc::{AllocError, Allocator};
 
-/// SAFETY: See `bump.rs` for the implementation of `Allocator` for `&Arena`.
+/// SAFETY: See `arena.rs` for the implementation of `Allocator` for `&Arena`.
 unsafe impl Allocator for &crate::Allocator {
     #[inline(always)]
     fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {

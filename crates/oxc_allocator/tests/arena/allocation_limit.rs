@@ -1,4 +1,4 @@
-use oxc_allocator::bump::Arena;
+use oxc_allocator::arena::Arena;
 
 #[test]
 fn allocation_limit_trivial() {

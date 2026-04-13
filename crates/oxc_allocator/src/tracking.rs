@@ -11,7 +11,7 @@
 
 use std::cell::Cell;
 
-use crate::{Allocator, bump::Arena};
+use crate::{Allocator, arena::Arena};
 
 /// Counters of allocations and reallocations made in an [`Allocator`].
 #[derive(Default, Debug)]

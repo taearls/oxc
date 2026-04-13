@@ -6,7 +6,7 @@
 
 use std::iter::repeat;
 
-use oxc_allocator::bump::Arena;
+use oxc_allocator::arena::Arena;
 
 #[test]
 #[cfg_attr(debug_assertions, ignore)]

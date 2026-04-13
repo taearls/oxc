@@ -8,7 +8,7 @@
     clippy::uninlined_format_args
 )]
 
-use oxc_allocator::bump::{AllocOrInitError, Arena};
+use oxc_allocator::arena::{AllocOrInitError, Arena};
 use rand::RngExt as _;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicBool, Ordering};

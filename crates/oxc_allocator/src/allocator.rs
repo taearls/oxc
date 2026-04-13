@@ -4,7 +4,7 @@ use std::{
     slice, str,
 };
 
-use crate::bump::Arena;
+use crate::arena::Arena;
 
 use oxc_data_structures::assert_unchecked;
 

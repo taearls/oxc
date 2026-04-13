@@ -9,7 +9,7 @@ use std::ptr::NonNull;
 
 use crate::{
     Allocator,
-    bump::{Arena, CHUNK_ALIGN, CHUNK_FOOTER_SIZE},
+    arena::{Arena, CHUNK_ALIGN, CHUNK_FOOTER_SIZE},
 };
 
 impl Allocator {
