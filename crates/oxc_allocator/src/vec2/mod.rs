@@ -1774,9 +1774,9 @@ impl<'a, T: 'a, A: Alloc> Vec<'a, T, A> {
 
         let other_len = self.len_usize() - at;
         // SAFETY: This method takes a `&mut self`. It lives for the duration of this method
-        // - longer than we use `bump` for.
-        let bump = unsafe { self.buf.bump() };
-        let mut other = Vec::with_capacity_in(other_len, bump);
+        // - longer than we use `arena` for.
+        let arena = unsafe { self.buf.arena() };
+        let mut other = Vec::with_capacity_in(other_len, arena);
 
         // Unsafely `set_len` and copy items to `other`.
         unsafe {
@@ -2723,10 +2723,10 @@ impl<I: Iterator, A: Alloc> Drop for Splice<'_, '_, I, A> {
             // `Splice` inherits the lifetime of `&mut self` from that method, so the mut borrow
             // of the `Vec` is held for the life of the `Splice`.
             // Therefore we have exclusive access to the `Vec` until end of this method.
-            // That is longer than we use `bump` for.
-            let bump = self.drain.vec.as_ref().buf.bump();
+            // That is longer than we use `arena` for.
+            let arena = self.drain.vec.as_ref().buf.arena();
 
-            let mut collected = Vec::new_in(bump);
+            let mut collected = Vec::new_in(arena);
             collected.extend(self.replace_with.by_ref());
             let mut collected = collected.into_iter();
             // Now we have an exact count.

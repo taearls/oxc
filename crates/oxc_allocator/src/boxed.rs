@@ -97,7 +97,7 @@ impl<T> Box<'_, T> {
         // guaranteed to be unique - not just now, but we're guaranteed it's not
         // borrowed from some other reference. This in turn is because we never
         // construct a `Box` with a borrowed reference, only with a fresh
-        // one just allocated from a `Bump`.
+        // one just allocated from an `Arena`.
         unsafe { ptr::read(self.0.as_ptr()) }
     }
 }
@@ -210,7 +210,7 @@ impl<T: ?Sized> Deref for Box<'_, T> {
 
     #[inline]
     fn deref(&self) -> &T {
-        // SAFETY: `self.0` is always a unique reference allocated from a `Bump` in `Box::new_in`,
+        // SAFETY: `self.0` is always a unique reference allocated from an `Arena` in `Box::new_in`,
         // or an empty slice allocated from `Box::new_empty_boxed_slice`
         unsafe { self.0.as_ref() }
     }
@@ -219,7 +219,7 @@ impl<T: ?Sized> Deref for Box<'_, T> {
 impl<T: ?Sized> DerefMut for Box<'_, T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut T {
-        // SAFETY: `self.0` is always a unique reference allocated from a `Bump` in `Box::new_in`,
+        // SAFETY: `self.0` is always a unique reference allocated from an `Arena` in `Box::new_in`,
         // or an empty slice allocated from `Box::new_empty_boxed_slice`
         unsafe { self.0.as_mut() }
     }
