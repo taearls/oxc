@@ -102,6 +102,7 @@ declare_oxc_lint!(
     NoUselessAssignment,
     eslint,
     nursery,
+    version = "1.59.0",
 );
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

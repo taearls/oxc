@@ -183,6 +183,7 @@ declare_oxc_lint!(
     eslint,
     nursery, // TODO: change category to `restriction`
     config = NoRestrictedExportsConfig,
+    version = "1.59.0",
 );
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
