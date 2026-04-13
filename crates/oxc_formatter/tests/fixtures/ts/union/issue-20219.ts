@@ -17,3 +17,16 @@ export type MultilineJSDoc =
    * This is a multiline comment.
    */
   | 'CREATED_AT';
+
+// Line comment before single union member
+type LineComment =
+  // line comment
+  | 'VALUE';
+
+// Intersection type with own-line comment
+type IntersectionComment =
+  /** JSDoc */
+  & 'VALUE';
+
+// Inline comment should still be relocated (not own-line)
+type InlineComment = /*1*/ | C;

@@ -28,10 +28,15 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TSUnionType<'a>> {
         // should be inlined and not be printed in the multi-line variant
         let should_hug = should_hug_type(self, f);
         if should_hug {
-            // Don't take the hug shortcut when a single-member union at the type-alias level
-            // has own-line leading comments (e.g. a JSDoc block before `| 'Value'`).
-            // Those comments must be handled by the normal union formatting path so they are
-            // printed with correct indentation. See https://github.com/oxc-project/oxc/issues/20219
+            // Don't take the hug shortcut
+            // when a single-member union at the type-alias level has own-line leading comments.
+            // ```ts
+            // type A =
+            //   /** JSDoc */
+            //   | 'VALUE';
+            // ```
+            // Those comments must be handled by the normal union formatting path,
+            // so they are printed with correct indentation.
             let has_alias_level_own_line_comments =
                 matches!(self.parent(), AstNodes::TSTypeAliasDeclaration(_))
                     && f.comments().has_leading_own_line_comment(self.span().start);
