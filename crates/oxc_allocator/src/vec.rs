@@ -186,7 +186,7 @@ impl<'alloc, T> Vec<'alloc, T> {
     /// [`Box<[T]>`]: Box
     #[inline]
     pub fn into_boxed_slice(self) -> Box<'alloc, [T]> {
-        let slice = self.0.into_bump_slice_mut();
+        let slice = self.0.into_arena_slice_mut();
         let ptr = NonNull::from(slice);
         // SAFETY: `ptr` points to a valid `[T]`.
         // Contents of the `Vec` are in an arena.
@@ -205,12 +205,12 @@ impl<'alloc, T> Vec<'alloc, T> {
     /// let allocator = Allocator::default();
     ///
     /// let mut vec = Vec::from_iter_in([1, 2, 3], &allocator);
-    /// let slice = vec.into_bump_slice();
+    /// let slice = vec.into_arena_slice();
     /// assert_eq!(slice, [1, 2, 3]);
     /// ```
     #[inline]
-    pub fn into_bump_slice(self) -> &'alloc [T] {
-        self.0.into_bump_slice()
+    pub fn into_arena_slice(self) -> &'alloc [T] {
+        self.0.into_arena_slice()
     }
 
     /// Converts [`Vec<T>`] into [`&'alloc mut [T]`].
@@ -223,13 +223,13 @@ impl<'alloc, T> Vec<'alloc, T> {
     /// let allocator = Allocator::default();
     ///
     /// let vec = Vec::from_iter_in([1, 2, 3], &allocator);
-    /// let slice = vec.into_bump_slice_mut();
+    /// let slice = vec.into_arena_slice_mut();
     /// slice[0] = 4;
     /// assert_eq!(slice, [4, 2, 3]);
     /// ```
     #[inline]
-    pub fn into_bump_slice_mut(self) -> &'alloc mut [T] {
-        self.0.into_bump_slice_mut()
+    pub fn into_arena_slice_mut(self) -> &'alloc mut [T] {
+        self.0.into_arena_slice_mut()
     }
 }
 
