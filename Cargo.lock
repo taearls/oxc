@@ -2068,6 +2068,7 @@ dependencies = [
 name = "oxc_language_server"
 version = "1.41.0"
 dependencies = [
+ "cow-utils",
  "futures",
  "papaya",
  "rustc-hash",
