@@ -2802,7 +2802,7 @@ unsafe impl<const MIN_ALIGN: usize> BumpaloAlloc for &Arena<MIN_ALIGN> {
 
 /// This function tests that Arena isn't Sync.
 /// ```compile_fail
-/// use oxc_allocator::Arena;
+/// use oxc_allocator::arena::Arena;
 /// fn _requires_sync<T: Sync>(_value: T) {}
 /// fn _arena_not_sync(b: Arena) {
 ///    _requires_sync(b);
