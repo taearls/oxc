@@ -63,7 +63,8 @@ impl ResolvedPath {
         // since the URI does not respect case sensitivity, but the file system does
         #[cfg(target_os = "macos")]
         {
-            std::fs::canonicalize(&path).map(Self).unwrap_or_else(|_| Self(path)) // if the path does not exist, we can just return it as is
+            // if the path does not exist, we can just return it as is
+            std::fs::canonicalize(&path).map_or_else(|_| Self(path), Self)
         }
 
         // on windows we need to remove `\\?\` prefix if it exists, since it can cause issues with some file system operations
