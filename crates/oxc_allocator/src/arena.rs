@@ -1594,24 +1594,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         total
     }
 
-    /// Calculates the number of bytes requested from the Rust allocator for this `Arena`.
-    ///
-    /// This number is equal to the [`allocated_bytes()`](Self::allocated_bytes) plus
-    /// the size of the metadata.
-    pub fn allocated_bytes_including_metadata(&self) -> usize {
-        let mut total = 0;
-        let mut footer_ptr = self.current_chunk_footer.get();
-        // SAFETY: Walk the chunk list until the empty sentinel chunk.
-        // Every non-empty chunk is a live allocation whose `layout.size()` includes the footer.
-        unsafe {
-            while !footer_ptr.as_ref().is_empty() {
-                total += footer_ptr.as_ref().layout.size();
-                footer_ptr = footer_ptr.as_ref().prev.get();
-            }
-        }
-        total
-    }
-
     #[inline]
     unsafe fn is_last_allocation(&self, ptr: NonNull<u8>) -> bool {
         let footer = self.current_chunk_footer.get();
@@ -2105,29 +2087,20 @@ mod tests {
         assert_eq!(mem::size_of::<ChunkFooter>(), mem::size_of::<usize>() * 8);
     }
 
-    // Uses private `DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER` and `CHUNK_FOOTER_SIZE`.
+    // Uses private `DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER`.
     #[test]
     fn allocated_bytes() {
         let mut b = Arena::new();
 
         assert_eq!(b.allocated_bytes(), 0);
-        assert_eq!(b.allocated_bytes_including_metadata(), 0);
 
         b.alloc(0u8);
 
         assert_eq!(b.allocated_bytes(), DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER);
-        assert_eq!(
-            b.allocated_bytes_including_metadata(),
-            DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER + CHUNK_FOOTER_SIZE
-        );
 
         b.reset();
 
         assert_eq!(b.allocated_bytes(), DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER);
-        assert_eq!(
-            b.allocated_bytes_including_metadata(),
-            DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER + CHUNK_FOOTER_SIZE
-        );
     }
 
     // Uses private `bumpalo_alloc` module.
