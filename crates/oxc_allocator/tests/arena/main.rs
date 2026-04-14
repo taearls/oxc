@@ -26,14 +26,12 @@
 #![cfg_attr(debug_assertions, expect(clippy::ignore_without_reason))]
 
 mod alloc_fill;
-mod alloc_try_with;
 mod alloc_with;
 mod allocation_limit;
 mod capacity;
 mod quickcheck;
 mod quickchecks;
 mod tests;
-mod try_alloc_try_with;
 mod try_alloc_with;
 
 fn main() {}

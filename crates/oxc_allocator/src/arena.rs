@@ -9,7 +9,6 @@ use std::{
     alloc::{Layout, alloc, dealloc},
     cell::Cell,
     cmp::Ordering,
-    fmt::{self, Display},
     hint::unreachable_unchecked,
     iter,
     marker::PhantomData,
@@ -25,32 +24,6 @@ pub use crate::bumpalo_alloc::AllocErr;
 
 #[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]
 use crate::tracking::AllocationStats;
-
-/// An error returned from [`Arena::try_alloc_try_with`].
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub enum AllocOrInitError<E> {
-    /// Indicates that the initial allocation failed.
-    Alloc(AllocErr),
-    /// Indicates that the initializer failed with the contained error after
-    /// allocation.
-    ///
-    /// It is possible but not guaranteed that the allocated memory has been
-    /// released back to the allocator at this point.
-    Init(E),
-}
-impl<E> From<AllocErr> for AllocOrInitError<E> {
-    fn from(e: AllocErr) -> Self {
-        Self::Alloc(e)
-    }
-}
-impl<E: Display> Display for AllocOrInitError<E> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            AllocOrInitError::Alloc(err) => err.fmt(f),
-            AllocOrInitError::Init(err) => write!(f, "initialization failed: {err}"),
-        }
-    }
-}
 
 /// An arena to allocate into.
 ///
@@ -140,11 +113,6 @@ impl<E: Display> Display for AllocOrInitError<E> {
 ///       <td><a href="#method.alloc_with"><code>alloc_with</code></a></td>
 ///       <td><a href="#method.try_alloc_with"><code>try_alloc_with</code></a></td>
 ///     </tr>
-///     <tr>
-///       <th>Fallible Initializer Function</th>
-///       <td><a href="#method.alloc_try_with"><code>alloc_try_with</code></a></td>
-///       <td><a href="#method.try_alloc_try_with"><code>try_alloc_try_with</code></a></td>
-///     </tr>
 ///   <tbody>
 ///   </tbody>
 /// </table>
@@ -202,53 +170,6 @@ impl<E: Display> Display for AllocOrInitError<E> {
 /// Even when optimizations are on, these functions do not **guarantee** that
 /// the value is constructed on the heap. To the best of our knowledge no such
 /// guarantee can be made in stable Rust as of 1.54.
-///
-/// ## Fallible Initialization: The `_try_with` Method Suffix
-///
-/// The generic [`…alloc_try_with(|| x)`](?search=_try_with) methods behave
-/// like the purely `_with` suffixed methods explained above. However, they
-/// allow for fallible initialization by accepting a closure that returns a
-/// [`Result`] and will attempt to undo the initial allocation if this closure
-/// returns [`Err`].
-///
-/// ### Warning
-///
-/// If the inner closure returns [`Ok`], space for the entire [`Result`] remains
-/// allocated inside `self`. This can be a problem especially if the [`Err`]
-/// variant is larger, but even otherwise there may be overhead for the
-/// [`Result`]'s discriminant.
-///
-/// <p><details><summary>Undoing the allocation in the <code>Err</code> case
-/// always fails if <code>f</code> successfully made any additional allocations
-/// in <code>self</code>.</summary>
-///
-/// For example, the following will always leak also space for the [`Result`]
-/// into this `Arena`, even though the inner reference isn't kept and the [`Err`]
-/// payload is returned semantically by value:
-///
-/// ```rust
-/// # use oxc_allocator::arena::Arena;
-///
-/// let arena = Arena::new();
-///
-/// let r: Result<&mut [u8; 1000], ()> = arena.alloc_try_with(|| {
-///     let _ = arena.alloc(0_u8);
-///     Err(())
-/// });
-///
-/// assert!(r.is_err());
-/// ```
-///
-///</details></p>
-///
-/// Since [`Err`] payloads are first placed on the heap and then moved to the
-/// stack, `arena.…alloc_try_with(|| x)?` is likely to execute more slowly than
-/// the matching `arena.…alloc(x?)` in case of initialization failure. If this
-/// happens frequently, using the plain un-suffixed method may perform better.
-///
-/// [`Result`]: https://doc.rust-lang.org/std/result/enum.Result.html
-/// [`Ok`]: https://doc.rust-lang.org/std/result/enum.Result.html#variant.Ok
-/// [`Err`]: https://doc.rust-lang.org/std/result/enum.Result.html#variant.Err
 ///
 /// ## `Arena` Allocation Limits
 ///
@@ -1200,226 +1121,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         unsafe {
             inner_writer(p, f);
             Ok(&mut *p)
-        }
-    }
-
-    /// Pre-allocates space for a [`Result`] in this `Arena`, initializes it using
-    /// the closure, then returns an exclusive reference to its `T` if [`Ok`].
-    ///
-    /// Iff the allocation fails, the closure is not run.
-    ///
-    /// Iff [`Err`], an allocator rewind is *attempted* and the `E` instance is
-    /// moved out of the allocator to be consumed or dropped as normal.
-    ///
-    /// See [The `_with` Method Suffix](#initializer-functions-the-_with-method-suffix) for a
-    /// discussion on the differences between the `_with` suffixed methods and
-    /// those methods without it, their performance characteristics, and when
-    /// you might or might not choose a `_with` suffixed method.
-    ///
-    /// For caveats specific to fallible initialization, see
-    /// [The `_try_with` Method Suffix](#fallible-initialization-the-_try_with-method-suffix).
-    ///
-    /// [`Result`]: https://doc.rust-lang.org/std/result/enum.Result.html
-    /// [`Ok`]: https://doc.rust-lang.org/std/result/enum.Result.html#variant.Ok
-    /// [`Err`]: https://doc.rust-lang.org/std/result/enum.Result.html#variant.Err
-    ///
-    /// # Errors
-    ///
-    /// Iff the allocation succeeds but `f` fails, that error is forwarded by value.
-    ///
-    /// # Panics
-    ///
-    /// Panics if reserving space for `Result<T, E>` fails.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use oxc_allocator::arena::Arena;
-    ///
-    /// let arena = Arena::new();
-    /// let x = arena.alloc_try_with(|| Ok("hello"))?;
-    /// assert_eq!(*x, "hello");
-    /// # Result::<_, ()>::Ok(())
-    /// ```
-    #[expect(clippy::mut_from_ref)]
-    #[inline(always)]
-    pub fn alloc_try_with<F, T, E>(&self, f: F) -> Result<&mut T, E>
-    where
-        F: FnOnce() -> Result<T, E>,
-    {
-        let rewind_footer = self.current_chunk_footer.get();
-        let rewind_ptr = unsafe { rewind_footer.as_ref() }.ptr.get();
-        let mut inner_result_ptr = NonNull::from(self.alloc_with(f));
-        match unsafe { inner_result_ptr.as_mut() } {
-            Ok(t) => Ok(unsafe {
-                //SAFETY:
-                // The `&mut Result<T, E>` returned by `alloc_with` may be
-                // lifetime-limited by `E`, but the derived `&mut T` still has
-                // the same validity as in `alloc_with` since the error variant
-                // is already ruled out here.
-
-                // We could conditionally truncate the allocation here, but
-                // since it grows backwards, it seems unlikely that we'd get
-                // any more than the `Result`'s discriminant this way, if
-                // anything at all.
-                &mut *ptr::from_mut(t)
-            }),
-            Err(e) => unsafe {
-                // If this result was the last allocation in this arena, we can
-                // reclaim its space. In fact, sometimes we can do even better
-                // than simply calling `dealloc` on the result pointer: we can
-                // reclaim any alignment padding we might have added (which
-                // `dealloc` cannot do) if we didn't allocate a new chunk for
-                // this result.
-                if self.is_last_allocation(inner_result_ptr.cast()) {
-                    let current_footer_p = self.current_chunk_footer.get();
-                    let current_ptr = &current_footer_p.as_ref().ptr;
-                    if current_footer_p == rewind_footer {
-                        // It's still the same chunk, so reset the bump pointer
-                        // to its original value upon entry to this method
-                        // (reclaiming any alignment padding we may have
-                        // added).
-                        current_ptr.set(rewind_ptr);
-                    } else {
-                        // We allocated a new chunk for this result.
-                        //
-                        // We know the result is the only allocation in this
-                        // chunk: Any additional allocations since the start of
-                        // this method could only have happened when running
-                        // the initializer function, which is called *after*
-                        // reserving space for this result. Therefore, since we
-                        // already determined via the check above that this
-                        // result was the last allocation, there must not have
-                        // been any other allocations, and this result is the
-                        // only allocation in this chunk.
-                        //
-                        // Because this is the only allocation in this chunk,
-                        // we can reset the chunk's bump finger to the start of
-                        // the chunk.
-                        current_ptr.set(current_footer_p.as_ref().data);
-                    }
-                }
-                //SAFETY:
-                // As we received `E` semantically by value from `f`, we can
-                // just copy that value here as long as we avoid a double-drop
-                // (which can't happen as any specific references to the `E`'s
-                // data in `self` are destroyed when this function returns).
-                //
-                // The order between this and the deallocation doesn't matter
-                // because `Self: !Sync`.
-                Err(ptr::read(ptr::from_ref(e)))
-            },
-        }
-    }
-
-    /// Tries to pre-allocates space for a [`Result`] in this `Arena`,
-    /// initializes it using the closure, then returns an exclusive reference
-    /// to its `T` if all [`Ok`].
-    ///
-    /// Iff the allocation fails, the closure is not run.
-    ///
-    /// Iff the closure returns [`Err`], an allocator rewind is *attempted* and
-    /// the `E` instance is moved out of the allocator to be consumed or dropped
-    /// as normal.
-    ///
-    /// See [The `_with` Method Suffix](#initializer-functions-the-_with-method-suffix) for a
-    /// discussion on the differences between the `_with` suffixed methods and
-    /// those methods without it, their performance characteristics, and when
-    /// you might or might not choose a `_with` suffixed method.
-    ///
-    /// For caveats specific to fallible initialization, see
-    /// [The `_try_with` Method Suffix](#fallible-initialization-the-_try_with-method-suffix).
-    ///
-    /// [`Result`]: https://doc.rust-lang.org/std/result/enum.Result.html
-    /// [`Ok`]: https://doc.rust-lang.org/std/result/enum.Result.html#variant.Ok
-    /// [`Err`]: https://doc.rust-lang.org/std/result/enum.Result.html#variant.Err
-    ///
-    /// # Errors
-    ///
-    /// Errors with the [`Alloc`](`AllocOrInitError::Alloc`) variant iff
-    /// reserving space for `Result<T, E>` fails.
-    ///
-    /// Iff the allocation succeeds but `f` fails, that error is forwarded by
-    /// value inside the [`Init`](`AllocOrInitError::Init`) variant.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use oxc_allocator::arena::{AllocOrInitError, Arena};
-    ///
-    /// let arena = Arena::new();
-    /// let x = arena.try_alloc_try_with(|| Ok("hello"))?;
-    /// assert_eq!(*x, "hello");
-    /// # Result::<_, AllocOrInitError<()>>::Ok(())
-    /// ```
-    #[expect(clippy::mut_from_ref)]
-    #[inline(always)]
-    pub fn try_alloc_try_with<F, T, E>(&self, f: F) -> Result<&mut T, AllocOrInitError<E>>
-    where
-        F: FnOnce() -> Result<T, E>,
-    {
-        let rewind_footer = self.current_chunk_footer.get();
-        let rewind_ptr = unsafe { rewind_footer.as_ref() }.ptr.get();
-        let mut inner_result_ptr = NonNull::from(self.try_alloc_with(f)?);
-        match unsafe { inner_result_ptr.as_mut() } {
-            Ok(t) => Ok(unsafe {
-                //SAFETY:
-                // The `&mut Result<T, E>` returned by `alloc_with` may be
-                // lifetime-limited by `E`, but the derived `&mut T` still has
-                // the same validity as in `alloc_with` since the error variant
-                // is already ruled out here.
-
-                // We could conditionally truncate the allocation here, but
-                // since it grows backwards, it seems unlikely that we'd get
-                // any more than the `Result`'s discriminant this way, if
-                // anything at all.
-                &mut *ptr::from_mut(t)
-            }),
-            Err(e) => unsafe {
-                // If this result was the last allocation in this arena, we can
-                // reclaim its space. In fact, sometimes we can do even better
-                // than simply calling `dealloc` on the result pointer: we can
-                // reclaim any alignment padding we might have added (which
-                // `dealloc` cannot do) if we didn't allocate a new chunk for
-                // this result.
-                if self.is_last_allocation(inner_result_ptr.cast()) {
-                    let current_footer_p = self.current_chunk_footer.get();
-                    let current_ptr = &current_footer_p.as_ref().ptr;
-                    if current_footer_p == rewind_footer {
-                        // It's still the same chunk, so reset the bump pointer
-                        // to its original value upon entry to this method
-                        // (reclaiming any alignment padding we may have
-                        // added).
-                        current_ptr.set(rewind_ptr);
-                    } else {
-                        // We allocated a new chunk for this result.
-                        //
-                        // We know the result is the only allocation in this
-                        // chunk: Any additional allocations since the start of
-                        // this method could only have happened when running
-                        // the initializer function, which is called *after*
-                        // reserving space for this result. Therefore, since we
-                        // already determined via the check above that this
-                        // result was the last allocation, there must not have
-                        // been any other allocations, and this result is the
-                        // only allocation in this chunk.
-                        //
-                        // Because this is the only allocation in this chunk,
-                        // we can reset the chunk's bump finger to the start of
-                        // the chunk.
-                        current_ptr.set(current_footer_p.as_ref().data);
-                    }
-                }
-                //SAFETY:
-                // As we received `E` semantically by value from `f`, we can
-                // just copy that value here as long as we avoid a double-drop
-                // (which can't happen as any specific references to the `E`'s
-                // data in `self` are destroyed when this function returns).
-                //
-                // The order between this and the deallocation doesn't matter
-                // because `Self: !Sync`.
-                Err(AllocOrInitError::Init(ptr::read(ptr::from_ref(e))))
-            },
         }
     }
 

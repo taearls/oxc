@@ -47,6 +47,16 @@ fn alloc_slice_try_fill_with_fails() {
     assert_eq!(res, Err(()));
 }
 
+// This test will fail with "fatal runtime error: stack overflow" unless LLVM manages to optimize the stack writes away.
+// We only run it when debug_assertions are not set, as we expect it to fail outside release mode.
+#[test]
+#[cfg_attr(debug_assertions, ignore)]
+fn alloc_slice_try_fill_with_large_length() {
+    let b = Arena::new();
+
+    assert!(b.alloc_slice_try_fill_with(10_000_000, |_| Err::<u8, _>(())).is_err());
+}
+
 #[test]
 fn alloc_slice_try_fill_iter_succeeds() {
     let b = Arena::new();
@@ -61,6 +71,17 @@ fn alloc_slice_try_fill_iter_fails() {
     let elems = repeat(()).take(10).collect::<Vec<_>>();
     let res: Result<&mut [u16], ()> = b.alloc_slice_try_fill_iter(elems.into_iter().map(Err));
     assert_eq!(res, Err(()));
+}
+
+// This test will fail with "fatal runtime error: stack overflow" unless LLVM manages to optimize the stack writes away.
+// We only run it when debug_assertions are not set, as we expect it to fail outside release mode.
+#[test]
+#[cfg_attr(debug_assertions, ignore)]
+fn alloc_slice_try_fill_iter_large_length() {
+    let b = Arena::new();
+
+    let elems = repeat(Err::<u8, _>(())).take(10_000_000).collect::<Vec<_>>();
+    assert!(b.alloc_slice_try_fill_iter(elems).is_err());
 }
 
 #[test]
