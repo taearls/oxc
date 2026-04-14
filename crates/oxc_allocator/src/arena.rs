@@ -534,7 +534,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             "MIN_ALIGN may not be larger than {CHUNK_ALIGN}; found {MIN_ALIGN}"
         );
 
-        Self::new_impl(EMPTY_CHUNK.get(), true)
+        Self::new_impl(EMPTY_CHUNK.get())
     }
 
     /// Create a new `Arena` that enforces a minimum alignment and starts with
@@ -626,7 +626,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         );
 
         if capacity == 0 {
-            return Ok(Self::new_impl(EMPTY_CHUNK.get(), true));
+            return Ok(Self::new_impl(EMPTY_CHUNK.get()));
         }
 
         let layout = layout_from_size_align(capacity, MIN_ALIGN)?;
@@ -643,17 +643,17 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             .ok_or(AllocErr)?
         };
 
-        Ok(Self::new_impl(chunk_footer, true))
+        Ok(Self::new_impl(chunk_footer))
     }
 
     /// Create a new `Arena` from a chunk footer pointer.
     ///
     /// This is a helper function for all code paths which create an `Arena`.
     #[inline(always)]
-    fn new_impl(chunk_footer_ptr: NonNull<ChunkFooter>, can_grow: bool) -> Self {
+    fn new_impl(chunk_footer_ptr: NonNull<ChunkFooter>) -> Self {
         Self {
             current_chunk_footer: Cell::new(chunk_footer_ptr),
-            can_grow,
+            can_grow: true,
             #[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]
             stats: AllocationStats::default(),
         }
@@ -1839,11 +1839,13 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         // Therefore `chunk_footer_ptr` is valid for writing a `ChunkFooter`.
         unsafe { chunk_footer_ptr.write(chunk_footer) };
 
-        // Create `Arena` with `can_grow = false`.
+        // Create `Arena` and set `can_grow` to `false`.
         // This means that the memory chunk we've just created will remain its only chunk.
         // Therefore it can never be deallocated, until the `Arena` is dropped.
         // `Arena::reset` would only reset the "cursor" pointer, not deallocate the memory.
-        Self::new_impl(chunk_footer_ptr, false)
+        let mut arena = Self::new_impl(chunk_footer_ptr);
+        arena.can_grow = false;
+        arena
     }
 
     /// Set cursor pointer for this [`Arena`]'s current chunk.
