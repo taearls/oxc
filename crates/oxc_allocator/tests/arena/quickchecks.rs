@@ -253,28 +253,6 @@ quickcheck! {
         }
     }
 
-    // MIRI exits with failure when we try to allocate more memory than its
-    // sandbox has, rather than returning null from the allocation
-    // function. This test runs afoul of that bug.
-    #[cfg(not(miri))]
-    fn limit_is_never_exceeded(limit: usize) -> bool {
-        let arena = Arena::new();
-
-        arena.set_allocation_limit(Some(limit));
-
-        // The exact numbers here on how much to allocate are a bit murky but we
-        // have two main goals.
-        //
-        // - Attempt to allocate over the allocation limit imposed
-        // - Allocate in increments small enough that at least a few allocations succeed
-        let layout = std::alloc::Layout::array::<u8>(limit / 16).unwrap();
-        for _ in 0..32 {
-            let _ = arena.try_alloc_layout(layout);
-        }
-
-        arena.allocated_bytes() <= limit
-    }
-
     fn allocated_bytes_including_metadata(allocs: Vec<usize>) -> () {
         let b = Arena::new();
         let mut slice_bytes = 0;

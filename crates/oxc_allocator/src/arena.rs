@@ -170,49 +170,12 @@ use crate::tracking::AllocationStats;
 /// Even when optimizations are on, these functions do not **guarantee** that
 /// the value is constructed on the heap. To the best of our knowledge no such
 /// guarantee can be made in stable Rust as of 1.54.
-///
-/// ## `Arena` Allocation Limits
-///
-/// `Arena` supports setting a limit on the maximum bytes of memory that can
-/// be allocated for use in a particular `Arena` arena. This limit can be set and removed with
-/// [`set_allocation_limit`].
-/// The allocation limit is only enforced when allocating new backing chunks for
-/// an `Arena`. Updating the allocation limit will not affect existing allocations
-/// or any future allocations within the `Arena`'s current chunk.
-///
-/// ### Example
-///
-/// ```
-/// # use oxc_allocator::arena::Arena;
-///
-/// let arena = Arena::new();
-///
-/// assert_eq!(arena.allocation_limit(), None);
-/// arena.set_allocation_limit(Some(0));
-///
-/// assert!(arena.try_alloc(5).is_err());
-///
-/// arena.set_allocation_limit(Some(6));
-///
-/// assert_eq!(arena.allocation_limit(), Some(6));
-///
-/// arena.set_allocation_limit(None);
-///
-/// assert_eq!(arena.allocation_limit(), None);
-/// ```
-///
-/// ### Warning
-///
-/// Because of backwards compatibility, allocations that fail
-/// due to allocation limits will not present differently than
-/// errors due to resource exhaustion.
-///
-/// [`set_allocation_limit`]: Arena::set_allocation_limit
 #[derive(Debug)]
 pub struct Arena<const MIN_ALIGN: usize = 1> {
     // The current chunk we are bump allocating within.
     current_chunk_footer: Cell<NonNull<ChunkFooter>>,
-    allocation_limit: Cell<Option<usize>>,
+    // Whether this `Arena` is allowed to allocate additional chunks when the current one is full.
+    can_grow: bool,
     /// Used to track number of allocations made in this `Arena` when `track_allocations` feature is enabled
     #[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]
     pub(crate) stats: AllocationStats,
@@ -237,12 +200,6 @@ struct ChunkFooter {
 
     // Bump allocation finger that is always in the range `self.data..=self`.
     ptr: Cell<NonNull<u8>>,
-
-    // The bytes allocated in all chunks so far, the canonical empty chunk has
-    // a size of 0 and for all other chunks, `allocated_bytes` will be
-    // the allocated_bytes of the current chunk plus the allocated bytes
-    // of the `prev` chunk.
-    allocated_bytes: usize,
 }
 
 /// A wrapper type for the canonical, statically allocated empty chunk.
@@ -268,9 +225,6 @@ static EMPTY_CHUNK: EmptyChunkFooter = EmptyChunkFooter(ChunkFooter {
     // Invariant: the last chunk footer in all `ChunkFooter::prev` linked lists
     // is the empty chunk footer, whose `prev` points to itself.
     prev: Cell::new(NonNull::from_ref(&EMPTY_CHUNK.0)),
-
-    // Empty chunks count as 0 allocated bytes in an arena.
-    allocated_bytes: 0,
 });
 
 impl EmptyChunkFooter {
@@ -580,7 +534,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             "MIN_ALIGN may not be larger than {CHUNK_ALIGN}; found {MIN_ALIGN}"
         );
 
-        Self::new_impl(EMPTY_CHUNK.get(), None)
+        Self::new_impl(EMPTY_CHUNK.get(), true)
     }
 
     /// Create a new `Arena` that enforces a minimum alignment and starts with
@@ -672,7 +626,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         );
 
         if capacity == 0 {
-            return Ok(Self::new_impl(EMPTY_CHUNK.get(), None));
+            return Ok(Self::new_impl(EMPTY_CHUNK.get(), true));
         }
 
         let layout = layout_from_size_align(capacity, MIN_ALIGN)?;
@@ -689,17 +643,17 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             .ok_or(AllocErr)?
         };
 
-        Ok(Self::new_impl(chunk_footer, None))
+        Ok(Self::new_impl(chunk_footer, true))
     }
 
-    /// Create a new `Arena` from a chunk footer pointer and an optional allocation limit.
+    /// Create a new `Arena` from a chunk footer pointer.
     ///
     /// This is a helper function for all code paths which create an `Arena`.
     #[inline(always)]
-    fn new_impl(chunk_footer_ptr: NonNull<ChunkFooter>, allocation_limit: Option<usize>) -> Self {
+    fn new_impl(chunk_footer_ptr: NonNull<ChunkFooter>, can_grow: bool) -> Self {
         Self {
             current_chunk_footer: Cell::new(chunk_footer_ptr),
-            allocation_limit: Cell::new(allocation_limit),
+            can_grow,
             #[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]
             stats: AllocationStats::default(),
         }
@@ -724,74 +678,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     #[expect(clippy::unused_self, reason = "part of public API")]
     pub fn min_align(&self) -> usize {
         MIN_ALIGN
-    }
-
-    /// The allocation limit for this arena in bytes.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use oxc_allocator::arena::Arena;
-    ///
-    /// let arena = Arena::with_capacity(0);
-    ///
-    /// assert_eq!(arena.allocation_limit(), None);
-    ///
-    /// arena.set_allocation_limit(Some(6));
-    ///
-    /// assert_eq!(arena.allocation_limit(), Some(6));
-    ///
-    /// arena.set_allocation_limit(None);
-    ///
-    /// assert_eq!(arena.allocation_limit(), None);
-    /// ```
-    pub fn allocation_limit(&self) -> Option<usize> {
-        self.allocation_limit.get()
-    }
-
-    /// Set the allocation limit in bytes for this arena.
-    ///
-    /// The allocation limit is only enforced when allocating new backing chunks for
-    /// an `Arena`. Updating the allocation limit will not affect existing allocations
-    /// or any future allocations within the `Arena`'s current chunk.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use oxc_allocator::arena::Arena;
-    ///
-    /// let arena = Arena::with_capacity(0);
-    ///
-    /// arena.set_allocation_limit(Some(0));
-    ///
-    /// assert!(arena.try_alloc(5).is_err());
-    /// ```
-    pub fn set_allocation_limit(&self, limit: Option<usize>) {
-        self.allocation_limit.set(limit);
-    }
-
-    /// How much headroom an arena has before it hits its allocation
-    /// limit.
-    fn allocation_limit_remaining(&self) -> Option<usize> {
-        self.allocation_limit.get().and_then(|allocation_limit| {
-            let allocated_bytes = self.allocated_bytes();
-            if allocated_bytes > allocation_limit {
-                None
-            } else {
-                Some(usize::abs_diff(allocation_limit, allocated_bytes))
-            }
-        })
-    }
-
-    /// Whether a request to allocate a new chunk with a given size for a given
-    /// requested layout will fit under the allocation limit set on an `Arena`.
-    fn chunk_fits_under_limit(
-        allocation_limit_remaining: Option<usize>,
-        new_chunk_memory_details: NewChunkMemoryDetails,
-    ) -> bool {
-        allocation_limit_remaining.is_none_or(|allocation_limit_remaining| {
-            allocation_limit_remaining >= new_chunk_memory_details.new_size_without_footer
-        })
     }
 
     /// Determine the memory details including final size, alignment and final
@@ -885,14 +771,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
 
             let ptr = Cell::new(NonNull::new_unchecked(ptr));
 
-            // The `allocated_bytes` of a new chunk counts the total size
-            // of the chunks, not how much of the chunks are used.
-            let allocated_bytes = prev.as_ref().allocated_bytes + new_size_without_footer;
-
-            ptr::write(
-                footer_ptr,
-                ChunkFooter { data, layout, prev: Cell::new(prev), ptr, allocated_bytes },
-            );
+            ptr::write(footer_ptr, ChunkFooter { data, layout, prev: Cell::new(prev), ptr });
 
             Some(NonNull::new_unchecked(footer_ptr))
         }
@@ -942,7 +821,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 return;
             }
 
-            let mut cur_chunk = self.current_chunk_footer.get();
+            let cur_chunk = self.current_chunk_footer.get();
 
             // Deallocate all chunks except the current one
             let prev_chunk = cur_chunk.as_ref().prev.replace(EMPTY_CHUNK.get());
@@ -954,10 +833,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 "bump pointer {cur_chunk:#p} should be aligned to the minimum alignment of {MIN_ALIGN:#x}"
             );
             cur_chunk.as_ref().ptr.set(cur_chunk.cast());
-
-            // Reset the allocated size of the chunk.
-            cur_chunk.as_mut().allocated_bytes =
-                cur_chunk.as_ref().layout.size() - CHUNK_FOOTER_SIZE;
 
             debug_assert!(
                 self.current_chunk_footer.get().as_ref().prev.get().as_ref().is_empty(),
@@ -1528,7 +1403,9 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     #[cold]
     fn alloc_layout_slow(&self, layout: Layout) -> Option<NonNull<u8>> {
         unsafe {
-            let allocation_limit_remaining = self.allocation_limit_remaining();
+            if !self.can_grow {
+                return None;
+            }
 
             // Get a new chunk from the global allocator.
             let current_footer = self.current_chunk_footer.get();
@@ -1542,12 +1419,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             let mut base_size =
                 (current_layout.size() - CHUNK_FOOTER_SIZE).checked_mul(2)?.max(min_new_chunk_size);
             let mut chunk_memory_details = iter::from_fn(|| {
-                let bypass_min_chunk_size_for_small_limits = matches!(self.allocation_limit(), Some(limit) if layout.size() < limit
-                            && base_size >= layout.size()
-                            && limit < DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER
-                            && self.allocated_bytes() == 0);
-
-                if base_size >= min_new_chunk_size || bypass_min_chunk_size_for_small_limits {
+                if base_size >= min_new_chunk_size {
                     let size = base_size;
                     base_size /= 2;
                     Self::new_chunk_memory_details(Some(size), layout)
@@ -1557,14 +1429,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             });
 
             let new_footer = chunk_memory_details.find_map(|new_chunk_memory_details| {
-                if Self::chunk_fits_under_limit(
-                    allocation_limit_remaining,
-                    new_chunk_memory_details,
-                ) {
-                    Self::new_chunk(new_chunk_memory_details, layout, current_footer)
-                } else {
-                    None
-                }
+                Self::new_chunk(new_chunk_memory_details, layout, current_footer)
             })?;
 
             debug_assert_eq!(new_footer.as_ref().data.as_ptr() as usize % layout.align(), 0);
@@ -1716,9 +1581,17 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// assert!(bytes >= size_of::<u32>() * 5);
     /// ```
     pub fn allocated_bytes(&self) -> usize {
-        let footer = self.current_chunk_footer.get();
-
-        unsafe { footer.as_ref().allocated_bytes }
+        let mut total = 0;
+        let mut footer_ptr = self.current_chunk_footer.get();
+        // SAFETY: Walk the chunk list until the empty sentinel chunk.
+        // Every non-empty chunk is a live allocation whose `layout.size()` includes the footer.
+        unsafe {
+            while !footer_ptr.as_ref().is_empty() {
+                total += footer_ptr.as_ref().layout.size() - CHUNK_FOOTER_SIZE;
+                footer_ptr = footer_ptr.as_ref().prev.get();
+            }
+        }
+        total
     }
 
     /// Calculates the number of bytes requested from the Rust allocator for this `Arena`.
@@ -1726,9 +1599,17 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// This number is equal to the [`allocated_bytes()`](Self::allocated_bytes) plus
     /// the size of the metadata.
     pub fn allocated_bytes_including_metadata(&self) -> usize {
-        let metadata_size =
-            unsafe { self.iter_allocated_chunks_raw().count() * mem::size_of::<ChunkFooter>() };
-        self.allocated_bytes() + metadata_size
+        let mut total = 0;
+        let mut footer_ptr = self.current_chunk_footer.get();
+        // SAFETY: Walk the chunk list until the empty sentinel chunk.
+        // Every non-empty chunk is a live allocation whose `layout.size()` includes the footer.
+        unsafe {
+            while !footer_ptr.as_ref().is_empty() {
+                total += footer_ptr.as_ref().layout.size();
+                footer_ptr = footer_ptr.as_ref().prev.get();
+            }
+        }
+        total
     }
 
     #[inline]
@@ -1969,7 +1850,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             layout,
             prev: Cell::new(EMPTY_CHUNK.get()),
             ptr: Cell::new(chunk_footer_ptr.cast::<u8>()),
-            allocated_bytes: size_without_footer,
         };
 
         // SAFETY: If caller has upheld safety requirements, `chunk_footer_ptr` is `CHUNK_FOOTER_SIZE`
@@ -1977,12 +1857,11 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         // Therefore `chunk_footer_ptr` is valid for writing a `ChunkFooter`.
         unsafe { chunk_footer_ptr.write(chunk_footer) };
 
-        // Create `Arena` with allocation limit of `size_without_footer`.
-        // i.e. it cannot grow because it's already exactly at its limit.
+        // Create `Arena` with `can_grow = false`.
         // This means that the memory chunk we've just created will remain its only chunk.
         // Therefore it can never be deallocated, until the `Arena` is dropped.
         // `Arena::reset` would only reset the "cursor" pointer, not deallocate the memory.
-        Self::new_impl(chunk_footer_ptr, Some(size_without_footer))
+        Self::new_impl(chunk_footer_ptr, false)
     }
 
     /// Set cursor pointer for this [`Arena`]'s current chunk.

@@ -24,7 +24,6 @@
 
 mod alloc_fill;
 mod alloc_with;
-mod allocation_limit;
 mod capacity;
 mod quickcheck;
 mod quickchecks;
