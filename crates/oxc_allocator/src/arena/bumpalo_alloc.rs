@@ -1,3 +1,5 @@
+//! `Alloc` trait.
+
 // Copyright 2015 The Rust Project Developers. See the COPYRIGHT
 // file at the top-level directory of this distribution and at
 // http://rust-lang.org/COPYRIGHT.
@@ -11,11 +13,6 @@
 #![expect(clippy::undocumented_unsafe_blocks)]
 #![allow(unstable_name_collisions)]
 #![allow(dead_code)]
-
-//! Memory allocation APIs
-//!
-//! This module was originally copied from `bumpalo` at commit a47f6d6b7b5fee9c99a285f0de80257a0a982ef3
-//! (2 commits after 3.20.2 release). Changes have been made since.
 
 use std::{
     alloc::{Layout, LayoutError},
