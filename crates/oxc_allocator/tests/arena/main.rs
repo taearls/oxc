@@ -15,7 +15,6 @@
     clippy::ptr_as_ptr,
     clippy::ptr_cast_constness,
     clippy::ptr_offset_by_literal,
-    clippy::redundant_closure,
     clippy::ref_as_ptr,
     clippy::undocumented_unsafe_blocks,
     clippy::uninlined_format_args
