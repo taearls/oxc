@@ -1155,45 +1155,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         }
     }
 
-    /// Like `alloc_slice_copy`, but does not panic in case of allocation failure.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use oxc_allocator::arena::{AllocErr, Arena};
-    ///
-    /// let arena = Arena::new();
-    /// let x = arena.try_alloc_slice_copy(&[1, 2, 3]);
-    /// assert_eq!(x, Ok(&mut[1, 2, 3] as &mut [_]));
-    ///
-    ///
-    /// let arena = Arena::new();
-    /// arena.set_allocation_limit(Some(4));
-    /// let x = arena.try_alloc_slice_copy(&[1, 2, 3, 4, 5, 6]);
-    /// assert_eq!(x, Err(AllocErr)); // too big
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// Returns `Err(AllocErr)` if reserving a fresh `Layout::for_value(src)`
-    /// region via [`Arena::try_alloc_layout`] fails — that is, if the current
-    /// chunk has no room, a new chunk cannot be obtained from the underlying
-    /// allocator, or the configured `allocation_limit` would be exceeded.
-    #[expect(clippy::mut_from_ref)]
-    #[inline(always)]
-    pub fn try_alloc_slice_copy<T>(&self, src: &[T]) -> Result<&mut [T], AllocErr>
-    where
-        T: Copy,
-    {
-        let layout = Layout::for_value(src);
-        let dst = self.try_alloc_layout(layout)?.cast::<T>();
-        let result = unsafe {
-            ptr::copy_nonoverlapping(src.as_ptr(), dst.as_ptr(), src.len());
-            slice::from_raw_parts_mut(dst.as_ptr(), src.len())
-        };
-        Ok(result)
-    }
-
     /// `Clone` a slice into this `Arena` and return an exclusive reference to
     /// the clone. Prefer [`alloc_slice_copy`](#method.alloc_slice_copy) if `T` is `Copy`.
     ///
@@ -1239,32 +1200,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         }
     }
 
-    /// Like `alloc_slice_clone` but does not panic on failure.
-    ///
-    /// # Errors
-    ///
-    /// Returns `Err(AllocErr)` if reserving a fresh `Layout::for_value(src)`
-    /// region via [`Arena::try_alloc_layout`] fails (no room in the current
-    /// chunk, a new chunk cannot be obtained from the underlying allocator,
-    /// or the configured `allocation_limit` would be exceeded).
-    #[expect(clippy::mut_from_ref)]
-    #[inline(always)]
-    pub fn try_alloc_slice_clone<T>(&self, src: &[T]) -> Result<&mut [T], AllocErr>
-    where
-        T: Clone,
-    {
-        let layout = Layout::for_value(src);
-        let dst = self.try_alloc_layout(layout)?.cast::<T>();
-
-        unsafe {
-            for (i, val) in src.iter().cloned().enumerate() {
-                ptr::write(dst.as_ptr().add(i), val);
-            }
-
-            Ok(slice::from_raw_parts_mut(dst.as_ptr(), src.len()))
-        }
-    }
-
     /// `Copy` a string slice into this `Arena` and return an exclusive reference to it.
     ///
     /// # Panics
@@ -1287,41 +1222,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         unsafe {
             // This is OK, because it already came in as str, so it is guaranteed to be utf8
             str::from_utf8_unchecked_mut(buffer)
-        }
-    }
-
-    /// Same as `alloc_str` but does not panic on failure.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use oxc_allocator::arena::{AllocErr, Arena};
-    ///
-    /// let arena = Arena::new();
-    /// let hello = arena.try_alloc_str("hello world").unwrap();
-    /// assert_eq!("hello world", hello);
-    ///
-    ///
-    /// let arena = Arena::new();
-    /// arena.set_allocation_limit(Some(5));
-    /// let hello = arena.try_alloc_str("hello world");
-    /// assert_eq!(Err(AllocErr), hello);
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// Forwards the error from [`Arena::try_alloc_slice_copy`]: returns
-    /// `Err(AllocErr)` if reserving `src.len()` bytes via
-    /// [`Arena::try_alloc_layout`] fails because the current chunk has no
-    /// room, a new chunk cannot be obtained from the underlying allocator,
-    /// or the configured `allocation_limit` would be exceeded.
-    #[expect(clippy::mut_from_ref)]
-    #[inline(always)]
-    pub fn try_alloc_str(&self, src: &str) -> Result<&mut str, AllocErr> {
-        let buffer = self.try_alloc_slice_copy(src.as_bytes())?;
-        unsafe {
-            // This is OK, because it already came in as str, so it is guaranteed to be utf8
-            Ok(str::from_utf8_unchecked_mut(buffer))
         }
     }
 
@@ -1367,60 +1267,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// Allocates a new slice of size `len` into this `Arena` and returns an
     /// exclusive reference to the copy.
     ///
-    /// The elements of the slice are initialized using the supplied closure.
-    /// The closure argument is the position in the slice.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use oxc_allocator::arena::{AllocErr, Arena};
-    ///
-    /// let arena = Arena::new();
-    /// let x = arena.try_alloc_slice_fill_with(5, |i| 5 * (i + 1));
-    /// assert_eq!(x, Ok(&mut[5usize, 10, 15, 20, 25] as &mut [_]));
-    ///
-    ///
-    /// let arena = Arena::new();
-    /// arena.set_allocation_limit(Some(4));
-    /// let x = arena.try_alloc_slice_fill_with(10, |i| 5 * (i + 1));
-    /// assert_eq!(x, Err(AllocErr));
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// Returns `Err(AllocErr)` if [`Layout::array::<T>(len)`](Layout::array)
-    /// fails (for example because `len * size_of::<T>()` overflows `isize`),
-    /// or if reserving that layout via [`Arena::try_alloc_layout`] fails
-    /// because there is no room in the current chunk, a new chunk cannot be
-    /// obtained from the underlying allocator, or the configured
-    /// `allocation_limit` would be exceeded.
-    #[expect(clippy::mut_from_ref)]
-    #[inline(always)]
-    pub fn try_alloc_slice_fill_with<T, F>(
-        &self,
-        len: usize,
-        mut f: F,
-    ) -> Result<&mut [T], AllocErr>
-    where
-        F: FnMut(usize) -> T,
-    {
-        let layout = Layout::array::<T>(len).map_err(|_| AllocErr)?;
-        let dst = self.try_alloc_layout(layout)?.cast::<T>();
-
-        unsafe {
-            for i in 0..len {
-                ptr::write(dst.as_ptr().add(i), f(i));
-            }
-
-            let result = slice::from_raw_parts_mut(dst.as_ptr(), len);
-            debug_assert_eq!(Layout::for_value(result), layout);
-            Ok(result)
-        }
-    }
-
-    /// Allocates a new slice of size `len` into this `Arena` and returns an
-    /// exclusive reference to the copy.
-    ///
     /// All elements of the slice are initialized to `value`.
     ///
     /// # Panics
@@ -1439,24 +1285,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     #[inline(always)]
     pub fn alloc_slice_fill_copy<T: Copy>(&self, len: usize, value: T) -> &mut [T] {
         self.alloc_slice_fill_with(len, |_| value)
-    }
-
-    /// Same as `alloc_slice_fill_copy` but does not panic on failure.
-    ///
-    /// # Errors
-    ///
-    /// Forwards the error from [`Arena::try_alloc_slice_fill_with`]: returns
-    /// `Err(AllocErr)` if constructing `Layout::array::<T>(len)` fails or the
-    /// underlying [`Arena::try_alloc_layout`] call fails (no room in the
-    /// current chunk, underlying allocator failure, or `allocation_limit`
-    /// exceeded).
-    #[inline(always)]
-    pub fn try_alloc_slice_fill_copy<T: Copy>(
-        &self,
-        len: usize,
-        value: T,
-    ) -> Result<&mut [T], AllocErr> {
-        self.try_alloc_slice_fill_with(len, |_| value)
     }
 
     /// Allocates a new slice of size `len` slice into this `Arena` and return an
@@ -1483,24 +1311,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     #[inline(always)]
     pub fn alloc_slice_fill_clone<T: Clone>(&self, len: usize, value: &T) -> &mut [T] {
         self.alloc_slice_fill_with(len, |_| value.clone())
-    }
-
-    /// Like `alloc_slice_fill_clone` but does not panic on failure.
-    ///
-    /// # Errors
-    ///
-    /// Forwards the error from [`Arena::try_alloc_slice_fill_with`]: returns
-    /// `Err(AllocErr)` if constructing `Layout::array::<T>(len)` fails or the
-    /// underlying [`Arena::try_alloc_layout`] call fails (no room in the
-    /// current chunk, underlying allocator failure, or `allocation_limit`
-    /// exceeded).
-    #[inline(always)]
-    pub fn try_alloc_slice_fill_clone<T: Clone>(
-        &self,
-        len: usize,
-        value: &T,
-    ) -> Result<&mut [T], AllocErr> {
-        self.try_alloc_slice_fill_with(len, |_| value.clone())
     }
 
     /// Allocates a new slice of size `len` slice into this `Arena` and return an
@@ -1534,47 +1344,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         })
     }
 
-    /// Allocates a new slice of size `iter.len()` slice into this `Arena` and return an
-    /// exclusive reference to the copy. Does not panic on failure.
-    ///
-    /// The elements are initialized using the supplied iterator.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use oxc_allocator::arena::Arena;
-    ///
-    /// let arena = Arena::new();
-    /// let x: &[i32] = arena.try_alloc_slice_fill_iter([2, 3, 5]
-    ///     .iter().cloned().map(|i| i * i)).unwrap();
-    /// assert_eq!(x, [4, 9, 25]);
-    /// ```
-    ///
-    /// # Panics
-    ///
-    /// Panics if the supplied iterator's `ExactSizeIterator::len` implementation
-    /// reports more elements than the iterator actually yields (i.e. `iter.next()`
-    /// returns `None` before `iter.len()` items have been produced).
-    ///
-    /// # Errors
-    ///
-    /// Forwards the error from [`Arena::try_alloc_slice_fill_with`]: returns
-    /// `Err(AllocErr)` if constructing `Layout::array::<T>(iter.len())`
-    /// fails or the underlying [`Arena::try_alloc_layout`] call fails (no
-    /// room in the current chunk, underlying allocator failure, or
-    /// `allocation_limit` exceeded).
-    #[inline(always)]
-    pub fn try_alloc_slice_fill_iter<T, I>(&self, iter: I) -> Result<&mut [T], AllocErr>
-    where
-        I: IntoIterator<Item = T>,
-        I::IntoIter: ExactSizeIterator,
-    {
-        let mut iter = iter.into_iter();
-        self.try_alloc_slice_fill_with(iter.len(), |_| {
-            iter.next().expect("Iterator supplied too few elements")
-        })
-    }
-
     /// Allocates a new slice of size `len` slice into this `Arena` and return an
     /// exclusive reference to the copy.
     ///
@@ -1598,23 +1367,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     #[inline(always)]
     pub fn alloc_slice_fill_default<T: Default>(&self, len: usize) -> &mut [T] {
         self.alloc_slice_fill_with(len, |_| T::default())
-    }
-
-    /// Like `alloc_slice_fill_default` but does not panic on failure.
-    ///
-    /// # Errors
-    ///
-    /// Forwards the error from [`Arena::try_alloc_slice_fill_with`]: returns
-    /// `Err(AllocErr)` if constructing `Layout::array::<T>(len)` fails or the
-    /// underlying [`Arena::try_alloc_layout`] call fails (no room in the
-    /// current chunk, underlying allocator failure, or `allocation_limit`
-    /// exceeded).
-    #[inline(always)]
-    pub fn try_alloc_slice_fill_default<T: Default>(
-        &self,
-        len: usize,
-    ) -> Result<&mut [T], AllocErr> {
-        self.try_alloc_slice_fill_with(len, |_| T::default())
     }
 
     /// Allocate space for an object with the given `Layout`.
