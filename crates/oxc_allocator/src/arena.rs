@@ -1599,56 +1599,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         })
     }
 
-    /// Allocates a new slice of size `len` slice into this `Arena` and return an
-    /// exclusive reference to the copy, failing if the iterator returns an Err.
-    ///
-    /// The elements are initialized using the supplied iterator.
-    ///
-    /// # Panics
-    ///
-    /// Panics if reserving space for the slice fails, or if the supplied
-    /// iterator returns fewer elements than it promised.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use oxc_allocator::arena::Arena;
-    ///
-    /// let arena = Arena::new();
-    /// let x: Result<&mut [i32], ()> = arena.alloc_slice_try_fill_iter(
-    ///    [2, 3, 5].iter().cloned().map(|i| Ok(i * i))
-    /// );
-    /// assert_eq!(x, Ok(arena.alloc_slice_copy(&[4, 9, 25])));
-    /// ```
-    ///
-    /// ```
-    /// # use oxc_allocator::arena::Arena;
-    ///
-    /// let arena = Arena::new();
-    /// let x: Result<&mut [i32], ()> = arena.alloc_slice_try_fill_iter(
-    ///    [Ok(2), Err(()), Ok(5)].iter().cloned()
-    /// );
-    /// assert_eq!(x, Err(()));
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// Returns `Err(E)` propagated from the first `Err` item yielded by
-    /// `iter`, forwarded through [`Arena::alloc_slice_try_fill_with`]. As in
-    /// that method, allocation failure is reported by panicking rather than
-    /// via `Err`.
-    #[inline(always)]
-    pub fn alloc_slice_try_fill_iter<T, I, E>(&self, iter: I) -> Result<&mut [T], E>
-    where
-        I: IntoIterator<Item = Result<T, E>>,
-        I::IntoIter: ExactSizeIterator,
-    {
-        let mut iter = iter.into_iter();
-        self.alloc_slice_try_fill_with(iter.len(), |_| {
-            iter.next().expect("Iterator supplied too few elements")
-        })
-    }
-
     /// Allocates a new slice of size `iter.len()` slice into this `Arena` and return an
     /// exclusive reference to the copy. Does not panic on failure.
     ///
