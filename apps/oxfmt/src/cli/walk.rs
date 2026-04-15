@@ -296,7 +296,10 @@ fn walk_and_stream(
         child_config_dirs: Arc::clone(&child_config_dirs),
     };
 
+    // Use the same thread count as rayon (controlled by `--threads`)
+    let num_of_threads = rayon::current_num_threads();
     inner
+        .threads(num_of_threads)
         // Do not follow symlinks like Prettier does.
         // See https://github.com/prettier/prettier/pull/14627
         .follow_links(false)
