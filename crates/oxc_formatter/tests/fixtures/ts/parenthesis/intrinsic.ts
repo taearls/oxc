@@ -1,0 +1,8 @@
+type t1 = (intrinsic);
+type t2<T> = (intrinsic);
+type t3 = (intrinsic) | string;
+type t4 = (intrinsic) & string;
+type t5 = string | (intrinsic);
+type t6 = [intrinsic];
+type t7 = { x: intrinsic };
+type t8 = Array<intrinsic>;
