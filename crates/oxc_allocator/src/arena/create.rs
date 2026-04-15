@@ -166,22 +166,12 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     ///     assert_eq!((x as *mut _ as usize) % 8, 0, "x is aligned to 8");
     /// }
     /// ```
-    ///
-    /// # Panics
-    ///
-    /// Panics on invalid minimum alignments.
     //
     // Because of `rustc`'s poor type inference for default type/const parameters (see the comment above
     // the `impl Arena` block with no const `MIN_ALIGN` parameter), and because we don't want to force everyone
     // to specify a minimum alignment with `Arena::new()` et al, we have a separate constructor
     // for specifying the minimum alignment.
     pub fn with_min_align() -> Self {
-        assert!(MIN_ALIGN.is_power_of_two(), "MIN_ALIGN must be a power of two; found {MIN_ALIGN}");
-        assert!(
-            MIN_ALIGN <= CHUNK_ALIGN,
-            "MIN_ALIGN may not be larger than {CHUNK_ALIGN}; found {MIN_ALIGN}"
-        );
-
         Self::new_impl(EMPTY_CHUNK.get())
     }
 
@@ -211,8 +201,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// ```
     ///
     /// # Panics
-    ///
-    /// Panics on invalid minimum alignments.
     ///
     /// Panics if allocating the initial capacity fails.
     pub fn with_min_align_and_capacity(capacity: usize) -> Self {
@@ -246,11 +234,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// # }
     /// ```
     ///
-    /// # Panics
-    ///
-    /// * Panics on invalid minimum alignments.
-    /// * Panics if allocating the initial capacity fails.
-    ///
     /// # Errors
     ///
     /// Returns `Err(AllocErr)` if any of:
@@ -262,12 +245,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     ///
     /// When `capacity` is 0, no allocation is performed, and `Ok` is always returned.
     pub fn try_with_min_align_and_capacity(capacity: usize) -> Result<Self, AllocErr> {
-        assert!(MIN_ALIGN.is_power_of_two(), "MIN_ALIGN must be a power of two; found {MIN_ALIGN}");
-        assert!(
-            MIN_ALIGN <= CHUNK_ALIGN,
-            "MIN_ALIGN may not be larger than {CHUNK_ALIGN}; found {MIN_ALIGN}"
-        );
-
         if capacity == 0 {
             return Ok(Self::new_impl(EMPTY_CHUNK.get()));
         }
@@ -292,8 +269,15 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// Create a new `Arena` from a chunk footer pointer.
     ///
     /// This is a helper function for all code paths which create an `Arena`.
+    /// All code paths which create an `Arena` must go through this method in order to validate `MIN_ALIGN`.
     #[inline(always)]
     pub(super) fn new_impl(chunk_footer_ptr: NonNull<ChunkFooter>) -> Self {
+        // Const assert that `MIN_ALIGN` is valid.
+        // This line must be present - the validation assertions don't run unless the const is referenced
+        // in active code paths. This method is called by all other methods which create an `Arena`,
+        // so we only need it here to ensure that it's impossible to create an `Arena` with an invalid `MIN_ALIGN`.
+        const { Self::MIN_ALIGN };
+
         Self {
             current_chunk_footer: Cell::new(chunk_footer_ptr),
             can_grow: true,

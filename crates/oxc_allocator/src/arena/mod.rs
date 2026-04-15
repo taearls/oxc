@@ -170,9 +170,26 @@ pub struct Arena<const MIN_ALIGN: usize = 1> {
 }
 
 impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
+    /// Alignment at which all allocations in this arena will be made.
+    ///
+    /// e.g. if `MIN_ALIGN` is 8, then a `u8` allocated in the arena will be placed at an address
+    /// which is a multiple of 8, even though `u8` has no alignment requirements.
+    //
+    // This constant must be referenced in all code paths which create an `Arena`, in order to validate `MIN_ALIGN`.
+    pub const MIN_ALIGN: usize = {
+        assert!(MIN_ALIGN.is_power_of_two(), "MIN_ALIGN must be a power of 2");
+        assert!(MIN_ALIGN <= CHUNK_ALIGN, "MIN_ALIGN may not be larger than `CHUNK_ALIGN`");
+        MIN_ALIGN
+    };
+
     /// Get this arena's minimum alignment.
     ///
-    /// All objects allocated in this arena get aligned to this value.
+    /// All allocations in this arena will be made at an address which is a multiple of this value.
+    ///
+    /// e.g. if `min_align()` is 8, then a `u8` allocated in the arena will be placed at an address
+    /// which is a multiple of 8, even though `u8` has no alignment requirements.
+    ///
+    /// This value is also available as [`MIN_ALIGN`] constant on the [`Arena`] type itself.
     ///
     /// # Example
     ///
@@ -185,10 +202,12 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// let arena4 = Arena::<4>::with_min_align();
     /// assert_eq!(arena4.min_align(), 4);
     /// ```
-    #[inline]
-    #[expect(clippy::unused_self, reason = "part of public API")]
-    pub fn min_align(&self) -> usize {
-        MIN_ALIGN
+    ///
+    /// [`MIN_ALIGN`]: Self::MIN_ALIGN
+    #[expect(clippy::unused_self)]
+    #[inline(always)]
+    pub const fn min_align(&self) -> usize {
+        Self::MIN_ALIGN
     }
 }
 

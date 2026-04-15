@@ -28,18 +28,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     ///   from system allocator with alignment of [`CHUNK_ALIGN`] (or caller must wrap the `Arena` in `ManuallyDrop`
     ///   and ensure the backing memory is freed correctly themselves).
     /// * `ptr` must have permission for writes.
-    ///
-    /// # Panics
-    ///
-    /// Panics on invalid minimum alignments.
     pub unsafe fn from_raw_parts(ptr: NonNull<u8>, size: usize) -> Self {
-        // Validate `MIN_ALIGN`. These checks will be removed by compiler as `MIN_ALIGN` is statically known.
-        assert!(MIN_ALIGN.is_power_of_two(), "MIN_ALIGN must be a power of two; found {MIN_ALIGN}");
-        assert!(
-            MIN_ALIGN <= CHUNK_ALIGN,
-            "MIN_ALIGN may not be larger than {CHUNK_ALIGN}; found {MIN_ALIGN}"
-        );
-
         // Debug assert that `ptr` and `size` fulfill size and alignment requirements
         debug_assert!((ptr.as_ptr() as usize).is_multiple_of(CHUNK_ALIGN));
         debug_assert!(size.is_multiple_of(CHUNK_ALIGN));
