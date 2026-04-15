@@ -866,6 +866,11 @@ fn test_rewrite_arguments_copy_loop() {
         "function _() { for (var e = arguments.length, r = Array(e), a = 0; a < e; a++) r[a] = arguments[a]; }",
         "function _() {}",
     );
+    // Unused copy result + consequent must not become illegal `var;` (see `for_stmt.init = None`).
+    test(
+        "function _(){if(window.__x)for(var n=arguments.length,a=[],i=0;i<n;i++)a[i]=arguments[i]}",
+        "function _(){window.__x}",
+    );
     test(
         "function _() { for (var e = arguments.length, r = Array(e > 1 ? e - 1 : 0), a = 1; a < e; a++) r[a - 1] = arguments[a] }",
         "function _() {}",
