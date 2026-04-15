@@ -1,5 +1,4 @@
-//! Methods to get info about the chunks of memory allocated by an `Arena`,
-//! and associated iterator types.
+//! Methods to get info about the chunks of memory allocated by an `Arena`, and associated iterator types.
 
 use std::{iter::FusedIterator, marker::PhantomData, mem, ptr::NonNull, slice};
 
@@ -25,44 +24,36 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         current_footer.ptr.get().as_ptr() as usize - current_footer.data.as_ptr() as usize
     }
 
-    /// Returns an iterator over each chunk of allocated memory that
-    /// this arena has allocated into.
+    /// Get an iterator over each chunk of allocated memory that this arena has allocated into.
     ///
-    /// The chunks are returned ordered by allocation time, with the most
-    /// recently allocated chunk being returned first, and the least recently
-    /// allocated chunk being returned last.
+    /// The chunks are returned ordered by allocation time, with the most recently allocated chunk
+    /// returned first, and the least recently allocated chunk returned last.
     ///
-    /// The values inside each chunk are also ordered by allocation time, with
-    /// the most recent allocation being earlier in the slice, and the least
-    /// recent allocation being towards the end of the slice.
+    /// The values inside each chunk are also ordered by allocation time, with the most recent allocation
+    /// earlier in the slice, and the least recent allocation towards the end of the slice.
     ///
     /// # SAFETY
     ///
-    /// Because this method takes `&mut self`, we know that the arena
-    /// reference is unique and therefore there aren't any active references to
-    /// any of the objects we've allocated in it either. This potential aliasing
-    /// of exclusive references is one common footgun for unsafe code that we
-    /// don't need to worry about here.
+    /// Because this method takes `&mut self`, we know that the arena reference is unique and therefore there
+    /// aren't any active references to any of the objects we've allocated in it either. This potential
+    /// aliasing of exclusive references is one common footgun for unsafe code that we don't need to worry
+    /// about here.
     ///
-    /// However, there could be regions of uninitialized memory used as padding
-    /// between allocations, which is why this iterator has items of type
-    /// `[MaybeUninit<u8>]`, instead of simply `[u8]`.
+    /// However, there could be regions of uninitialized memory used as padding between allocations,
+    /// which is why this iterator has items of type `[MaybeUninit<u8>]`, instead of simply `[u8]`.
     ///
-    /// The only way to guarantee that there is no padding between allocations
-    /// or within allocated objects is if all of these properties hold:
+    /// The only way to guarantee that there is no padding between allocations or within allocated objects is
+    /// if all of these properties hold:
     ///
-    /// 1. Every object allocated in this arena has the same alignment,
-    ///    and that alignment is at most 16.
+    /// 1. Every object allocated in this arena has the same alignment, and that alignment is at most 16.
     /// 2. Every object's size is a multiple of its alignment.
-    /// 3. None of the objects allocated in this arena contain any internal
-    ///    padding.
+    /// 3. None of the objects allocated in this arena contain any internal padding.
     ///
-    /// If you want to use this `iter_allocated_chunks` method, it is *your*
-    /// responsibility to ensure that these properties hold before calling
-    /// `MaybeUninit::assume_init` or otherwise reading the returned values.
+    /// If you want to use this `iter_allocated_chunks` method, it is *your* responsibility to ensure that
+    /// these properties hold before calling `MaybeUninit::assume_init` or otherwise reading the returned values.
     ///
-    /// Finally, you must also ensure that any values allocated into the arena
-    /// have not had their `Drop` implementations called on them.
+    /// Finally, you must also ensure that any values allocated into the arena have not had their `Drop`
+    /// implementations called on them.
     ///
     /// # Example
     ///
@@ -71,8 +62,8 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     ///
     /// let mut arena = Arena::new();
     ///
-    /// // Allocate a bunch of `i32`s in this arena, potentially causing
-    /// // additional memory chunks to be reserved.
+    /// // Allocate a bunch of `i32`s in this arena,
+    /// // potentially causing additional memory chunks to be reserved
     /// for i in 0..10000 {
     ///     arena.alloc(i);
     /// }
@@ -101,8 +92,8 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// let chunk = arena.iter_allocated_chunks().nth(0).unwrap();
     /// assert_eq!(chunk.len(), 3);
     ///
-    /// // Safe because we've only allocated `u8`s in this arena, which
-    /// // fulfills the above requirements.
+    /// // Safe because we've only allocated `u8`s in this arena,
+    /// // which fulfills the above requirements
     /// unsafe {
     ///     assert_eq!(chunk[0].assume_init(), b'c');
     ///     assert_eq!(chunk[1].assume_init(), b'b');
@@ -110,24 +101,21 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// }
     /// ```
     pub fn iter_allocated_chunks(&mut self) -> ChunkIter<'_, MIN_ALIGN> {
-        // SAFETY: Ensured by mutable borrow of `self`.
+        // SAFETY: Ensured by mutable borrow of `self`
         let raw = unsafe { self.iter_allocated_chunks_raw() };
         ChunkIter { raw, arena: PhantomData }
     }
 
-    /// Returns an iterator over raw pointers to chunks of allocated memory that
-    /// this arena has allocated into.
+    /// Get an iterator over raw pointers to chunks of allocated memory that this arena has allocated into.
     ///
-    /// This is an unsafe version of [`iter_allocated_chunks()`](Arena::iter_allocated_chunks),
-    /// with the caller responsible for safe usage of the returned pointers as
-    /// well as ensuring that the iterator is not invalidated by new
-    /// allocations.
+    /// This is an unsafe version of [`iter_allocated_chunks()`](Arena::iter_allocated_chunks), with the caller
+    /// responsible for safe usage of the returned pointers as well as ensuring that the iterator is not
+    /// invalidated by new allocations.
     ///
     /// # SAFETY
     ///
-    /// Allocations from this arena must not be performed while the returned
-    /// iterator is alive. If reading the chunk data (or casting to a reference)
-    /// the caller must ensure that there exist no mutable references to
+    /// Allocations from this arena must not be performed while the returned iterator is alive. If reading the
+    /// chunk data (or casting to a reference) the caller must ensure that there exist no mutable references to
     /// previously allocated data.
     ///
     /// In addition, all of the caveats when reading the chunk data from
@@ -136,19 +124,15 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         ChunkRawIter { footer: self.current_chunk_footer.get(), arena: PhantomData }
     }
 
-    /// Calculates the number of bytes currently allocated across all chunks in
-    /// this arena.
+    /// Calculate the number of bytes currently allocated across all chunks in this arena.
     ///
-    /// If you allocate types of different alignments or types with
-    /// larger-than-typical alignment in the same arena, some padding
-    /// bytes might get allocated in the arena. Note that those padding
-    /// bytes will add to this method's resulting sum, so you cannot rely
-    /// on it only counting the sum of the sizes of the things
+    /// If you allocate types of different alignments or types with larger-than-typical alignment in the same
+    /// arena, some padding bytes might get allocated in the arena. Note that those padding bytes will add to
+    /// this method's resulting sum, so you cannot rely on it only counting the sum of the sizes of the things
     /// you've allocated in the arena.
     ///
-    /// The allocated bytes do not include the size of arena metadata,
-    /// so the amount of memory requested from the Rust allocator is higher
-    /// than the returned value.
+    /// The allocated bytes do not include the size of arena metadata, so the amount of memory requested from
+    /// the Rust allocator is higher than the returned value.
     ///
     /// # Example
     ///
@@ -175,20 +159,17 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     }
 }
 
-/// An iterator over each chunk of allocated memory that
-/// an arena has allocated into.
+/// An iterator over each chunk of allocated memory that an arena has allocated into.
 ///
-/// The chunks are returned ordered by allocation time, with the most recently
-/// allocated chunk being returned first.
+/// The chunks are returned ordered by allocation time, with the most recently allocated chunk returned first.
 ///
-/// The values inside each chunk are also ordered by allocation time, with the most
-/// recent allocation being earlier in the slice.
+/// The values inside each chunk are also ordered by allocation time, with the most recent allocation
+/// earlier in the slice.
 ///
-/// This struct is created by the [`iter_allocated_chunks`] method on
-/// [`Arena`]. See that function for a safety description regarding reading from the returned items.
+/// This struct is created by the [`iter_allocated_chunks`] method on [`Arena`].
+/// See that function for a safety description regarding reading from the returned items.
 ///
-/// [`Arena`]: struct.Arena.html
-/// [`iter_allocated_chunks`]: struct.Arena.html#method.iter_allocated_chunks
+/// [`iter_allocated_chunks`]: Arena::iter_allocated_chunks
 #[derive(Debug)]
 pub struct ChunkIter<'a, const MIN_ALIGN: usize = 1> {
     raw: ChunkRawIter<'a, MIN_ALIGN>,
@@ -209,17 +190,14 @@ impl<'a, const MIN_ALIGN: usize> Iterator for ChunkIter<'a, MIN_ALIGN> {
 
 impl<const MIN_ALIGN: usize> FusedIterator for ChunkIter<'_, MIN_ALIGN> {}
 
-/// An iterator over raw pointers to chunks of allocated memory that this
-/// arena has allocated into.
+/// An iterator over raw pointers to chunks of allocated memory that this arena has allocated into.
 ///
 /// See [`ChunkIter`] for details regarding the returned chunks.
 ///
-/// This struct is created by the [`iter_allocated_chunks_raw`] method on
-/// [`Arena`]. See that function for a safety description regarding reading from
-/// the returned items.
+/// This struct is created by the [`iter_allocated_chunks_raw`] method on [`Arena`].
+/// See that function for a safety description regarding reading from the returned items.
 ///
-/// [`Arena`]: struct.Arena.html
-/// [`iter_allocated_chunks_raw`]: struct.Arena.html#method.iter_allocated_chunks_raw
+/// [`iter_allocated_chunks_raw`]: Arena::iter_allocated_chunks_raw
 #[derive(Debug)]
 pub struct ChunkRawIter<'a, const MIN_ALIGN: usize = 1> {
     footer: NonNull<ChunkFooter>,

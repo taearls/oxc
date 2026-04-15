@@ -1,6 +1,6 @@
 //! Unit tests for `Arena`.
 
-// NB: Only tests which require private types, fields, or methods should be in here.
+// Note: Only tests which require private types, fields, or methods should be in here.
 // Anything that can just be tested via public API surface should be in `tests/arena/*`.
 
 use std::alloc::Layout;
@@ -20,21 +20,21 @@ use super::{
 #[cfg(doctest)]
 fn arena_not_sync() {}
 
-// Uses private type `ChunkFooter`.
+// Uses private type `ChunkFooter`
 #[cfg(target_pointer_width = "64")]
 #[test]
 fn chunk_footer_is_six_words_on_64_bit() {
     assert_eq!(size_of::<ChunkFooter>(), size_of::<usize>() * 6);
 }
 
-// Uses private type `ChunkFooter`.
+// Uses private type `ChunkFooter`
 #[cfg(target_pointer_width = "32")]
 #[test]
 fn chunk_footer_is_eight_words_on_32_bit() {
     assert_eq!(size_of::<ChunkFooter>(), size_of::<usize>() * 8);
 }
 
-// Uses private `DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER`.
+// Uses private `DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER`
 #[test]
 fn allocated_bytes() {
     let mut b = Arena::new();
@@ -50,44 +50,42 @@ fn allocated_bytes() {
     assert_eq!(b.allocated_bytes(), DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER);
 }
 
-// Uses private `bumpalo_alloc` module.
+// Uses private `bumpalo_alloc` module
 #[test]
 fn test_realloc() {
     unsafe {
         const CAPACITY: usize = DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER;
         let mut b = Arena::<1>::with_min_align_and_capacity(CAPACITY);
 
-        // `realloc` doesn't shrink allocations that aren't "worth it".
+        // `realloc` doesn't shrink allocations that aren't "worth it"
         let layout = Layout::from_size_align(100, 1).unwrap();
         let p = b.alloc_layout(layout);
         let q = (&b).realloc(p, layout, 51).unwrap();
         assert_eq!(p, q);
         b.reset();
 
-        // `realloc` will shrink allocations that are "worth it".
+        // `realloc` will shrink allocations that are "worth it"
         let layout = Layout::from_size_align(100, 1).unwrap();
         let p = b.alloc_layout(layout);
         let q = (&b).realloc(p, layout, 50).unwrap();
         assert!(p != q);
         b.reset();
 
-        // `realloc` will reuse the last allocation when growing.
+        // `realloc` will reuse the last allocation when growing
         let layout = Layout::from_size_align(10, 1).unwrap();
         let p = b.alloc_layout(layout);
         let q = (&b).realloc(p, layout, 11).unwrap();
         assert_eq!(q.as_ptr() as usize, p.as_ptr() as usize - 1);
         b.reset();
 
-        // `realloc` will allocate a new chunk when growing the last
-        // allocation, if need be.
+        // `realloc` will allocate a new chunk when growing the last allocation, if need be
         let layout = Layout::from_size_align(1, 1).unwrap();
         let p = b.alloc_layout(layout);
         let q = (&b).realloc(p, layout, CAPACITY + 1).unwrap();
         assert_ne!(q.as_ptr() as usize, p.as_ptr() as usize - CAPACITY);
         b.reset();
 
-        // `realloc` will allocate and copy when reallocating anything that
-        // wasn't the last allocation.
+        // `realloc` will allocate and copy when reallocating anything that wasn't the last allocation
         let layout = Layout::from_size_align(1, 1).unwrap();
         let p = b.alloc_layout(layout);
         let _ = b.alloc_layout(layout);
@@ -97,7 +95,7 @@ fn test_realloc() {
     }
 }
 
-// Uses our private `bumpalo_alloc` module.
+// Uses our private `bumpalo_alloc` module
 #[test]
 fn invalid_read() {
     let mut b = &Arena::new();

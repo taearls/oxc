@@ -16,12 +16,11 @@ use super::{
     utils::{layout_from_size_align, oom, round_mut_ptr_down_to, round_up_to},
 };
 
-// The typical page size these days.
-//
-// Note that we don't need to exactly match page size for correctness, and it is
-// okay if this is smaller than the real page size in practice. It isn't worth
-// the portability concerns and lack of const propagation that dynamically
-// looking up the actual page size implies.
+/// The typical page size these days.
+///
+/// Note that we don't need to exactly match page size for correctness, and it is okay if this is smaller than
+/// the real page size in practice. It isn't worth the portability concerns and lack of const propagation that
+/// dynamically looking up the actual page size implies.
 const TYPICAL_PAGE_SIZE: usize = 0x1000;
 
 // Check the hard-coded value in `ast_tools` raw transfer generator is accurate.
@@ -34,33 +33,35 @@ const _: () = {
     assert!(CHUNK_FOOTER_SIZE == EXPECTED_CHUNK_FOOTER_SIZE);
 };
 
-// Maximum typical overhead per allocation imposed by allocators.
+/// Maximum typical overhead per allocation imposed by allocators.
 const MALLOC_OVERHEAD: usize = 16;
 
-// This is the overhead from malloc, footer and alignment. For instance, if
-// we want to request a chunk of memory that has at least X bytes usable for
-// allocations (where X is aligned to CHUNK_ALIGN), then we expect that the
-// after adding a footer, malloc overhead and alignment, the chunk of memory
-// the allocator actually sets aside for us is X+OVERHEAD rounded up to the
-// nearest suitable size boundary.
+/// The overhead from malloc, footer and alignment.
+///
+/// For instance, if we want to request a chunk of memory that has at least X bytes usable for allocations
+/// (where X is aligned to `CHUNK_ALIGN`), then we expect that after adding a footer, `malloc` overhead,
+/// and alignment, the chunk of memory the allocator actually sets aside for us is `X + OVERHEAD`,
+/// rounded up to the nearest suitable size boundary.
 const OVERHEAD: usize = match round_up_to(MALLOC_OVERHEAD + CHUNK_FOOTER_SIZE, CHUNK_ALIGN) {
     Some(x) => x,
     None => panic!(),
 };
 
-// The target size of our first allocation, including our overhead.
-// The available capacity will be slightly smaller.
-// 16 KiB covers the majority of real-world JS/TS files.
+/// The target size of our first allocation, including our overhead.
+///
+/// The available capacity will be slightly smaller.
+/// 16 KiB covers the majority of real-world JS/TS files.
 const FIRST_ALLOCATION_GOAL: usize = 16 * 1024;
 
-// The actual size of the first allocation is going to be a bit smaller than the
-// goal. We need to make room for the footer, and we also need take the
-// alignment into account. We're trying to avoid this kind of situation:
-// https://blog.mozilla.org/nnethercote/2011/08/05/clownshoes-available-in-sizes-2101-and-up/
+/// Default chunk size for a new `Arena`, minus the size of the footer.
+///
+/// The actual size of the first allocation is going to be a bit smaller than the goal.
+/// We need to make room for the footer, and we also need take the alignment into account.
+/// We're trying to avoid this kind of situation:
+/// <https://blog.mozilla.org/nnethercote/2011/08/05/clownshoes-available-in-sizes-2101-and-up/>
 pub const DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER: usize = FIRST_ALLOCATION_GOAL - OVERHEAD;
 
-/// The memory size and alignment details for a potential new chunk
-/// allocation.
+/// The memory size and alignment details for a potential new chunk allocation.
 #[derive(Debug, Clone, Copy)]
 pub struct NewChunkMemoryDetails {
     new_size_without_footer: usize,
@@ -68,11 +69,10 @@ pub struct NewChunkMemoryDetails {
     size: usize,
 }
 
-// NB: We don't have constructors as methods on `impl<N> Arena<N>` that return
-// `Self` because then `rustc` can't infer the `N` if it isn't explicitly
-// provided, even though it has a default value. There doesn't seem to be a good
-// workaround, other than putting constructors on the `Arena<DEFAULT>`; even
-// `std` does this same thing with `HashMap`, for example.
+// Note: We don't have constructors as methods on `impl<N> Arena<N>` that return `Self` because then `rustc`
+// can't infer the `N` if it isn't explicitly provided, even though it has a default value.
+// There doesn't seem to be a good workaround, other than putting constructors on the `Arena<DEFAULT>`.
+// Even `std` does this same thing with `HashMap`, for example.
 impl Arena<1> {
     /// Construct a new arena to allocate into.
     ///
@@ -81,7 +81,6 @@ impl Arena<1> {
     /// ```
     /// # use oxc_allocator::arena::Arena;
     /// let arena = Arena::new();
-    /// # let _ = arena;
     /// ```
     pub fn new() -> Self {
         Self::with_capacity(0)
@@ -108,7 +107,6 @@ impl Arena<1> {
     /// ```
     /// # use oxc_allocator::arena::Arena;
     /// let arena = Arena::with_capacity(100);
-    /// # let _ = arena;
     /// ```
     ///
     /// # Panics
@@ -128,7 +126,6 @@ impl Arena<1> {
     /// # use oxc_allocator::arena::{AllocErr, Arena};
     /// # fn _foo() -> Result<(), AllocErr> {
     /// let arena = Arena::try_with_capacity(100)?;
-    /// # let _ = arena;
     /// # Ok(())
     /// # }
     /// ```
@@ -142,7 +139,7 @@ impl Arena<1> {
     /// 2. Computing the new chunk's memory details overflows.
     /// 3. The underlying global allocator fails to allocate the initial chunk.
     ///
-    /// When `capacity` is `0` no allocation is performed and `Ok` is always returned.
+    /// When `capacity` is `0`, no allocation is performed, and `Ok` is always returned.
     pub fn try_with_capacity(capacity: usize) -> Result<Self, AllocErr> {
         Self::try_with_min_align_and_capacity(capacity)
     }
@@ -151,12 +148,11 @@ impl Arena<1> {
 impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// Create a new `Arena` that enforces a minimum alignment.
     ///
-    /// The minimum alignment must be a power of two and no larger than `16`.
+    /// The minimum alignment must be a power of 2, and no larger than 16.
     ///
-    /// Enforcing a minimum alignment can speed up allocation of objects with
-    /// alignment less than or equal to the minimum alignment. This comes at the
-    /// cost of introducing otherwise-unnecessary padding between allocations of
-    /// objects with alignment less than the minimum.
+    /// Enforcing a minimum alignment can speed up allocation of objects with alignment less than or equal to
+    /// the minimum alignment. This comes at the cost of introducing otherwise-unnecessary padding between
+    /// allocations of objects with alignment less than the minimum.
     ///
     /// # Example
     ///
@@ -175,11 +171,10 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     ///
     /// Panics on invalid minimum alignments.
     //
-    // Because of `rustc`'s poor type inference for default type/const
-    // parameters (see the comment above the `impl Arena` block with no const
-    // `MIN_ALIGN` parameter) and because we don't want to force everyone to
-    // specify a minimum alignment with `Arena::new()` et al, we have a separate
-    // constructor for specifying the minimum alignment.
+    // Because of `rustc`'s poor type inference for default type/const parameters (see the comment above
+    // the `impl Arena` block with no const `MIN_ALIGN` parameter), and because we don't want to force everyone
+    // to specify a minimum alignment with `Arena::new()` et al, we have a separate constructor
+    // for specifying the minimum alignment.
     pub fn with_min_align() -> Self {
         assert!(MIN_ALIGN.is_power_of_two(), "MIN_ALIGN must be a power of two; found {MIN_ALIGN}");
         assert!(
@@ -190,15 +185,13 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         Self::new_impl(EMPTY_CHUNK.get())
     }
 
-    /// Create a new `Arena` that enforces a minimum alignment and starts with
-    /// room for at least `capacity` bytes.
+    /// Create a new `Arena` that enforces a minimum alignment, and starts with room for at least `capacity` bytes.
     ///
-    /// The minimum alignment must be a power of two and no larger than `16`.
+    /// The minimum alignment must be a power of 2, and no larger than 16.
     ///
-    /// Enforcing a minimum alignment can speed up allocation of objects with
-    /// alignment less than or equal to the minimum alignment. This comes at the
-    /// cost of introducing otherwise-unnecessary padding between allocations of
-    /// objects with alignment less than the minimum.
+    /// Enforcing a minimum alignment can speed up allocation of objects with alignment less than or equal to
+    /// the minimum alignment. This comes at the cost of introducing otherwise-unnecessary padding between
+    /// allocations of objects with alignment less than the minimum.
     ///
     /// # Example
     ///
@@ -226,15 +219,13 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         Self::try_with_min_align_and_capacity(capacity).unwrap_or_else(|_| oom())
     }
 
-    /// Create a new `Arena` that enforces a minimum alignment and starts with
-    /// room for at least `capacity` bytes.
+    /// Create a new `Arena` that enforces a minimum alignment, and starts with room for at least `capacity` bytes.
     ///
-    /// The minimum alignment must be a power of two and no larger than `16`.
+    /// The minimum alignment must be a power of 2, and no larger than 16.
     ///
-    /// Enforcing a minimum alignment can speed up allocation of objects with
-    /// alignment less than or equal to the minimum alignment. This comes at the
-    /// cost of introducing otherwise-unnecessary padding between allocations of
-    /// objects with alignment less than the minimum.
+    /// Enforcing a minimum alignment can speed up allocation of objects with alignment less than or equal to
+    /// the minimum alignment. This comes at the cost of introducing otherwise-unnecessary padding between
+    /// allocations of objects with alignment less than the minimum.
     ///
     /// # Example
     ///
@@ -257,9 +248,8 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     ///
     /// # Panics
     ///
-    /// Panics on invalid minimum alignments.
-    ///
-    /// Panics if allocating the initial capacity fails.
+    /// * Panics on invalid minimum alignments.
+    /// * Panics if allocating the initial capacity fails.
     ///
     /// # Errors
     ///
@@ -270,7 +260,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// 2. Computing the new chunk's memory details overflows.
     /// 3. The underlying global allocator fails to allocate the initial chunk.
     ///
-    /// When `capacity` is `0` no allocation is performed and `Ok` is always returned.
+    /// When `capacity` is 0, no allocation is performed, and `Ok` is always returned.
     pub fn try_with_min_align_and_capacity(capacity: usize) -> Result<Self, AllocErr> {
         assert!(MIN_ALIGN.is_power_of_two(), "MIN_ALIGN must be a power of two; found {MIN_ALIGN}");
         assert!(
@@ -312,9 +302,8 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         }
     }
 
-    /// Determine the memory details including final size, alignment and final
-    /// size without footer for a new chunk that would be allocated to fulfill
-    /// an allocation request.
+    /// Determine the memory details including final size, alignment, and final size without footer
+    /// for a new chunk that would be allocated to fulfill an allocation request.
     pub(super) fn new_chunk_memory_details(
         new_size_without_footer: Option<usize>,
         requested_layout: Layout,
@@ -323,7 +312,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         let align = CHUNK_ALIGN
             // and we have to have at least our configured minimum alignment...
             .max(MIN_ALIGN)
-            // and make sure we satisfy the requested allocation's alignment.
+            // and make sure we satisfy the requested allocation's alignment
             .max(requested_layout.align());
 
         let mut new_size_without_footer =
@@ -333,12 +322,10 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             round_up_to(requested_layout.size(), align).unwrap_or_else(allocation_size_overflow);
         new_size_without_footer = new_size_without_footer.max(requested_size);
 
-        // We want our allocations to play nice with the memory allocator, and
-        // waste as little memory as possible. For small allocations, this means
-        // that the entire allocation including the chunk footer and mallocs
-        // internal overhead is as close to a power of two as we can go without
-        // going over. For larger allocations, we only need to get close to a
-        // page boundary without going over.
+        // We want our allocations to play nice with the memory allocator, and waste as little memory as possible.
+        // For small allocations, this means that the entire allocation including the chunk footer and `malloc`'s
+        // internal overhead is as close to a power of two as we can go without going over.
+        // For larger allocations, we only need to get close to a page boundary without going over.
         if new_size_without_footer < TYPICAL_PAGE_SIZE {
             new_size_without_footer =
                 (new_size_without_footer + OVERHEAD).next_power_of_two() - OVERHEAD;
@@ -357,10 +344,6 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     }
 
     /// Allocate a new chunk and return its initialized footer.
-    ///
-    /// If given, `layouts` is a tuple of the current chunk size and the
-    /// layout of the allocation request that triggered us to fall back to
-    /// allocating a new chunk of memory.
     pub(super) unsafe fn new_chunk(
         new_chunk_memory_details: NewChunkMemoryDetails,
         requested_layout: Layout,
@@ -377,7 +360,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             let data = alloc::alloc(layout);
             let data = NonNull::new(data)?;
 
-            // The `ChunkFooter` is at the end of the chunk.
+            // The `ChunkFooter` is at the end of the chunk
             let footer_ptr = data.as_ptr().add(new_size_without_footer);
             debug_assert_eq!((data.as_ptr() as usize) % align, 0);
             debug_assert_eq!(footer_ptr as usize % CHUNK_ALIGN, 0);
@@ -387,11 +370,9 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             )]
             let footer_ptr = footer_ptr.cast::<ChunkFooter>();
 
-            // The bump pointer is initialized to the end of the range we will bump
-            // out of, rounded down to the minimum alignment. It is the
-            // `NewChunkMemoryDetails` constructor's responsibility to ensure that
-            // even after this rounding we have enough non-zero capacity in the
-            // chunk.
+            // The bump pointer is initialized to the end of the range we will bump out of, rounded down to
+            // the minimum alignment. It is the `NewChunkMemoryDetails` constructor's responsibility to ensure
+            // that even after this rounding we have enough non-zero capacity in the chunk.
             let ptr = round_mut_ptr_down_to(footer_ptr.cast::<u8>(), MIN_ALIGN);
             debug_assert_eq!(ptr as usize % MIN_ALIGN, 0);
             debug_assert!(

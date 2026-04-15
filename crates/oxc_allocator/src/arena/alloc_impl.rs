@@ -25,9 +25,7 @@ use super::{
 impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// Allocate space for an object with the given `Layout`.
     ///
-    /// The returned pointer points at uninitialized memory, and should be
-    /// initialized with
-    /// [`std::ptr::write`](https://doc.rust-lang.org/std/ptr/fn.write.html).
+    /// The returned pointer points at uninitialized memory, and should be initialized with [`std::ptr::write`].
     ///
     /// # Panics
     ///
@@ -37,12 +35,11 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         self.try_alloc_layout(layout).unwrap_or_else(|_| oom())
     }
 
-    /// Attempts to allocate space for an object with the given `Layout` or else returns
-    /// an `Err`.
+    /// Attempt to allocate space for an object with the given `Layout`.
     ///
-    /// The returned pointer points at uninitialized memory, and should be
-    /// initialized with
-    /// [`std::ptr::write`](https://doc.rust-lang.org/std/ptr/fn.write.html).
+    /// If allocation fails, returns `Err`.
+    ///
+    /// The returned pointer points at uninitialized memory, and should be initialized with [`std::ptr::write`].
     ///
     /// # Errors
     ///
@@ -65,10 +62,9 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
 
     #[inline(always)]
     fn try_alloc_layout_fast(&self, layout: Layout) -> Option<NonNull<u8>> {
-        // We don't need to check for ZSTs here since they will automatically
-        // be handled properly: the pointer will be bumped by zero bytes,
-        // modulo alignment. This keeps the fast path optimized for non-ZSTs,
-        // which are much more common.
+        // We don't need to check for ZSTs here since they will automatically be handled properly:
+        // the pointer will be bumped by zero bytes, modulo alignment.
+        // This keeps the fast path optimized for non-ZSTs, which are much more common.
         unsafe {
             let footer_ptr = self.current_chunk_footer.get();
             let footer = footer_ptr.as_ref();
@@ -87,14 +83,12 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 is_pointer_aligned_to(ptr, MIN_ALIGN),
                 "bump pointer {ptr:#p} should be aligned to the minimum alignment of {MIN_ALIGN:#x}"
             );
-            // This `match` should be boiled away by LLVM: `MIN_ALIGN` is a
-            // constant and the layout's alignment is also constant in practice
-            // after inlining.
+            // This `match` should be boiled away by LLVM: `MIN_ALIGN` is a constant and the layout's alignment
+            // is also constant in practice after inlining
             let aligned_ptr = match layout.align().cmp(&MIN_ALIGN) {
                 Ordering::Less => {
-                    // We need to round the size up to a multiple of `MIN_ALIGN`
-                    // to preserve the minimum alignment. This might overflow
-                    // since we cannot rely on `Layout`'s guarantees.
+                    // We need to round the size up to a multiple of `MIN_ALIGN` to preserve the minimum alignment.
+                    // This might overflow since we cannot rely on `Layout`'s guarantees.
                     let aligned_size = round_up_to(layout.size(), MIN_ALIGN)?;
 
                     let capacity = (ptr as usize) - (start as usize);
@@ -105,10 +99,9 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                     ptr.wrapping_sub(aligned_size)
                 }
                 Ordering::Equal => {
-                    // `Layout` guarantees that rounding the size up to its
-                    // align cannot overflow (but does not guarantee that the
-                    // size is initially a multiple of the alignment, which is
-                    // why we need to do this rounding).
+                    // `Layout` guarantees that rounding the size up to its align cannot overflow
+                    // (but does not guarantee that the size is initially a multiple of the alignment,
+                    // which is why we need to do this rounding)
                     let aligned_size = round_up_to_unchecked(layout.size(), layout.align());
 
                     let capacity = (ptr as usize) - (start as usize);
@@ -119,10 +112,9 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                     ptr.wrapping_sub(aligned_size)
                 }
                 Ordering::Greater => {
-                    // `Layout` guarantees that rounding the size up to its
-                    // align cannot overflow (but does not guarantee that the
-                    // size is initially a multiple of the alignment, which is
-                    // why we need to do this rounding).
+                    // `Layout` guarantees that rounding the size up to its align cannot overflow
+                    // (but does not guarantee that the size is initially a multiple of the alignment,
+                    // which is why we need to do this rounding)
                     let aligned_size = round_up_to_unchecked(layout.size(), layout.align());
 
                     let aligned_ptr = round_mut_ptr_down_to(ptr, layout.align());
@@ -157,8 +149,8 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         }
     }
 
-    /// Slow path allocation for when we need to allocate a new chunk,
-    /// because there isn't enough room in our current chunk.
+    /// Slow path allocation for when we need to allocate a new chunk, because there isn't enough room
+    /// in our current chunk.
     #[inline(never)]
     #[cold]
     fn alloc_layout_slow(&self, layout: Layout) -> Option<NonNull<u8>> {
@@ -167,14 +159,13 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 return None;
             }
 
-            // Get a new chunk from the global allocator.
+            // Get a new chunk from the global allocator
             let current_footer = self.current_chunk_footer.get();
             let current_layout = current_footer.as_ref().layout;
 
-            // By default, we want our new chunk to be about twice as big
-            // as the previous chunk. If the global allocator refuses it,
-            // we try to divide it by half until it works or the requested
-            // size is smaller than the default footer size.
+            // By default, we want our new chunk to be about twice as big as the previous chunk.
+            // If the global allocator refuses it, we try to divide it by half until it works
+            // or the requested size is smaller than the default footer size.
             let min_new_chunk_size = layout.size().max(DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER);
             let mut base_size =
                 (current_layout.size() - CHUNK_FOOTER_SIZE).checked_mul(2)?.max(min_new_chunk_size);
@@ -194,11 +185,10 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
 
             debug_assert_eq!(new_footer.as_ref().data.as_ptr() as usize % layout.align(), 0);
 
-            // Set the new chunk as our new current chunk.
+            // Set the new chunk as our new current chunk
             self.current_chunk_footer.set(new_footer);
 
-            // And then we can rely on `try_alloc_layout_fast` to allocate
-            // space within this chunk.
+            // And then we can rely on `try_alloc_layout_fast` to allocate space within this chunk
             let ptr = self.try_alloc_layout_fast(layout);
             debug_assert!(ptr.is_some());
             ptr
@@ -208,7 +198,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     #[inline]
     unsafe fn dealloc(&self, ptr: NonNull<u8>, layout: Layout) {
         // If the pointer is the last allocation we made, we can reuse the bytes,
-        // otherwise they are simply leaked -- at least until somebody calls reset().
+        // otherwise they are simply leaked - at least until somebody calls `reset()`
         unsafe {
             if self.is_last_allocation(ptr) {
                 let ptr = self.current_chunk_footer.get().as_ref().ptr.get();
@@ -232,17 +222,15 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         old_layout: Layout,
         new_layout: Layout,
     ) -> Result<NonNull<u8>, AllocErr> {
-        // If the new layout demands greater alignment than the old layout has,
-        // then either
+        // If the new layout demands greater alignment than the old layout has, then either:
         //
-        // 1. the pointer happens to satisfy the new layout's alignment, so we
-        //    got lucky and can return the pointer as-is, or
+        // 1. the pointer happens to satisfy the new layout's alignment, so we got lucky
+        //    and can return the pointer as-is, or
         //
-        // 2. the pointer is not aligned to the new layout's demanded alignment,
-        //    and we are unlucky.
+        // 2. the pointer is not aligned to the new layout's demanded alignment, and we are unlucky.
         //
-        // In the case of (2), to successfully "shrink" the allocation, we have
-        // to allocate a whole new region for the new layout.
+        // In the case of (2), to successfully "shrink" the allocation, we have to allocate a whole new region
+        // for the new layout.
         if old_layout.align() < new_layout.align() {
             return if is_pointer_aligned_to(ptr.as_ptr(), new_layout.align()) {
                 Ok(ptr)
@@ -255,8 +243,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 ))]
                 self.stats.record_reallocation_after_allocation();
 
-                // We know that these regions are nonoverlapping because
-                // `new_ptr` is a fresh allocation.
+                // We know that these regions are nonoverlapping because `new_ptr` is a fresh allocation
                 unsafe {
                     ptr::copy_nonoverlapping(ptr.as_ptr(), new_ptr.as_ptr(), new_layout.size());
                 }
@@ -270,17 +257,14 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         let old_size = old_layout.size();
         let new_size = new_layout.size();
 
-        // This is how much space we would *actually* reclaim while satisfying
-        // the requested alignment.
+        // This is how much space we would *actually* reclaim while satisfying the requested alignment
         let delta = round_down_to(old_size - new_size, new_layout.align().max(MIN_ALIGN));
 
         if unsafe { self.is_last_allocation(ptr) }
-                // Only reclaim the excess space (which requires a copy) if it
-                // is worth it: we are actually going to recover "enough" space
-                // and we can do a non-overlapping copy.
+                // Only reclaim the excess space (which requires a copy) if it is worth it:
+                // we are actually going to recover "enough" space and we can do a non-overlapping copy.
                 //
-                // We do `old_size.div_ceil(2)` so division rounds up rather than
-                // down. Consider when:
+                // We do `old_size.div_ceil(2)` so division rounds up rather than down. Consider when:
                 //
                 //     old_size = 5
                 //     new_size = 3
@@ -290,8 +274,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 //     delta = 2
                 //     (old_size / 2) = (5 / 2) = 2
                 //
-                // And the the check will succeed even though we are have
-                // overlapping ranges:
+                // And the the check will succeed even though we are have overlapping ranges:
                 //
                 //     |--------old-allocation-------|
                 //     |------from-------|
@@ -300,17 +283,15 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 //     |  a  |  b  |  c  |  .  |  .  |
                 //     +-----+-----+-----+-----+-----+
                 //
-                // But we MUST NOT have overlapping ranges because we use
-                // `copy_nonoverlapping` below! Therefore, we round the division
-                // up to avoid this issue.
+                // But we MUST NOT have overlapping ranges because we use `copy_nonoverlapping` below.
+                // Therefore, we round the division up to avoid this issue.
                 && delta >= old_size.div_ceil(2)
         {
             unsafe {
                 let footer = self.current_chunk_footer.get();
                 let footer = footer.as_ref();
 
-                // NB: new_ptr is aligned, because ptr *has to* be aligned, and we
-                // made sure delta is aligned.
+                // Note: `new_ptr` is aligned, because ptr *has to* be aligned, and we made sure delta is aligned
                 let new_ptr = NonNull::new_unchecked(footer.ptr.get().as_ptr().add(delta));
                 debug_assert!(
                     is_pointer_aligned_to(new_ptr.as_ptr(), MIN_ALIGN),
@@ -318,8 +299,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 );
                 footer.ptr.set(new_ptr);
 
-                // NB: we know it is non-overlapping because of the size check
-                // in the `if` condition.
+                // Note: We know it is non-overlapping because of the size check in the `if` condition
                 ptr::copy_nonoverlapping(ptr.as_ptr(), new_ptr.as_ptr(), new_size);
 
                 #[cfg(all(
@@ -332,8 +312,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             }
         }
 
-        // If this wasn't the last allocation, or shrinking wasn't worth it,
-        // simply return the old pointer as-is.
+        // If this wasn't the last allocation, or shrinking wasn't worth it, simply return the old pointer as is
         Ok(ptr)
     }
 
@@ -352,8 +331,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         let align_is_compatible = old_layout.align() >= new_layout.align();
 
         if align_is_compatible && unsafe { self.is_last_allocation(ptr) } {
-            // Try to allocate the delta size within this same block so we can
-            // reuse the currently allocated space.
+            // Try to allocate the delta size within this same block so we can reuse the currently allocated space
             let delta = new_size - old_size;
             if let Some(p) =
                 self.try_alloc_layout_fast(layout_from_size_align(delta, old_layout.align())?)
@@ -370,7 +348,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             }
         }
 
-        // Fallback: do a fresh allocation and copy the existing data into it.
+        // Fallback: Do a fresh allocation and copy the existing data into it
         let new_ptr = self.try_alloc_layout(new_layout)?;
         unsafe { ptr::copy_nonoverlapping(ptr.as_ptr(), new_ptr.as_ptr(), old_size) };
 
