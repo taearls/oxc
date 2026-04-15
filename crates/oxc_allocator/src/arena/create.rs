@@ -341,12 +341,12 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
 
             debug_assert!(size >= requested_layout.size());
 
-            let data = alloc::alloc(layout);
-            let data = NonNull::new(data)?;
+            let start_ptr = alloc::alloc(layout);
+            let start_ptr = NonNull::new(start_ptr)?;
 
             // The `ChunkFooter` is at the end of the chunk
-            let footer_ptr = data.as_ptr().add(new_size_without_footer);
-            debug_assert_eq!((data.as_ptr() as usize) % align, 0);
+            let footer_ptr = start_ptr.as_ptr().add(new_size_without_footer);
+            debug_assert_eq!((start_ptr.as_ptr() as usize) % align, 0);
             debug_assert_eq!(footer_ptr as usize % CHUNK_ALIGN, 0);
             #[expect(
                 clippy::cast_ptr_alignment,
@@ -357,18 +357,29 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             // The bump pointer is initialized to the end of the range we will bump out of, rounded down to
             // the minimum alignment. It is the `NewChunkMemoryDetails` constructor's responsibility to ensure
             // that even after this rounding we have enough non-zero capacity in the chunk.
-            let ptr = round_mut_ptr_down_to(footer_ptr.cast::<u8>(), MIN_ALIGN);
-            debug_assert_eq!(ptr as usize % MIN_ALIGN, 0);
+            let cursor_ptr = round_mut_ptr_down_to(footer_ptr.cast::<u8>(), MIN_ALIGN);
+            debug_assert_eq!(cursor_ptr as usize % MIN_ALIGN, 0);
             debug_assert!(
-                data.as_ptr() <= ptr,
-                "bump pointer {ptr:#p} should still be greater than or equal to the \
-                 start of the bump chunk {data:#p}"
+                start_ptr.as_ptr() <= cursor_ptr,
+                "bump pointer {cursor_ptr:#p} should still be greater than or equal to the \
+                 start of the bump chunk {start_ptr:#p}"
             );
-            debug_assert_eq!((ptr as usize) - (data.as_ptr() as usize), new_size_without_footer);
+            debug_assert_eq!(
+                (cursor_ptr as usize) - (start_ptr.as_ptr() as usize),
+                new_size_without_footer
+            );
 
-            let ptr = Cell::new(NonNull::new_unchecked(ptr));
+            let cursor_ptr = Cell::new(NonNull::new_unchecked(cursor_ptr));
 
-            ptr::write(footer_ptr, ChunkFooter { data, layout, prev: Cell::new(prev), ptr });
+            ptr::write(
+                footer_ptr,
+                ChunkFooter {
+                    start_ptr,
+                    layout,
+                    previous_chunk_footer_ptr: Cell::new(prev),
+                    cursor_ptr,
+                },
+            );
 
             Some(NonNull::new_unchecked(footer_ptr))
         }

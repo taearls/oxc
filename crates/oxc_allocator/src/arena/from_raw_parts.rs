@@ -45,10 +45,10 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         // Caller guarantees region from `ptr` to `ptr + size` forms a single allocation, so it must be a valid layout.
         let layout = unsafe { Layout::from_size_align_unchecked(size, CHUNK_ALIGN) };
         let chunk_footer = ChunkFooter {
-            data: ptr,
+            start_ptr: ptr,
             layout,
-            prev: Cell::new(EMPTY_CHUNK.get()),
-            ptr: Cell::new(chunk_footer_ptr.cast::<u8>()),
+            previous_chunk_footer_ptr: Cell::new(EMPTY_CHUNK.get()),
+            cursor_ptr: Cell::new(chunk_footer_ptr.cast::<u8>()),
         };
 
         // SAFETY: If caller has upheld safety requirements, `chunk_footer_ptr` is `CHUNK_FOOTER_SIZE` bytes
@@ -82,13 +82,13 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         // SAFETY: `current_chunk_footer` always points to a valid `ChunkFooter`
         let chunk_footer = unsafe { self.current_chunk_footer.get().as_ref() };
 
-        debug_assert!(ptr.as_ptr() >= chunk_footer.data.as_ptr());
+        debug_assert!(ptr.as_ptr() >= chunk_footer.start_ptr.as_ptr());
         debug_assert!(ptr.as_ptr().cast_const() <= ptr::from_ref(chunk_footer).cast::<u8>());
         debug_assert!(ptr.addr().get().is_multiple_of(MIN_ALIGN));
 
         // SAFETY: Caller guarantees `Arena` has at least 1 allocated chunk, and `ptr` is valid
         #[expect(clippy::unnecessary_safety_comment)]
-        chunk_footer.ptr.set(ptr);
+        chunk_footer.cursor_ptr.set(ptr);
     }
 
     /// Get pointer to end of the data region of this [`Arena`]'s current chunk

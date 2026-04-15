@@ -223,19 +223,19 @@ unsafe impl<const MIN_ALIGN: usize> Send for Arena<MIN_ALIGN> {}
 struct ChunkFooter {
     /// Pointer to the start of this chunk allocation.
     /// This footer is always at the end of the chunk.
-    data: NonNull<u8>,
+    start_ptr: NonNull<u8>,
 
     /// The layout of this chunk's allocation.
     layout: Layout,
 
     /// Link to the previous chunk.
     ///
-    /// The last node in the `prev` linked list is the canonical empty chunk, whose `prev` link points to
-    /// itself.
-    prev: Cell<NonNull<ChunkFooter>>,
+    /// The last node in the `previous_chunk_footer_ptr` linked list is the canonical empty chunk,
+    /// whose `previous_chunk_footer_ptr` link points to itself.
+    previous_chunk_footer_ptr: Cell<NonNull<ChunkFooter>>,
 
-    /// Bump allocation finger that is always in the range `self.data..=self`.
-    ptr: Cell<NonNull<u8>>,
+    /// Bump allocation cursor that is always in the range `self.start_ptr..=self`.
+    cursor_ptr: Cell<NonNull<u8>>,
 }
 
 /// We only support alignments of up to 16 bytes for `iter_allocated_chunks`.
@@ -259,14 +259,14 @@ static EMPTY_CHUNK: EmptyChunkFooter = EmptyChunkFooter(ChunkFooter {
     layout: Layout::new::<ChunkFooter>(),
 
     // The start of the (empty) allocatable region for this chunk is itself
-    data: NonNull::from_ref(&EMPTY_CHUNK).cast::<u8>(),
+    start_ptr: NonNull::from_ref(&EMPTY_CHUNK).cast::<u8>(),
 
     // The end of the (empty) allocatable region for this chunk is also itself
-    ptr: Cell::new(NonNull::from_ref(&EMPTY_CHUNK).cast::<u8>()),
+    cursor_ptr: Cell::new(NonNull::from_ref(&EMPTY_CHUNK).cast::<u8>()),
 
-    // Invariant: The last chunk footer in all `ChunkFooter::prev` linked lists is the empty chunk footer,
-    // whose `prev` points to itself
-    prev: Cell::new(NonNull::from_ref(&EMPTY_CHUNK.0)),
+    // Invariant: The last chunk footer in all `ChunkFooter::previous_chunk_footer_ptr` linked lists
+    // is the empty chunk footer, whose `previous_chunk_footer_ptr` points to itself
+    previous_chunk_footer_ptr: Cell::new(NonNull::from_ref(&EMPTY_CHUNK.0)),
 });
 
 impl EmptyChunkFooter {
@@ -278,14 +278,14 @@ impl EmptyChunkFooter {
 impl ChunkFooter {
     /// Returns the start and length of the currently allocated region of this chunk.
     fn as_raw_parts(&self) -> (*mut u8, usize) {
-        let data = self.data.as_ptr().cast_const();
-        let ptr = self.ptr.get().as_ptr();
-        debug_assert!(data <= ptr);
-        debug_assert!(ptr.cast_const() <= ptr::from_ref::<ChunkFooter>(self).cast::<u8>());
-        // SAFETY: `ptr` is always before or equal to footer
-        let len =
-            unsafe { ptr::from_ref::<ChunkFooter>(self).cast::<u8>().offset_from_unsigned(ptr) };
-        (ptr, len)
+        let start_ptr = self.start_ptr.as_ptr().cast_const();
+        let cursor_ptr = self.cursor_ptr.get().as_ptr();
+        let end_ptr = ptr::from_ref(self).cast::<u8>();
+        debug_assert!(start_ptr <= cursor_ptr.cast_const());
+        debug_assert!(cursor_ptr.cast_const() <= end_ptr);
+        // SAFETY: `cursor_ptr` is always before or equal to `end_ptr`
+        let len = unsafe { end_ptr.offset_from_unsigned(cursor_ptr) };
+        (cursor_ptr, len)
     }
 
     /// Returns `true` if this chunk is the empty chunk (end of the linked list).
