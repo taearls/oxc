@@ -1315,9 +1315,10 @@ impl<'a> FormatWrite<'a> for AstNode<'a, TSTypeReference<'a>> {
 }
 
 /// The parser treats a leading `intrinsic` identifier in a type alias annotation
-/// as `TSIntrinsicKeyword` (e.g. `type t = intrinsic`). Source like `type t = (intrinsic);`
-/// loses its parens (`preserve_parens: false`), so without re-emitting them the output
-/// re-parses as `TSIntrinsicKeyword` (or fails to parse when followed by `|`/`&`).
+/// as `TSIntrinsicKeyword` (e.g. `type t = intrinsic`).
+/// Source like `type t = (intrinsic);` loses its parens (`preserve_parens: false`),
+/// so without re-emitting them the output re-parses as `TSIntrinsicKeyword`.
+/// (or fails to parse when followed by `|`/`&`)
 ///
 /// See: <https://github.com/oxc-project/oxc/issues/20205>
 fn is_leftmost_intrinsic_in_type_alias(reference: &AstNode<'_, TSTypeReference<'_>>) -> bool {
@@ -1343,6 +1344,15 @@ fn is_leftmost_intrinsic_in_type_alias(reference: &AstNode<'_, TSTypeReference<'
                     return false;
                 }
                 parent = intersection.parent();
+            }
+            AstNodes::TSConditionalType(cond) => {
+                if cond.check_type().span().start != span_start {
+                    return false;
+                }
+                parent = cond.parent();
+            }
+            AstNodes::TSArrayType(array) => {
+                parent = array.parent();
             }
             _ => return false,
         }

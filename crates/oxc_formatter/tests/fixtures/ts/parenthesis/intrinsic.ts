@@ -6,3 +6,5 @@ type t5 = string | (intrinsic);
 type t6 = [intrinsic];
 type t7 = { x: intrinsic };
 type t8 = Array<intrinsic>;
+type t9 = (intrinsic) extends string ? 1 : 0
+type t10 = (intrinsic)[]
