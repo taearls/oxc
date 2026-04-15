@@ -13,7 +13,7 @@ use crate::tracking::AllocationStats;
 
 use super::{
     Arena, CHUNK_ALIGN, CHUNK_FOOTER_SIZE, ChunkFooter, EMPTY_CHUNK,
-    utils::{layout_from_size_align, oom, round_mut_ptr_down_to, round_up_to},
+    utils::{layout_from_size_align, oom, round_up_to},
 };
 
 /// The typical page size these days.
@@ -354,22 +354,10 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             )]
             let footer_ptr = footer_ptr.cast::<ChunkFooter>();
 
-            // The bump pointer is initialized to the end of the range we will bump out of, rounded down to
-            // the minimum alignment. It is the `NewChunkMemoryDetails` constructor's responsibility to ensure
-            // that even after this rounding we have enough non-zero capacity in the chunk.
-            let cursor_ptr = round_mut_ptr_down_to(footer_ptr.cast::<u8>(), MIN_ALIGN);
-            debug_assert_eq!(cursor_ptr as usize % MIN_ALIGN, 0);
-            debug_assert!(
-                start_ptr.as_ptr() <= cursor_ptr,
-                "bump pointer {cursor_ptr:#p} should still be greater than or equal to the \
-                 start of the bump chunk {start_ptr:#p}"
-            );
-            debug_assert_eq!(
-                (cursor_ptr as usize) - (start_ptr.as_ptr() as usize),
-                new_size_without_footer
-            );
-
-            let cursor_ptr = Cell::new(NonNull::new_unchecked(cursor_ptr));
+            // Initial cursor sits at the footer, which is the end of the allocatable region.
+            // The footer is aligned on `CHUNK_ALIGN`, which is `>= MIN_ALIGN`, so this is already aligned to `MIN_ALIGN`.
+            let cursor_ptr = NonNull::new_unchecked(footer_ptr.cast::<u8>());
+            debug_assert_eq!(cursor_ptr.as_ptr() as usize % MIN_ALIGN, 0);
 
             ptr::write(
                 footer_ptr,
@@ -377,7 +365,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                     start_ptr,
                     layout,
                     previous_chunk_footer_ptr: Cell::new(prev),
-                    cursor_ptr,
+                    cursor_ptr: Cell::new(cursor_ptr),
                 },
             );
 
