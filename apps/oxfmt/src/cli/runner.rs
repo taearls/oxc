@@ -155,8 +155,9 @@ impl CliRunner {
         #[cfg(feature = "napi")]
         let source_formatter = source_formatter.with_external_formatter(self.external_formatter);
 
-        // Spawn formatting service to consume entries from all scopes via `rx_entry`
-        rayon::spawn(move || {
+        // Spawn formatting service on a dedicated thread so it doesn't occupy the rayon pool.
+        // It just blocks on `rx_entry` waiting for entries; `par_bridge()` inside still uses rayon.
+        std::thread::spawn(move || {
             let format_service = FormatService::new(cwd, format_mode, source_formatter);
             format_service.run_streaming(rx_entry, &tx_error, &tx_success);
         });
