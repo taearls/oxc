@@ -93,13 +93,10 @@ impl CliRunner {
                 return CliRunResult::InvalidOptionConfig;
             }
         };
-        let root_ignore_patterns = match root_config_resolver.build_and_validate() {
-            Ok(patterns) => patterns,
-            Err(err) => {
-                utils::print_and_flush(stderr, &format!("Failed to parse configuration.\n{err}\n"));
-                return CliRunResult::InvalidOptionConfig;
-            }
-        };
+        if let Err(err) = root_config_resolver.build_and_validate() {
+            utils::print_and_flush(stderr, &format!("Failed to parse configuration.\n{err}\n"));
+            return CliRunResult::InvalidOptionConfig;
+        }
 
         // Use `block_in_place()` to avoid nested async runtime access
         #[cfg(feature = "napi")]
@@ -165,7 +162,6 @@ impl CliRunner {
         // Run scoped walks (root + nested) — sends entries to `tx_entry`
         let any_config_found = match scoped_walker.run(
             root_config_resolver,
-            &root_ignore_patterns,
             &resolved_ignore_paths,
             ignore_options.with_node_modules,
             // Nested config detection is disabled when `--config` is explicitly specified

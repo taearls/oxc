@@ -12,20 +12,13 @@ use tracing::instrument;
 #[cfg(feature = "napi")]
 use crate::core::JsConfigLoaderCb;
 use crate::core::{
-    ConfigResolver, FormatFileStrategy, all_config_file_names, utils::normalize_relative_path,
+    ConfigResolver, FormatFileStrategy, has_config_in_directory, utils::normalize_relative_path,
 };
 
 /// A file entry paired with its scope's config resolver.
 pub struct FormatEntry {
     pub strategy: FormatFileStrategy,
     pub config_resolver: Arc<ConfigResolver>,
-}
-
-/// A scope's config and ignore matchers. Used for both root and child scopes.
-#[derive(Clone)]
-struct ScopeConfig {
-    config_resolver: Arc<ConfigResolver>,
-    ignore_pattern_matchers: Arc<[Gitignore]>,
 }
 
 /// Orchestrates file discovery with nested config and ignore handling.
@@ -128,7 +121,6 @@ impl ScopedWalker {
     pub fn run(
         &self,
         root_config: ConfigResolver,
-        root_ignore_patterns: &[String],
         ignore_paths: &[PathBuf],
         with_node_modules: bool,
         detect_nested: bool,
@@ -138,24 +130,12 @@ impl ScopedWalker {
     ) -> Result<bool, String> {
         let root_config_resolver = Arc::new(root_config);
 
-        let config_candidates: Vec<String> =
-            if detect_nested { all_config_file_names().collect() } else { vec![] };
-
         // Global ignores: .prettierignore, --ignore-path, CLI `!` patterns
         let ignore_file_matchers: Arc<[Gitignore]> = Arc::from(build_global_ignore_matchers(
             &self.cwd,
             &self.exclude_patterns,
             ignore_paths,
         )?);
-
-        // ROOT config's ignorePatterns (child scopes' are loaded in `load_child_scopes()`)
-        let ignore_pattern_matchers: Arc<[Gitignore]> =
-            if let Some(config_dir) = root_config_resolver.config_dir() {
-                Arc::from(build_ignore_patterns_matcher(config_dir, root_ignore_patterns)?)
-            } else {
-                // No config → no ignorePatterns
-                Arc::from(Vec::<Gitignore>::new())
-            };
 
         let mut any_config = root_config_resolver.config_dir().is_some();
 
@@ -200,7 +180,7 @@ impl ScopedWalker {
         let mut directly_processed: FxHashSet<PathBuf> = FxHashSet::default();
         if !file_targets.is_empty() {
             // Cache scope resolution results by parent directory to avoid redundant lookups
-            type ScopeEntry = Option<(Arc<ConfigResolver>, Arc<[Gitignore]>)>;
+            type ScopeEntry = Option<Arc<ConfigResolver>>;
 
             let mut scope_cache: FxHashMap<&Path, ScopeEntry> = FxHashMap::default();
             for file in &file_targets {
@@ -210,45 +190,32 @@ impl ScopedWalker {
                 }
 
                 // Resolve which scope (config) this file belongs to
-                let (file_config, file_ignore_matchers) = if detect_nested {
+                let file_config = if detect_nested {
                     let parent = file.parent().unwrap();
                     if !scope_cache.contains_key(parent) {
-                        let result = resolve_file_scope_config(
+                        let cached = resolve_file_scope_config(
                             file,
                             root_config_resolver.config_dir(),
                             editorconfig_path,
                             #[cfg(feature = "napi")]
                             js_config_loader,
-                        )?;
-                        let cached = if let Some((resolver, ignore_patterns)) = result {
-                            let matchers = Arc::from(build_ignore_patterns_matcher(
-                                resolver.config_dir().expect(
-                                    "`resolve_file_scope_config()` guarantees `config_dir` is Some",
-                                ),
-                                &ignore_patterns,
-                            )?);
-                            Some((Arc::from(resolver), matchers))
-                        } else {
-                            None
-                        };
+                        )?
+                        .map(Arc::from);
                         scope_cache.insert(parent, cached);
                     }
 
                     match &scope_cache[parent] {
-                        Some((resolver, matchers)) => {
+                        Some(resolver) => {
                             any_config = true;
-                            (Arc::clone(resolver), Arc::clone(matchers))
+                            Arc::clone(resolver)
                         }
-                        None => (
-                            Arc::clone(&root_config_resolver),
-                            Arc::clone(&ignore_pattern_matchers),
-                        ),
+                        None => Arc::clone(&root_config_resolver),
                     }
                 } else {
-                    (Arc::clone(&root_config_resolver), Arc::clone(&ignore_pattern_matchers))
+                    Arc::clone(&root_config_resolver)
                 };
 
-                if is_ignored(&file_ignore_matchers, file, false, true) {
+                if file_config.is_path_ignored(file, false) {
                     continue;
                 }
                 let Ok(strategy) = FormatFileStrategy::try_from(file.clone()) else {
@@ -278,12 +245,7 @@ impl ScopedWalker {
 
         // Pre-scan: discover nested config file locations
         let config_dirs = if detect_nested {
-            prescan_config_locations(
-                &walk_targets,
-                &config_candidates,
-                &ignore_file_matchers,
-                with_node_modules,
-            )
+            prescan_config_locations(&walk_targets, &ignore_file_matchers, with_node_modules)
         } else {
             vec![]
         };
@@ -306,8 +268,8 @@ impl ScopedWalker {
 
             // Build ancestor set for directory-level ignorePatterns skipping,
             // only when any scope (root or child) has ignorePatterns.
-            let ancestors = if !ignore_pattern_matchers.is_empty()
-                || map.values().any(|s| !s.ignore_pattern_matchers.is_empty())
+            let ancestors = if root_config_resolver.has_ignore_patterns()
+                || map.values().any(|r| r.has_ignore_patterns())
             {
                 Some(build_config_ancestors(&config_dirs))
             } else {
@@ -320,7 +282,6 @@ impl ScopedWalker {
         walk_and_stream(
             &walk_targets,
             Arc::clone(&ignore_file_matchers),
-            Arc::clone(&ignore_pattern_matchers),
             with_node_modules,
             glob_matcher.as_ref(),
             &root_config_resolver,
@@ -379,27 +340,6 @@ fn build_global_ignore_matchers(
     Ok(matchers)
 }
 
-/// Build ignore matchers from config `ignorePatterns`.
-/// Patterns are resolved relative to the config file's directory.
-fn build_ignore_patterns_matcher(
-    config_dir: &Path,
-    ignore_patterns: &[String],
-) -> Result<Vec<Gitignore>, String> {
-    if ignore_patterns.is_empty() {
-        return Ok(vec![]);
-    }
-
-    let mut builder = GitignoreBuilder::new(config_dir);
-    for pattern in ignore_patterns {
-        if builder.add_line(None, pattern).is_err() {
-            return Err(format!("Failed to add ignore pattern `{pattern}` from `.ignorePatterns`"));
-        }
-    }
-    let gitignore = builder.build().map_err(|_| "Failed to build ignores".to_string())?;
-
-    Ok(vec![gitignore])
-}
-
 /// Resolve ignore file paths from CLI args or defaults.
 ///
 /// Called early (before walk) to validate that specified ignore files exist.
@@ -434,7 +374,7 @@ fn resolve_file_scope_config(
     root_config_dir: Option<&Path>,
     editorconfig_path: Option<&Path>,
     #[cfg(feature = "napi")] js_config_loader: Option<&JsConfigLoaderCb>,
-) -> Result<Option<(ConfigResolver, Vec<String>)>, String> {
+) -> Result<Option<ConfigResolver>, String> {
     let Some(parent) = file.parent() else {
         return Ok(None);
     };
@@ -453,10 +393,10 @@ fn resolve_file_scope_config(
         return Ok(None);
     }
 
-    let ignore_patterns = resolver
+    resolver
         .build_and_validate()
         .map_err(|err| format!("Failed to parse config for {}: {err}", file.display()))?;
-    Ok(Some((resolver, ignore_patterns)))
+    Ok(Some(resolver))
 }
 
 // ---
@@ -540,7 +480,6 @@ impl GlobMatcher {
 #[instrument(level = "debug", name = "oxfmt::walk::prescan_config_locations", skip_all)]
 fn prescan_config_locations(
     target_paths: &[PathBuf],
-    config_candidates: &[String],
     ignore_file_matchers: &Arc<[Gitignore]>,
     with_node_modules: bool,
 ) -> Vec<PathBuf> {
@@ -563,7 +502,7 @@ fn prescan_config_locations(
     let mut config_dirs = vec![];
     for entry in configure_walk_builder(builder).build().flatten() {
         let dir = entry.path();
-        if config_candidates.iter().any(|name| dir.join(name).exists()) {
+        if has_config_in_directory(dir) {
             config_dirs.push(dir.to_path_buf());
         }
     }
@@ -582,7 +521,7 @@ fn resolve_child_scope_configs(
     root_config_dir: Option<&Path>,
     editorconfig_path: Option<&Path>,
     #[cfg(feature = "napi")] js_config_loader: Option<&JsConfigLoaderCb>,
-) -> Result<(FxHashMap<PathBuf, ScopeConfig>, bool), String> {
+) -> Result<(FxHashMap<PathBuf, Arc<ConfigResolver>>, bool), String> {
     let mut map = FxHashMap::default();
     let mut has_children = false;
     for config_dir in config_dirs {
@@ -604,20 +543,12 @@ fn resolve_child_scope_configs(
             continue;
         }
 
-        let ignore_patterns = resolver
+        resolver
             .build_and_validate()
             .map_err(|err| format!("Failed to parse config in {}: {err}", config_dir.display()))?;
 
-        let config_resolver = Arc::from(resolver);
         has_children = true;
-
-        let scope_dir = config_resolver
-            .config_dir()
-            .expect("checked above that config_dir is Some and not root");
-        let ignore_pattern_matchers: Arc<[Gitignore]> =
-            Arc::from(build_ignore_patterns_matcher(scope_dir, &ignore_patterns)?);
-
-        map.insert(config_dir.clone(), ScopeConfig { config_resolver, ignore_pattern_matchers });
+        map.insert(config_dir.clone(), Arc::from(resolver));
     }
 
     Ok((map, has_children))
@@ -645,13 +576,12 @@ fn build_config_ancestors(config_dirs: &[PathBuf]) -> Arc<FxHashSet<PathBuf>> {
 fn walk_and_stream(
     target_paths: &[PathBuf],
     ignore_file_matchers: Arc<[Gitignore]>,
-    ignore_pattern_matchers: Arc<[Gitignore]>,
     with_node_modules: bool,
     glob_matcher: Option<&Arc<GlobMatcher>>,
     root_config_resolver: &Arc<ConfigResolver>,
     directly_processed: &Arc<FxHashSet<PathBuf>>,
     config_ancestors: Option<&Arc<FxHashSet<PathBuf>>>,
-    child_scope_map: &Arc<FxHashMap<PathBuf, ScopeConfig>>,
+    child_scope_map: &Arc<FxHashMap<PathBuf, Arc<ConfigResolver>>>,
     sender: &mpsc::Sender<FormatEntry>,
 ) {
     let Some(first_path) = target_paths.first() else {
@@ -664,7 +594,7 @@ fn walk_and_stream(
     }
 
     let filter_global = Arc::clone(&ignore_file_matchers);
-    let filter_root_patterns = Arc::clone(&ignore_pattern_matchers);
+    let filter_root_resolver = Arc::clone(root_config_resolver);
     let filter_ancestors = config_ancestors.cloned();
     let filter_child_scopes = Arc::clone(child_scope_map);
     // NOTE: If return `false` here, it will not be `visit()`ed at all
@@ -686,12 +616,12 @@ fn walk_and_stream(
         // then checks that scope's ignorePatterns.
         // Safe to skip when pre-scan confirms no config descendant exists beneath.
         if is_dir && filter_ancestors.as_ref().is_some_and(|a| !a.contains(entry.path())) {
-            let scope_matchers: &[Gitignore] = entry
+            let resolver: &ConfigResolver = entry
                 .path()
                 .ancestors()
-                .find_map(|a| filter_child_scopes.get(a))
-                .map_or(&*filter_root_patterns, |s| &*s.ignore_pattern_matchers);
-            if is_ignored(scope_matchers, entry.path(), true, true) {
+                .find_map(|a| filter_child_scopes.get(a).map(AsRef::as_ref))
+                .unwrap_or(&filter_root_resolver);
+            if resolver.is_path_ignored(entry.path(), true) {
                 return false;
             }
         }
@@ -703,11 +633,9 @@ fn walk_and_stream(
         true
     });
 
-    let root_scope =
-        ScopeConfig { config_resolver: Arc::clone(root_config_resolver), ignore_pattern_matchers };
     let mut builder = WalkVisitorBuilder {
         sender: sender.clone(),
-        root_scope,
+        root_config_resolver: Arc::clone(root_config_resolver),
         glob_matcher: glob_matcher.cloned(),
         child_scope_map: Arc::clone(child_scope_map),
         directly_processed: Arc::clone(directly_processed),
@@ -750,9 +678,9 @@ fn configure_walk_builder(mut builder: ignore::WalkBuilder) -> ignore::WalkBuild
 
 struct WalkVisitorBuilder {
     sender: mpsc::Sender<FormatEntry>,
-    root_scope: ScopeConfig,
+    root_config_resolver: Arc<ConfigResolver>,
     glob_matcher: Option<Arc<GlobMatcher>>,
-    child_scope_map: Arc<FxHashMap<PathBuf, ScopeConfig>>,
+    child_scope_map: Arc<FxHashMap<PathBuf, Arc<ConfigResolver>>>,
     /// Files already processed as direct file targets (for dedup with walk results).
     directly_processed: Arc<FxHashSet<PathBuf>>,
 }
@@ -761,7 +689,7 @@ impl<'s> ignore::ParallelVisitorBuilder<'s> for WalkVisitorBuilder {
     fn build(&mut self) -> Box<dyn ignore::ParallelVisitor + 's> {
         Box::new(WalkVisitor {
             sender: self.sender.clone(),
-            root_scope: self.root_scope.clone(),
+            root_config_resolver: Arc::clone(&self.root_config_resolver),
             glob_matcher: self.glob_matcher.clone(),
             child_scope_map: Arc::clone(&self.child_scope_map),
             directly_processed: Arc::clone(&self.directly_processed),
@@ -772,12 +700,12 @@ impl<'s> ignore::ParallelVisitorBuilder<'s> for WalkVisitorBuilder {
 
 struct WalkVisitor {
     sender: mpsc::Sender<FormatEntry>,
-    root_scope: ScopeConfig,
+    root_config_resolver: Arc<ConfigResolver>,
     glob_matcher: Option<Arc<GlobMatcher>>,
-    child_scope_map: Arc<FxHashMap<PathBuf, ScopeConfig>>,
+    child_scope_map: Arc<FxHashMap<PathBuf, Arc<ConfigResolver>>>,
     directly_processed: Arc<FxHashSet<PathBuf>>,
-    /// Cache: parent dir → (resolved scope, parent_ignored flag).
-    scope_cache: FxHashMap<PathBuf, (ScopeConfig, bool)>,
+    /// Cache: parent dir → (resolved config, parent_ignored flag).
+    scope_cache: FxHashMap<PathBuf, (Arc<ConfigResolver>, bool)>,
 }
 
 impl WalkVisitor {
@@ -791,14 +719,14 @@ impl WalkVisitor {
             return;
         }
 
-        let scope = parent
+        let resolver = parent
             .ancestors()
             .find_map(|a| self.child_scope_map.get(a))
             .cloned()
-            .unwrap_or_else(|| self.root_scope.clone());
+            .unwrap_or_else(|| Arc::clone(&self.root_config_resolver));
 
-        let parent_ignored = is_ignored(&scope.ignore_pattern_matchers, parent, true, true);
-        self.scope_cache.insert(parent.to_path_buf(), (scope, parent_ignored));
+        let parent_ignored = resolver.is_path_ignored(parent, true);
+        self.scope_cache.insert(parent.to_path_buf(), (resolver, parent_ignored));
     }
 }
 
@@ -826,7 +754,7 @@ impl ignore::ParallelVisitor for WalkVisitor {
                     // Resolve this file's scope (cached per parent directory)
                     let parent = path.parent().expect("walk yields absolute paths");
                     self.ensure_scope_cached(parent);
-                    let (scope, parent_ignored) = &self.scope_cache[parent];
+                    let (resolver, parent_ignored) = &self.scope_cache[parent];
 
                     // Check scope's `ignorePatterns` per-file.
                     //
@@ -834,9 +762,7 @@ impl ignore::ParallelVisitor for WalkVisitor {
                     // 1. Parent directory (cached): catches directory patterns like "lib" that match all files under lib/.
                     //    Uses check_ancestors so "lib" also catches files under lib/packages/.
                     // 2. File-level: catches file-specific patterns like "temp.js".
-                    if *parent_ignored
-                        || is_ignored(&scope.ignore_pattern_matchers, &path, false, false)
-                    {
+                    if *parent_ignored || resolver.is_path_ignored(&path, false) {
                         return ignore::WalkState::Continue;
                     }
 
@@ -863,10 +789,7 @@ impl ignore::ParallelVisitor for WalkVisitor {
 
                     if self
                         .sender
-                        .send(FormatEntry {
-                            strategy,
-                            config_resolver: Arc::clone(&scope.config_resolver),
-                        })
+                        .send(FormatEntry { strategy, config_resolver: Arc::clone(resolver) })
                         .is_err()
                     {
                         return ignore::WalkState::Quit;
