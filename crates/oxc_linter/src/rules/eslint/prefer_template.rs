@@ -76,10 +76,8 @@ fn check_should_report(expr: &BinaryExpression) -> bool {
     let left = expr.left.get_inner_expression();
     let right = expr.right.get_inner_expression();
 
-    let left_is_string =
-        matches!(left, Expression::StringLiteral(_) | Expression::TemplateLiteral(_));
-    let right_is_string =
-        matches!(right, Expression::StringLiteral(_) | Expression::TemplateLiteral(_));
+    let left_is_string = left.is_string_literal();
+    let right_is_string = right.is_string_literal();
 
     match (left_is_string, right_is_string) {
         // 'a' + 'v'
@@ -94,27 +92,26 @@ fn check_should_report(expr: &BinaryExpression) -> bool {
 }
 
 fn all_none_string_literal(expr: &Expression) -> bool {
-    match expr {
-        Expression::BinaryExpression(binary) if binary.operator == BinaryOperator::Addition => {
-            all_none_string_literal(binary.left.get_inner_expression())
-                && all_none_string_literal(binary.right.get_inner_expression())
-        }
-        Expression::StringLiteral(_) | Expression::TemplateLiteral(_) => false,
-        _ => true,
+    if let Expression::BinaryExpression(binary) = expr
+        && binary.operator == BinaryOperator::Addition
+    {
+        return all_none_string_literal(binary.left.get_inner_expression())
+            && all_none_string_literal(binary.right.get_inner_expression());
     }
+
+    !expr.is_string_literal()
 }
 
 fn any_none_string_literal(expr: &Expression) -> bool {
-    match expr {
-        Expression::BinaryExpression(binary) if binary.operator == BinaryOperator::Addition => {
-            any_none_string_literal(binary.left.get_inner_expression())
-                || any_none_string_literal(binary.right.get_inner_expression())
-        }
-        Expression::StringLiteral(_) | Expression::TemplateLiteral(_) => false,
-        _ => true,
+    if let Expression::BinaryExpression(binary) = expr
+        && binary.operator == BinaryOperator::Addition
+    {
+        return any_none_string_literal(binary.left.get_inner_expression())
+            || any_none_string_literal(binary.right.get_inner_expression());
     }
-}
 
+    !expr.is_string_literal()
+}
 #[test]
 fn test() {
     use crate::tester::Tester;
