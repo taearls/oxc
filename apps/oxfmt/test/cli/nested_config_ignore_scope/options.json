@@ -3,7 +3,6 @@
   { "args": ["project-a/src/app.js"] },
   { "args": ["lib/"] },
   { "args": ["temp.js"] },
-  { "cwd": "with-prettierignore", "args": ["."] },
   { "args": ["**/*.js"] },
   { "args": ["project-a/**/*.js"] }
 ]
