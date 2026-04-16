@@ -334,6 +334,312 @@ impl ScopedWalker {
     }
 }
 
+// ---
+
+/// Build global ignore matchers from ignore files and CLI exclude patterns.
+///
+/// These are scope-independent and block both files and directories across all scopes.
+/// Each matcher has its own root for pattern resolution:
+/// - ignore files use their parent dir
+/// - excludes use `cwd`
+///
+/// Git ignore files are handled by `WalkBuilder` itself.
+fn build_global_ignore_matchers(
+    cwd: &Path,
+    exclude_patterns: &[String],
+    ignore_paths: &[PathBuf],
+) -> Result<Vec<Gitignore>, String> {
+    let mut matchers: Vec<Gitignore> = vec![];
+
+    // 1. Formatter ignore files (.prettierignore, --ignore-path)
+    // Paths are already resolved and validated by `resolve_ignore_paths()`
+    for ignore_path in ignore_paths {
+        let (gitignore, err) = Gitignore::new(ignore_path);
+        if let Some(err) = err {
+            return Err(format!("Failed to parse ignore file {}: {err}", ignore_path.display()));
+        }
+        matchers.push(gitignore);
+    }
+
+    // 2. `!` prefixed paths (CLI excludes, relative to cwd)
+    if !exclude_patterns.is_empty() {
+        let mut builder = GitignoreBuilder::new(cwd);
+        for pattern in exclude_patterns {
+            // Remove the leading `!` because `GitignoreBuilder` uses `!` as negation
+            let pattern =
+                pattern.strip_prefix('!').expect("There should be a `!` prefix, already checked");
+            if builder.add_line(None, pattern).is_err() {
+                return Err(format!("Failed to add ignore pattern `{pattern}` from `!` prefix"));
+            }
+        }
+        let gitignore = builder.build().map_err(|_| "Failed to build ignores".to_string())?;
+        matchers.push(gitignore);
+    }
+
+    Ok(matchers)
+}
+
+/// Build ignore matchers from config `ignorePatterns`.
+/// Patterns are resolved relative to the config file's directory.
+fn build_ignore_patterns_matcher(
+    config_dir: &Path,
+    ignore_patterns: &[String],
+) -> Result<Vec<Gitignore>, String> {
+    if ignore_patterns.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let mut builder = GitignoreBuilder::new(config_dir);
+    for pattern in ignore_patterns {
+        if builder.add_line(None, pattern).is_err() {
+            return Err(format!("Failed to add ignore pattern `{pattern}` from `.ignorePatterns`"));
+        }
+    }
+    let gitignore = builder.build().map_err(|_| "Failed to build ignores".to_string())?;
+
+    Ok(vec![gitignore])
+}
+
+/// Resolve ignore file paths from CLI args or defaults.
+///
+/// Called early (before walk) to validate that specified ignore files exist.
+pub fn resolve_ignore_paths(cwd: &Path, ignore_paths: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
+    if !ignore_paths.is_empty() {
+        let mut result = Vec::with_capacity(ignore_paths.len());
+        for path in ignore_paths {
+            let path = normalize_relative_path(cwd, path);
+            if !path.exists() {
+                return Err(format!("{}: File not found", path.display()));
+            }
+            result.push(path);
+        }
+        return Ok(result);
+    }
+
+    // Default: search for .prettierignore in cwd
+    Ok(std::iter::once(".prettierignore")
+        .filter_map(|file_name| {
+            let path = cwd.join(file_name);
+            path.exists().then_some(path)
+        })
+        .collect())
+}
+
+// ---
+
+/// Resolve the nearest config scope for a file target.
+/// Returns `None` if the file belongs to the root scope.
+fn resolve_file_scope_config(
+    file: &Path,
+    root_config_dir: Option<&Path>,
+    editorconfig_path: Option<&Path>,
+    #[cfg(feature = "napi")] js_config_loader: Option<&JsConfigLoaderCb>,
+) -> Result<Option<(ConfigResolver, Vec<String>)>, String> {
+    let Some(parent) = file.parent() else {
+        return Ok(None);
+    };
+
+    let mut resolver = ConfigResolver::from_config(
+        parent,
+        None,
+        editorconfig_path,
+        #[cfg(feature = "napi")]
+        js_config_loader,
+    )
+    .map_err(|err| format!("Failed to load config for {}: {err}", file.display()))?;
+
+    // No config found, or same as root → belongs to root scope
+    if resolver.config_dir().is_none() || resolver.config_dir() == root_config_dir {
+        return Ok(None);
+    }
+
+    let ignore_patterns = resolver
+        .build_and_validate()
+        .map_err(|err| format!("Failed to parse config for {}: {err}", file.display()))?;
+    Ok(Some((resolver, ignore_patterns)))
+}
+
+// ---
+
+/// Check if a path string looks like a glob pattern.
+/// Glob-like characters are also valid path characters on some environments.
+/// If the path actually exists on disk, it is treated as a concrete path.
+/// e.g. `{config}.js`, `[id].tsx`
+fn is_glob_pattern(s: &str, cwd: &Path) -> bool {
+    let has_glob_chars = s.contains('*') || s.contains('?') || s.contains('[') || s.contains('{');
+    has_glob_chars && !cwd.join(s).exists()
+}
+
+/// Matches file paths against glob patterns during walk.
+///
+/// When glob patterns are specified via CLI args,
+/// files are matched against them during the walk's `visit()` callback.
+///
+/// Uses `fast_glob::glob_match` instead of `ignore::Overrides` because
+/// overrides have the highest priority in the `ignore` crate and would bypass `.gitignore` rules.
+///
+/// Also tracks concrete target paths (non-glob) because when globs are present,
+/// cwd is added as a base path, which means concrete paths can be visited twice.
+/// (as direct base paths and during the cwd walk)
+/// This struct handles both acceptance and dedup of those paths via `matches()`.
+struct GlobMatcher {
+    /// cwd for computing relative paths for glob matching.
+    cwd: PathBuf,
+    /// Normalized glob pattern strings for matching via `fast_glob::glob_match`.
+    glob_patterns: Vec<String>,
+    /// Concrete target paths (absolute) specified via CLI.
+    /// These are always accepted even when glob filtering is active.
+    concrete_paths: FxHashSet<PathBuf>,
+    /// Tracks seen concrete paths to avoid duplicates (visited both as
+    /// direct base paths and via cwd walk).
+    seen: Mutex<FxHashSet<PathBuf>>,
+}
+
+impl GlobMatcher {
+    fn new(cwd: PathBuf, glob_patterns: Vec<String>, target_paths: &[PathBuf]) -> Self {
+        // Normalize glob patterns: patterns without `/` are prefixed with `**/`
+        // to match at any depth (gitignore/prettier semantics).
+        // e.g., `*.js` → `**/*.js`, `foo/**/*.js` stays as-is.
+        let glob_patterns = glob_patterns
+            .into_iter()
+            .map(|pat| if pat.contains('/') { pat } else { format!("**/{pat}") })
+            .collect();
+        // Store concrete paths (excluding cwd itself) for dedup and acceptance.
+        let concrete_paths = target_paths.iter().filter(|p| p.as_path() != cwd).cloned().collect();
+        Self { cwd, glob_patterns, concrete_paths, seen: Mutex::new(FxHashSet::default()) }
+    }
+
+    /// Returns `true` if the path matches any glob pattern or is a concrete target path.
+    /// Concrete paths are deduplicated (they can appear both as direct base paths and via cwd walk).
+    fn matches(&self, path: &Path) -> bool {
+        // Accept concrete paths (explicitly specified via CLI), with dedup
+        if self.concrete_paths.contains(path) {
+            return self.seen.lock().unwrap().insert(path.to_path_buf());
+        }
+
+        let relative = path.strip_prefix(&self.cwd).unwrap_or(path).to_string_lossy();
+        self.glob_patterns.iter().any(|pattern| glob_match(pattern, relative.as_ref()))
+    }
+}
+
+/// Pre-scan directories within walk targets to discover nested config file locations.
+///
+/// A separate pass is required because the flat single-walk needs all configs
+/// loaded into a scope map before `visit()` can resolve file scopes.
+///
+/// This also preserves the streaming architecture (walk → channel → format workers),
+/// which keeps format workers busy sooner.
+/// This is critical because current bottleneck is non-JS file formatting via external JS runtime.
+///
+/// The returned directories are used to:
+/// 1. Load child scope configs (`resolve_child_scope_configs()`)
+/// 2. Build an ancestor set for `filter_entry()` directory skipping
+///
+/// Uses a sequential (non-parallel) walk since the workload is small
+/// (only directory entries are processed, files are skipped).
+#[instrument(level = "debug", name = "oxfmt::walk::prescan_config_locations", skip_all)]
+fn prescan_config_locations(
+    target_paths: &[PathBuf],
+    config_candidates: &[String],
+    ignore_file_matchers: &Arc<[Gitignore]>,
+    with_node_modules: bool,
+) -> Vec<PathBuf> {
+    let Some(first) = target_paths.first() else {
+        return vec![];
+    };
+
+    let mut builder = ignore::WalkBuilder::new(first);
+    for path in target_paths.iter().skip(1) {
+        builder.add(path);
+    }
+
+    let matchers = Arc::clone(ignore_file_matchers);
+    // Only descend into directories; skip all files
+    builder.filter_entry(move |entry| {
+        entry.file_type().is_some_and(|ft| ft.is_dir())
+            && !is_walk_excluded_dir(entry, &matchers, with_node_modules)
+    });
+
+    let mut config_dirs = vec![];
+    for entry in configure_walk_builder(builder).build().flatten() {
+        let dir = entry.path();
+        if config_candidates.iter().any(|name| dir.join(name).exists()) {
+            config_dirs.push(dir.to_path_buf());
+        }
+    }
+
+    config_dirs
+}
+
+/// Load all child scope configs discovered by pre-scan.
+///
+/// Returns the scope map and a flag indicating whether any child scope had a config.
+/// Skips directories whose resolved config matches the root config dir
+/// (they belong to the root scope, not a child scope).
+#[instrument(level = "debug", name = "oxfmt::walk::load_child_scopes", skip_all)]
+fn resolve_child_scope_configs(
+    config_dirs: &[PathBuf],
+    root_config_dir: Option<&Path>,
+    editorconfig_path: Option<&Path>,
+    #[cfg(feature = "napi")] js_config_loader: Option<&JsConfigLoaderCb>,
+) -> Result<(FxHashMap<PathBuf, ScopeConfig>, bool), String> {
+    let mut map = FxHashMap::default();
+    let mut has_children = false;
+    for config_dir in config_dirs {
+        let mut resolver = ConfigResolver::from_config(
+            config_dir,
+            // NOTE: Let it auto-discover (not a direct path) config,
+            // so that `discover_config()` can skip invalid candidates
+            // (e.g. `vite.config.ts` without a `.fmt` field)
+            // and continue searching upward.
+            None,
+            editorconfig_path,
+            #[cfg(feature = "napi")]
+            js_config_loader,
+        )
+        .map_err(|err| format!("Failed to load config in {}: {err}", config_dir.display()))?;
+
+        // No config found, or same as root → belongs to root scope
+        if resolver.config_dir().is_none() || resolver.config_dir() == root_config_dir {
+            continue;
+        }
+
+        let ignore_patterns = resolver
+            .build_and_validate()
+            .map_err(|err| format!("Failed to parse config in {}: {err}", config_dir.display()))?;
+
+        let config_resolver = Arc::from(resolver);
+        has_children = true;
+
+        let scope_dir = config_resolver
+            .config_dir()
+            .expect("checked above that config_dir is Some and not root");
+        let ignore_pattern_matchers: Arc<[Gitignore]> =
+            Arc::from(build_ignore_patterns_matcher(scope_dir, &ignore_patterns)?);
+
+        map.insert(config_dir.clone(), ScopeConfig { config_resolver, ignore_pattern_matchers });
+    }
+
+    Ok((map, has_children))
+}
+
+/// Build the ancestor set from discovered config directories.
+/// Enables O(1) "has config descendant?" lookups in `filter_entry()`,
+/// allowing `ignorePatterns` directories to be skipped when no nested config exists beneath them.
+fn build_config_ancestors(config_dirs: &[PathBuf]) -> Arc<FxHashSet<PathBuf>> {
+    let mut ancestors = FxHashSet::default();
+    for config_dir in config_dirs {
+        for ancestor in config_dir.ancestors() {
+            if !ancestors.insert(ancestor.to_path_buf()) {
+                break;
+            }
+        }
+    }
+    Arc::new(ancestors)
+}
+
+// ---
+
 /// Build a Walk, stream entries to the shared channel.
 #[expect(clippy::needless_pass_by_value)] // Arcs are moved into closures/structs
 fn walk_and_stream(
@@ -441,362 +747,6 @@ fn configure_walk_builder(mut builder: ignore::WalkBuilder) -> ignore::WalkBuild
         .require_git(false);
     builder
 }
-
-/// Pre-scan directories within walk targets to discover nested config file locations.
-///
-/// A separate pass is required because the flat single-walk needs all configs
-/// loaded into a scope map before `visit()` can resolve file scopes.
-///
-/// This also preserves the streaming architecture (walk → channel → format workers),
-/// which keeps format workers busy sooner.
-/// This is critical because current bottleneck is non-JS file formatting via external JS runtime.
-///
-/// The returned directories are used to:
-/// 1. Load child scope configs (`resolve_child_scope_configs()`)
-/// 2. Build an ancestor set for `filter_entry()` directory skipping
-///
-/// Uses a sequential (non-parallel) walk since the workload is small
-/// (only directory entries are processed, files are skipped).
-#[instrument(level = "debug", name = "oxfmt::walk::prescan_config_locations", skip_all)]
-fn prescan_config_locations(
-    target_paths: &[PathBuf],
-    config_candidates: &[String],
-    ignore_file_matchers: &Arc<[Gitignore]>,
-    with_node_modules: bool,
-) -> Vec<PathBuf> {
-    let Some(first) = target_paths.first() else {
-        return vec![];
-    };
-
-    let mut builder = ignore::WalkBuilder::new(first);
-    for path in target_paths.iter().skip(1) {
-        builder.add(path);
-    }
-
-    let matchers = Arc::clone(ignore_file_matchers);
-    // Only descend into directories; skip all files
-    builder.filter_entry(move |entry| {
-        entry.file_type().is_some_and(|ft| ft.is_dir())
-            && !is_walk_excluded_dir(entry, &matchers, with_node_modules)
-    });
-
-    let mut config_dirs = vec![];
-    for entry in configure_walk_builder(builder).build().flatten() {
-        let dir = entry.path();
-        if config_candidates.iter().any(|name| dir.join(name).exists()) {
-            config_dirs.push(dir.to_path_buf());
-        }
-    }
-
-    config_dirs
-}
-
-/// Build the ancestor set from discovered config directories.
-/// Enables O(1) "has config descendant?" lookups in `filter_entry()`,
-/// allowing `ignorePatterns` directories to be skipped when no nested config exists beneath them.
-fn build_config_ancestors(config_dirs: &[PathBuf]) -> Arc<FxHashSet<PathBuf>> {
-    let mut ancestors = FxHashSet::default();
-    for config_dir in config_dirs {
-        for ancestor in config_dir.ancestors() {
-            if !ancestors.insert(ancestor.to_path_buf()) {
-                break;
-            }
-        }
-    }
-    Arc::new(ancestors)
-}
-
-/// Load all child scope configs discovered by pre-scan.
-///
-/// Returns the scope map and a flag indicating whether any child scope had a config.
-/// Skips directories whose resolved config matches the root config dir
-/// (they belong to the root scope, not a child scope).
-#[instrument(level = "debug", name = "oxfmt::walk::load_child_scopes", skip_all)]
-fn resolve_child_scope_configs(
-    config_dirs: &[PathBuf],
-    root_config_dir: Option<&Path>,
-    editorconfig_path: Option<&Path>,
-    #[cfg(feature = "napi")] js_config_loader: Option<&JsConfigLoaderCb>,
-) -> Result<(FxHashMap<PathBuf, ScopeConfig>, bool), String> {
-    let mut map = FxHashMap::default();
-    let mut has_children = false;
-    for config_dir in config_dirs {
-        let mut resolver = ConfigResolver::from_config(
-            config_dir,
-            // NOTE: Let it auto-discover (not a direct path) config,
-            // so that `discover_config()` can skip invalid candidates
-            // (e.g. `vite.config.ts` without a `.fmt` field)
-            // and continue searching upward.
-            None,
-            editorconfig_path,
-            #[cfg(feature = "napi")]
-            js_config_loader,
-        )
-        .map_err(|err| format!("Failed to load config in {}: {err}", config_dir.display()))?;
-
-        // No config found, or same as root → belongs to root scope
-        if resolver.config_dir().is_none() || resolver.config_dir() == root_config_dir {
-            continue;
-        }
-
-        let ignore_patterns = resolver
-            .build_and_validate()
-            .map_err(|err| format!("Failed to parse config in {}: {err}", config_dir.display()))?;
-
-        let config_resolver = Arc::from(resolver);
-        has_children = true;
-
-        let scope_dir = config_resolver
-            .config_dir()
-            .expect("checked above that config_dir is Some and not root");
-        let ignore_pattern_matchers: Arc<[Gitignore]> =
-            Arc::from(build_ignore_patterns_matcher(scope_dir, &ignore_patterns)?);
-
-        map.insert(config_dir.clone(), ScopeConfig { config_resolver, ignore_pattern_matchers });
-    }
-
-    Ok((map, has_children))
-}
-
-// ---
-
-/// Build global ignore matchers from ignore files and CLI exclude patterns.
-///
-/// These are scope-independent and block both files and directories across all scopes.
-/// Each matcher has its own root for pattern resolution:
-/// - ignore files use their parent dir
-/// - excludes use `cwd`
-///
-/// Git ignore files are handled by `WalkBuilder` itself.
-fn build_global_ignore_matchers(
-    cwd: &Path,
-    exclude_patterns: &[String],
-    ignore_paths: &[PathBuf],
-) -> Result<Vec<Gitignore>, String> {
-    let mut matchers: Vec<Gitignore> = vec![];
-
-    // 1. Formatter ignore files (.prettierignore, --ignore-path)
-    // Paths are already resolved and validated by `resolve_ignore_paths()`
-    for ignore_path in ignore_paths {
-        let (gitignore, err) = Gitignore::new(ignore_path);
-        if let Some(err) = err {
-            return Err(format!("Failed to parse ignore file {}: {err}", ignore_path.display()));
-        }
-        matchers.push(gitignore);
-    }
-
-    // 2. `!` prefixed paths (CLI excludes, relative to cwd)
-    if !exclude_patterns.is_empty() {
-        let mut builder = GitignoreBuilder::new(cwd);
-        for pattern in exclude_patterns {
-            // Remove the leading `!` because `GitignoreBuilder` uses `!` as negation
-            let pattern =
-                pattern.strip_prefix('!').expect("There should be a `!` prefix, already checked");
-            if builder.add_line(None, pattern).is_err() {
-                return Err(format!("Failed to add ignore pattern `{pattern}` from `!` prefix"));
-            }
-        }
-        let gitignore = builder.build().map_err(|_| "Failed to build ignores".to_string())?;
-        matchers.push(gitignore);
-    }
-
-    Ok(matchers)
-}
-
-/// Build ignore matchers from config `ignorePatterns`.
-/// Patterns are resolved relative to the config file's directory.
-fn build_ignore_patterns_matcher(
-    config_dir: &Path,
-    ignore_patterns: &[String],
-) -> Result<Vec<Gitignore>, String> {
-    if ignore_patterns.is_empty() {
-        return Ok(vec![]);
-    }
-
-    let mut builder = GitignoreBuilder::new(config_dir);
-    for pattern in ignore_patterns {
-        if builder.add_line(None, pattern).is_err() {
-            return Err(format!("Failed to add ignore pattern `{pattern}` from `.ignorePatterns`"));
-        }
-    }
-    let gitignore = builder.build().map_err(|_| "Failed to build ignores".to_string())?;
-
-    Ok(vec![gitignore])
-}
-
-/// Resolve the nearest config scope for a file target.
-/// Returns `None` if the file belongs to the root scope.
-fn resolve_file_scope_config(
-    file: &Path,
-    root_config_dir: Option<&Path>,
-    editorconfig_path: Option<&Path>,
-    #[cfg(feature = "napi")] js_config_loader: Option<&JsConfigLoaderCb>,
-) -> Result<Option<(ConfigResolver, Vec<String>)>, String> {
-    let Some(parent) = file.parent() else {
-        return Ok(None);
-    };
-
-    let mut resolver = ConfigResolver::from_config(
-        parent,
-        None,
-        editorconfig_path,
-        #[cfg(feature = "napi")]
-        js_config_loader,
-    )
-    .map_err(|err| format!("Failed to load config for {}: {err}", file.display()))?;
-
-    // No config found, or same as root → belongs to root scope
-    if resolver.config_dir().is_none() || resolver.config_dir() == root_config_dir {
-        return Ok(None);
-    }
-
-    let ignore_patterns = resolver
-        .build_and_validate()
-        .map_err(|err| format!("Failed to parse config for {}: {err}", file.display()))?;
-    Ok(Some((resolver, ignore_patterns)))
-}
-
-/// Check if a directory should be excluded from walking.
-///
-/// Skips VCS directories (`.git`, `.svn`, etc.), `node_modules` (by default),
-/// and directories matched by global ignore files (`.prettierignore`, `--ignore-path`, CLI `!`).
-fn is_walk_excluded_dir(
-    entry: &ignore::DirEntry,
-    global_matchers: &[Gitignore],
-    with_node_modules: bool,
-) -> bool {
-    is_ignored_dir(entry.file_name(), with_node_modules)
-        || is_ignored(global_matchers, entry.path(), true, false)
-}
-
-/// Check if a path should be ignored by any of the matchers.
-/// A path is ignored if any matcher says it's ignored (and not whitelisted in that same matcher).
-///
-/// When `check_ancestors: true`, also checks if any parent directory is ignored.
-/// This is more expensive, but necessary when paths (to be ignored) are passed directly via CLI arguments.
-/// For normal walking, walk is done in a top-down manner, so only the current path needs to be checked.
-fn is_ignored(matchers: &[Gitignore], path: &Path, is_dir: bool, check_ancestors: bool) -> bool {
-    for matcher in matchers {
-        let matched = if check_ancestors {
-            // `matched_path_or_any_parents()` panics if path is not under matcher's root.
-            // Skip this matcher if the path is outside its scope.
-            if !path.starts_with(matcher.path()) {
-                continue;
-            }
-            matcher.matched_path_or_any_parents(path, is_dir)
-        } else {
-            matcher.matched(path, is_dir)
-        };
-        if matched.is_ignore() && !matched.is_whitelist() {
-            return true;
-        }
-    }
-    false
-}
-
-/// Check if a directory should be skipped during walking.
-/// VCS internal directories are always skipped, and `node_modules` is skipped by default.
-/// We set `.hidden(false)` on `WalkBuilder` to include hidden files,
-/// but still skip these specific directories (matching Prettier's behavior).
-/// <https://prettier.io/docs/ignore#ignoring-files-prettierignore>
-fn is_ignored_dir(dir_name: &OsStr, with_node_modules: bool) -> bool {
-    dir_name == ".git"
-        || dir_name == ".jj"
-        || dir_name == ".sl"
-        || dir_name == ".svn"
-        || dir_name == ".hg"
-        || (!with_node_modules && dir_name == "node_modules")
-}
-
-/// Resolve ignore file paths from CLI args or defaults.
-///
-/// Called early (before walk) to validate that specified ignore files exist.
-pub fn resolve_ignore_paths(cwd: &Path, ignore_paths: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
-    if !ignore_paths.is_empty() {
-        let mut result = Vec::with_capacity(ignore_paths.len());
-        for path in ignore_paths {
-            let path = normalize_relative_path(cwd, path);
-            if !path.exists() {
-                return Err(format!("{}: File not found", path.display()));
-            }
-            result.push(path);
-        }
-        return Ok(result);
-    }
-
-    // Default: search for .prettierignore in cwd
-    Ok(std::iter::once(".prettierignore")
-        .filter_map(|file_name| {
-            let path = cwd.join(file_name);
-            path.exists().then_some(path)
-        })
-        .collect())
-}
-
-// ---
-
-/// Check if a path string looks like a glob pattern.
-/// Glob-like characters are also valid path characters on some environments.
-/// If the path actually exists on disk, it is treated as a concrete path.
-/// e.g. `{config}.js`, `[id].tsx`
-fn is_glob_pattern(s: &str, cwd: &Path) -> bool {
-    let has_glob_chars = s.contains('*') || s.contains('?') || s.contains('[') || s.contains('{');
-    has_glob_chars && !cwd.join(s).exists()
-}
-
-/// Matches file paths against glob patterns during walk.
-///
-/// When glob patterns are specified via CLI args,
-/// files are matched against them during the walk's `visit()` callback.
-///
-/// Uses `fast_glob::glob_match` instead of `ignore::Overrides` because
-/// overrides have the highest priority in the `ignore` crate and would bypass `.gitignore` rules.
-///
-/// Also tracks concrete target paths (non-glob) because when globs are present,
-/// cwd is added as a base path, which means concrete paths can be visited twice.
-/// (as direct base paths and during the cwd walk)
-/// This struct handles both acceptance and dedup of those paths via `matches()`.
-struct GlobMatcher {
-    /// cwd for computing relative paths for glob matching.
-    cwd: PathBuf,
-    /// Normalized glob pattern strings for matching via `fast_glob::glob_match`.
-    glob_patterns: Vec<String>,
-    /// Concrete target paths (absolute) specified via CLI.
-    /// These are always accepted even when glob filtering is active.
-    concrete_paths: FxHashSet<PathBuf>,
-    /// Tracks seen concrete paths to avoid duplicates (visited both as
-    /// direct base paths and via cwd walk).
-    seen: Mutex<FxHashSet<PathBuf>>,
-}
-
-impl GlobMatcher {
-    fn new(cwd: PathBuf, glob_patterns: Vec<String>, target_paths: &[PathBuf]) -> Self {
-        // Normalize glob patterns: patterns without `/` are prefixed with `**/`
-        // to match at any depth (gitignore/prettier semantics).
-        // e.g., `*.js` → `**/*.js`, `foo/**/*.js` stays as-is.
-        let glob_patterns = glob_patterns
-            .into_iter()
-            .map(|pat| if pat.contains('/') { pat } else { format!("**/{pat}") })
-            .collect();
-        // Store concrete paths (excluding cwd itself) for dedup and acceptance.
-        let concrete_paths = target_paths.iter().filter(|p| p.as_path() != cwd).cloned().collect();
-        Self { cwd, glob_patterns, concrete_paths, seen: Mutex::new(FxHashSet::default()) }
-    }
-
-    /// Returns `true` if the path matches any glob pattern or is a concrete target path.
-    /// Concrete paths are deduplicated (they can appear both as direct base paths and via cwd walk).
-    fn matches(&self, path: &Path) -> bool {
-        // Accept concrete paths (explicitly specified via CLI), with dedup
-        if self.concrete_paths.contains(path) {
-            return self.seen.lock().unwrap().insert(path.to_path_buf());
-        }
-
-        let relative = path.strip_prefix(&self.cwd).unwrap_or(path).to_string_lossy();
-        self.glob_patterns.iter().any(|pattern| glob_match(pattern, relative.as_ref()))
-    }
-}
-
-// ---
 
 struct WalkVisitorBuilder {
     sender: mpsc::Sender<FormatEntry>,
@@ -928,4 +878,58 @@ impl ignore::ParallelVisitor for WalkVisitor {
             Err(_err) => ignore::WalkState::Skip,
         }
     }
+}
+
+// ---
+
+/// Check if a directory should be excluded from walking.
+///
+/// Skips VCS directories (`.git`, `.svn`, etc.), `node_modules` (by default),
+/// and directories matched by global ignore files (`.prettierignore`, `--ignore-path`, CLI `!`).
+fn is_walk_excluded_dir(
+    entry: &ignore::DirEntry,
+    global_matchers: &[Gitignore],
+    with_node_modules: bool,
+) -> bool {
+    is_ignored_dir(entry.file_name(), with_node_modules)
+        || is_ignored(global_matchers, entry.path(), true, false)
+}
+
+/// Check if a path should be ignored by any of the matchers.
+/// A path is ignored if any matcher says it's ignored (and not whitelisted in that same matcher).
+///
+/// When `check_ancestors: true`, also checks if any parent directory is ignored.
+/// This is more expensive, but necessary when paths (to be ignored) are passed directly via CLI arguments.
+/// For normal walking, walk is done in a top-down manner, so only the current path needs to be checked.
+fn is_ignored(matchers: &[Gitignore], path: &Path, is_dir: bool, check_ancestors: bool) -> bool {
+    for matcher in matchers {
+        let matched = if check_ancestors {
+            // `matched_path_or_any_parents()` panics if path is not under matcher's root.
+            // Skip this matcher if the path is outside its scope.
+            if !path.starts_with(matcher.path()) {
+                continue;
+            }
+            matcher.matched_path_or_any_parents(path, is_dir)
+        } else {
+            matcher.matched(path, is_dir)
+        };
+        if matched.is_ignore() && !matched.is_whitelist() {
+            return true;
+        }
+    }
+    false
+}
+
+/// Check if a directory should be skipped during walking.
+/// VCS internal directories are always skipped, and `node_modules` is skipped by default.
+/// We set `.hidden(false)` on `WalkBuilder` to include hidden files,
+/// but still skip these specific directories (matching Prettier's behavior).
+/// <https://prettier.io/docs/ignore#ignoring-files-prettierignore>
+fn is_ignored_dir(dir_name: &OsStr, with_node_modules: bool) -> bool {
+    dir_name == ".git"
+        || dir_name == ".jj"
+        || dir_name == ".sl"
+        || dir_name == ".svn"
+        || dir_name == ".hg"
+        || (!with_node_modules && dir_name == "node_modules")
 }
