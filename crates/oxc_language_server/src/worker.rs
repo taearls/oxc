@@ -88,7 +88,7 @@ impl WorkspaceWorker {
         if patterns.is_empty() {
             Vec::new()
         } else {
-            vec![registration_tool_watcher_id(tool.name(), &self.root_uri, patterns)]
+            vec![registration_watcher_id(&self.root_uri, patterns)]
         }
     }
 
@@ -218,12 +218,8 @@ impl WorkspaceWorker {
             self.published_diagnostics.lock().await.drain().collect::<Vec<Uri>>();
         let mut watchers_to_unregister = Vec::new();
 
-        if let Some(tool) = self.tool.read().await.as_ref() {
-            self.builder.shutdown(&self.root_uri);
-
-            watchers_to_unregister
-                .push(unregistration_tool_watcher_id(tool.name(), &self.root_uri));
-        }
+        self.builder.shutdown(&self.root_uri);
+        watchers_to_unregister.push(unregistration_watcher_id(&self.root_uri));
 
         (uris_to_clear_diagnostics, watchers_to_unregister)
     }
@@ -348,13 +344,9 @@ impl WorkspaceWorker {
         let change = change_handler(tool, self.builder.as_ref());
 
         if let Some(patterns) = change.watch_patterns {
-            unregistrations.push(unregistration_tool_watcher_id(tool.name(), &self.root_uri));
+            unregistrations.push(unregistration_watcher_id(&self.root_uri));
             if !patterns.is_empty() {
-                registrations.push(registration_tool_watcher_id(
-                    tool.name(),
-                    &self.root_uri,
-                    patterns,
-                ));
+                registrations.push(registration_watcher_id(&self.root_uri, patterns));
             }
         }
         if let Some(replaced_tool) = change.tool {
@@ -402,18 +394,18 @@ impl WorkspaceWorker {
     }
 }
 
-/// Create an unregistration for a file system watcher for the given tool
-fn unregistration_tool_watcher_id(tool: &str, root_uri: &Uri) -> Unregistration {
+/// Create an unregistration for a file system watcher
+fn unregistration_watcher_id(root_uri: &Uri) -> Unregistration {
     Unregistration {
-        id: format!("watcher-{tool}-{}", root_uri.as_str()),
+        id: format!("watcher-{}", root_uri.as_str()),
         method: "workspace/didChangeWatchedFiles".to_string(),
     }
 }
 
-/// Create a registration for a file system watcher for the given tool and patterns
-fn registration_tool_watcher_id(tool: &str, root_uri: &Uri, patterns: Vec<String>) -> Registration {
+/// Create a registration for a file system watcher for the given patterns
+fn registration_watcher_id(root_uri: &Uri, patterns: Vec<String>) -> Registration {
     Registration {
-        id: format!("watcher-{tool}-{}", root_uri.as_str()),
+        id: format!("watcher-{}", root_uri.as_str()),
         method: "workspace/didChangeWatchedFiles".to_string(),
         register_options: Some(json!(DidChangeWatchedFilesRegistrationOptions {
             watchers: patterns
@@ -486,7 +478,7 @@ mod tests {
         worker.start_worker(serde_json::Value::Null).await;
         let registrations = worker.init_watchers().await;
         assert_eq!(registrations.len(), 1);
-        assert_eq!(registrations[0].id, "watcher-FakeTool-file:///root/");
+        assert_eq!(registrations[0].id, "watcher-file:///root/");
 
         // with no watchers
         let worker_no_watchers = WorkspaceWorker::new(
@@ -571,9 +563,9 @@ mod tests {
         // Since FakeToolBuilder knows about "watcher.config", registrations are expected
         assert!(diagnostics.is_none());
         assert_eq!(unregistrations.len(), 1); // One unregistration expected
-        assert_eq!(unregistrations[0].id, "watcher-FakeTool-file:///root/");
+        assert_eq!(unregistrations[0].id, "watcher-file:///root/");
         assert_eq!(registrations.len(), 1); // One new registration expected
-        assert_eq!(registrations[0].id, "watcher-FakeTool-file:///root/");
+        assert_eq!(registrations[0].id, "watcher-file:///root/");
         assert!(!needs_diagnostic_refresh); // No need to refresh diagnostics
 
         let (diagnostics, registrations, unregistrations) = worker
@@ -654,9 +646,9 @@ mod tests {
         // Since FakeToolBuilder changes watcher patterns based on configuration, registrations are expected
         assert!(diagnostics.is_none());
         assert_eq!(unregistrations.len(), 1); // One unregistration expected
-        assert_eq!(unregistrations[0].id, "watcher-FakeTool-file:///root/");
+        assert_eq!(unregistrations[0].id, "watcher-file:///root/");
         assert_eq!(registrations.len(), 1); // One new registration expected
-        assert_eq!(registrations[0].id, "watcher-FakeTool-file:///root/");
+        assert_eq!(registrations[0].id, "watcher-file:///root/");
         assert!(!needs_diagnostic_refresh); // No need to refresh diagnostics
 
         let (diagnostics, registrations, unregistrations) = worker
