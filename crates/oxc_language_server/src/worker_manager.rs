@@ -34,6 +34,24 @@ impl std::ops::Deref for WorkerGuard<'_> {
     }
 }
 
+/// The mode that the [`WorkerManager`] is operating in, which determines how it manages workers and delegates the task to the tool.
+enum ManagerMode {
+    // the manager requires an explicit workspace to operate
+    // these workspaces are managed by the client and communicated via `initialize` + `didChangeWorkspaceFolders`
+    #[expect(dead_code)] // needs to be implemented
+    RequireWorkspace,
+    // the manager works in 2 modes, when no workspaces are configured, it creates workers dynamically for file URIs.
+    // When workspaces are reconfigured (added or removed by the client), it creates workers for those and ignores file URIs outside of them.
+    DynamicNoWorkspaces(
+        // toggle for single file / workspace mode
+        AtomicBool,
+    ),
+    // The manager will create workers dynamically for file URIs. It also supports workspaces configured by the client, but does not require them.
+    // This is useful for tasks on URIs that are outside of any configured workspace.
+    #[expect(dead_code)] // needs to be implemented
+    DynamicWithWorkspaces,
+}
+
 /// Manages the lifecycle of [`WorkspaceWorker`]s for the language server.
 ///
 /// Responsibilities:
@@ -50,7 +68,7 @@ impl std::ops::Deref for WorkerGuard<'_> {
 /// have at most one live worker at any point in time.
 pub struct WorkerManager {
     workers: RwLock<Vec<WorkspaceWorker>>,
-    single_file_mode: AtomicBool,
+    mode: ManagerMode,
     tool_builder: Arc<dyn ToolBuilder>,
 }
 
@@ -59,7 +77,7 @@ impl WorkerManager {
     pub fn new(tool_builder: Arc<dyn ToolBuilder>) -> Self {
         Self {
             workers: RwLock::new(vec![]),
-            single_file_mode: AtomicBool::new(false),
+            mode: ManagerMode::DynamicNoWorkspaces(AtomicBool::new(false)),
             tool_builder,
         }
     }
@@ -78,12 +96,14 @@ impl WorkerManager {
 
     /// Returns `true` when the server was started without any workspace folders.
     pub fn is_single_file_mode(&self) -> bool {
-        self.single_file_mode.load(Ordering::Relaxed)
+        matches!(&self.mode, ManagerMode::DynamicNoWorkspaces(flag) if flag.load(Ordering::Relaxed))
     }
 
     /// Overwrite the single-file-mode flag.
     pub fn set_single_file_mode(&self, value: bool) {
-        self.single_file_mode.store(value, Ordering::Relaxed);
+        if let ManagerMode::DynamicNoWorkspaces(flag) = &self.mode {
+            flag.store(value, Ordering::Relaxed);
+        }
     }
 
     // ── Worker creation ───────────────────────────────────────────────────────
@@ -213,8 +233,8 @@ impl WorkerManager {
         let mut workers = self.workers.write().await;
 
         // Transition out of single-file mode when real workspace folders arrive.
-        if !added.is_empty() && self.single_file_mode.load(Ordering::Relaxed) {
-            self.single_file_mode.store(false, Ordering::Relaxed);
+        if !added.is_empty() && self.is_single_file_mode() {
+            self.set_single_file_mode(false);
             workers_to_shutdown.extend(workers.drain(..));
         }
 
@@ -228,7 +248,7 @@ impl WorkerManager {
         // single-file mode so subsequent `didOpen` calls create workers
         // dynamically.
         if workers.is_empty() && added.is_empty() {
-            self.single_file_mode.store(true, Ordering::Relaxed);
+            self.set_single_file_mode(true);
         }
 
         workers_to_shutdown
@@ -254,7 +274,7 @@ impl WorkerManager {
         dynamic_watchers: bool,
     ) -> Option<Vec<Registration>> {
         // Bail out immediately if we are not in single-file mode.
-        if !self.single_file_mode.load(Ordering::Relaxed) {
+        if !self.is_single_file_mode() {
             return None;
         }
 
@@ -280,9 +300,7 @@ impl WorkerManager {
         let mut worker = Some(worker);
         {
             let mut workers = self.workers.write().await;
-            if self.single_file_mode.load(Ordering::Relaxed)
-                && Self::find_worker_for_uri(&workers, uri).is_none()
-            {
+            if self.is_single_file_mode() && Self::find_worker_for_uri(&workers, uri).is_none() {
                 workers.push(worker.take().unwrap());
             }
         }
