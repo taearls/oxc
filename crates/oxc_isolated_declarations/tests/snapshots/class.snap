@@ -120,6 +120,14 @@ export declare class PrivateConstructorWithDefaultParameters {
 	readonly prop3: boolean;
 	private constructor();
 }
+export declare class AccessorPairWithPrivateSetter {
+	get isRunning(): boolean;
+	private set isRunning(value);
+}
+export declare class AccessorPairWithProtectedPrivateSetter {
+	protected get value(): number;
+	private set value(value);
+}
 
 
 ==================== Errors ====================

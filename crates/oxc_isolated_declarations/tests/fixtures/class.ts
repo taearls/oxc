@@ -155,3 +155,22 @@ export class PrivateConstructorWithDefaultParameters {
 		normalParam: string = "normal",
 	) {}
 }
+
+// https://github.com/oxc-project/oxc/issues/21503
+// A typed private setter should provide the return type for its paired
+// public/protected getter when the getter has no explicit return type.
+export class AccessorPairWithPrivateSetter {
+	get isRunning() {
+		return true;
+	}
+
+	private set isRunning(val: boolean) {}
+}
+
+export class AccessorPairWithProtectedPrivateSetter {
+	protected get value() {
+		return 1;
+	}
+
+	private set value(v: number) {}
+}
