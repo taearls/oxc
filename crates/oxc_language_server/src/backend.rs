@@ -196,11 +196,11 @@ impl LanguageServer for Backend {
             return;
         };
 
-        let workers = &*self.worker_manager.read_workers().await;
+        let workspace_workers = &*self.worker_manager.read_workspace_workers().await;
         let needed_configurations =
-            ConcurrentHashMap::with_capacity_and_hasher(workers.len(), FxBuildHasher);
+            ConcurrentHashMap::with_capacity_and_hasher(workspace_workers.len(), FxBuildHasher);
         let needed_configurations = needed_configurations.pin_owned();
-        for worker in workers {
+        for worker in workspace_workers {
             if worker.needs_init_options().await {
                 needed_configurations.insert(worker.get_root_uri().clone(), worker);
             }
@@ -280,8 +280,12 @@ impl LanguageServer for Backend {
 
         // init all file watchers
         if capabilities.dynamic_watchers {
-            for worker in workers {
+            for worker in workspace_workers {
                 registrations.extend(worker.init_watchers().await);
+            }
+
+            if let Some(dynamic_worker) = self.worker_manager.read_dynamic_worker().await {
+                registrations.extend(dynamic_worker.init_watchers().await);
             }
         }
 
@@ -317,7 +321,7 @@ impl LanguageServer for Backend {
     ///
     /// See: <https://microsoft.github.io/language-server-protocol/specifications/specification-current/#workspace_didChangeConfiguration>
     async fn did_change_configuration(&self, params: DidChangeConfigurationParams) {
-        let workers = self.worker_manager.read_workers().await;
+        let workers = self.worker_manager.read_workspace_workers().await;
         let mut new_diagnostics = Vec::new();
         let mut removing_registrations = vec![];
         let mut adding_registrations = vec![];
@@ -794,16 +798,32 @@ impl LanguageServer for Backend {
         }
         // Collect all edits under a brief read lock, then release it
         // before performing client RPCs to avoid blocking writers.
+        // TODO: recheck if we should return the first found workspace edit instead of merging edits from all workers.
+        // This can cause edit conflicts when the same line/column on the same file is edited by different workers.
         let edits: Vec<WorkspaceEdit> = {
-            let workers = self.worker_manager.read_workers().await;
             let mut edits = Vec::new();
-            for worker in workers.iter() {
-                match worker.execute_command(&params.command, params.arguments.clone()).await {
-                    Ok(Some(edit)) => edits.push(edit),
-                    Ok(None) => {}
-                    Err(err) => return Err(Error::new(err)),
+            {
+                let workers = self.worker_manager.read_workspace_workers().await;
+                for worker in workers.iter() {
+                    match worker.execute_command(&params.command, params.arguments.clone()).await {
+                        Ok(Some(edit)) => edits.push(edit),
+                        Ok(None) => {}
+                        Err(err) => return Err(Error::new(err)),
+                    }
                 }
             }
+
+            {
+                let dynamic_worker = self.worker_manager.read_dynamic_worker().await;
+                if let Some(worker) = dynamic_worker {
+                    match worker.execute_command(&params.command, params.arguments.clone()).await {
+                        Ok(Some(edit)) => edits.push(edit),
+                        Ok(None) => {}
+                        Err(err) => return Err(Error::new(err)),
+                    }
+                }
+            }
+
             edits
         };
 

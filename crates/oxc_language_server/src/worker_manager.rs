@@ -137,8 +137,19 @@ impl WorkerManager {
     // ── State accessors ───────────────────────────────────────────────────────
 
     /// Acquire a shared read lock over the worker list.
-    pub async fn read_workers(&self) -> RwLockReadGuard<'_, Vec<WorkspaceWorker>> {
+    /// Does not include the dynamic worker in `DynamicWithWorkspaces` mode, which must be accessed by `read_dynamic_worker`.
+    pub async fn read_workspace_workers(&self) -> RwLockReadGuard<'_, Vec<WorkspaceWorker>> {
         self.workers.read().await
+    }
+
+    /// Acquire a shared read lock over the dynamic worker in `DynamicWithWorkspaces` mode, if enabled.
+    #[cfg_attr(not(test), expect(clippy::unused_async))] // when removing the test-only mode, this method will need to perform async initialization for the dynamic worker
+    pub async fn read_dynamic_worker(&self) -> Option<RwLockReadGuard<'_, WorkspaceWorker>> {
+        #[cfg(test)]
+        if let ManagerMode::DynamicWithWorkspaces(worker) = &self.mode {
+            return Some(worker.read().await);
+        }
+        None
     }
 
     /// Access the tool builder.
