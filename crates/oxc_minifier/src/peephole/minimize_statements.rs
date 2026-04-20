@@ -9,7 +9,7 @@ use oxc_ecmascript::{
     side_effects::MayHaveSideEffects,
 };
 use oxc_semantic::ScopeFlags;
-use oxc_span::{ContentEq, GetSpan};
+use oxc_span::{ContentEq, GetSpan, GetSpanMut};
 
 use crate::{TraverseCtx, keep_var::KeepVar};
 
@@ -1308,7 +1308,13 @@ impl<'a> PeepholeOptimizations {
         match target_expr {
             Expression::Identifier(id) => {
                 if id.name == search_for {
+                    // Preserve the span of the target identifier so that comments
+                    // attached to it (via `attached_to`) remain correctly associated
+                    // with the replacement expression.
+                    // https://github.com/rolldown/rolldown/issues/8248
+                    let target_span = target_expr.span();
                     *target_expr = replacement.take_in(ctx.ast);
+                    *target_expr.span_mut() = target_span;
                     return Some(true);
                 }
                 // If the identifier is not a getter and the identifier is read-only,
