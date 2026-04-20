@@ -116,6 +116,7 @@ pub struct OpAtNode {
     pub op: Operation,
     pub node: NodeId,
     pub compact_idx: u32,
+    pub previous_value_read: bool,
 }
 
 pub type BlockOps = Vec<OpAtNode>;
@@ -185,15 +186,16 @@ impl Rule for NoUselessAssignment {
                     op: Operation::Write,
                     node: decl_node.id(),
                     compact_idx,
+                    previous_value_read: false,
                 });
             }
 
             // Process references inline with reordering for assignment expressions like a = a + 1
             let references = ctx.symbol_references(symbol_id);
-            let mut pending_assignment_lhs: Option<&Reference> = None;
+            let mut pending_assignment_lhs: Option<(&Reference, bool)> = None;
 
             for reference in references {
-                if let Some(lhs) = pending_assignment_lhs
+                if let Some((lhs, previous_value_read)) = pending_assignment_lhs
                     && let Some(assign_node_id) = Self::get_assignment_node(ctx, lhs)
                 {
                     let assign_node = ctx.nodes().get_node(assign_node_id);
@@ -201,6 +203,9 @@ impl Rule for NoUselessAssignment {
                         .span()
                         .contains_inclusive(ctx.nodes().get_node(reference.node_id()).span())
                     {
+                        if reference.is_read() && !reference.is_write() {
+                            pending_assignment_lhs = Some((lhs, true));
+                        }
                         Self::process_reference_deferred(
                             ctx,
                             graph,
@@ -210,6 +215,7 @@ impl Rule for NoUselessAssignment {
                             var_decl,
                             decl_node,
                             compact_to_scope[compact_idx as usize],
+                            false,
                             &mut used_compact_indices,
                             &mut captured_read_compact_indices,
                         );
@@ -224,6 +230,7 @@ impl Rule for NoUselessAssignment {
                         var_decl,
                         decl_node,
                         compact_to_scope[compact_idx as usize],
+                        previous_value_read,
                         &mut used_compact_indices,
                         &mut captured_read_compact_indices,
                     );
@@ -231,7 +238,7 @@ impl Rule for NoUselessAssignment {
                 }
 
                 if reference.is_write() && Self::get_assignment_node(ctx, reference).is_some() {
-                    if let Some(prev) = pending_assignment_lhs.take() {
+                    if let Some((prev, previous_value_read)) = pending_assignment_lhs.take() {
                         Self::process_reference_deferred(
                             ctx,
                             graph,
@@ -241,11 +248,12 @@ impl Rule for NoUselessAssignment {
                             var_decl,
                             decl_node,
                             compact_to_scope[compact_idx as usize],
+                            previous_value_read,
                             &mut used_compact_indices,
                             &mut captured_read_compact_indices,
                         );
                     }
-                    pending_assignment_lhs = Some(reference);
+                    pending_assignment_lhs = Some((reference, reference.is_read()));
                 } else {
                     Self::process_reference_deferred(
                         ctx,
@@ -256,13 +264,14 @@ impl Rule for NoUselessAssignment {
                         var_decl,
                         decl_node,
                         compact_to_scope[compact_idx as usize],
+                        false,
                         &mut used_compact_indices,
                         &mut captured_read_compact_indices,
                     );
                 }
             }
 
-            if let Some(lhs) = pending_assignment_lhs {
+            if let Some((lhs, previous_value_read)) = pending_assignment_lhs {
                 Self::process_reference_deferred(
                     ctx,
                     graph,
@@ -272,6 +281,7 @@ impl Rule for NoUselessAssignment {
                     var_decl,
                     decl_node,
                     compact_to_scope[compact_idx as usize],
+                    previous_value_read,
                     &mut used_compact_indices,
                     &mut captured_read_compact_indices,
                 );
@@ -441,6 +451,9 @@ impl Rule for NoUselessAssignment {
                                 scratch_live.set_bit(compact_idx);
                             }
                         }
+                        if matches!(op.op, Operation::Write) && op.previous_value_read {
+                            scratch_live.set_bit(compact_idx);
+                        }
                     }
 
                     scratch_live.union(&scratch_catch);
@@ -477,6 +490,7 @@ impl NoUselessAssignment {
         var_decl: &oxc_ast::ast::VariableDeclarator,
         decl_node: &oxc_semantic::AstNode,
         symbol_scope: ScopeId,
+        previous_value_read: bool,
         used_compact_indices: &mut SmallVec<[u32; 32]>,
         captured_read_compact_indices: &mut SmallVec<[u32; 8]>,
     ) {
@@ -486,7 +500,12 @@ impl NoUselessAssignment {
             let ref_block = *graph
                 .node_weight(ctx.nodes().cfg_id(op_node))
                 .expect("expected a valid node id in graph");
-            cfg_ops[ref_block].push(OpAtNode { op: Operation::Read, node: op_node, compact_idx });
+            cfg_ops[ref_block].push(OpAtNode {
+                op: Operation::Read,
+                node: op_node,
+                compact_idx,
+                previous_value_read: false,
+            });
             used_compact_indices.push(compact_idx);
             if !Self::has_same_parent_variable_scope(
                 ctx,
@@ -512,7 +531,12 @@ impl NoUselessAssignment {
             let ref_block = *graph
                 .node_weight(ctx.nodes().cfg_id(op_node))
                 .expect("expected a valid node id in graph");
-            cfg_ops[ref_block].push(OpAtNode { op: Operation::Write, node: op_node, compact_idx });
+            cfg_ops[ref_block].push(OpAtNode {
+                op: Operation::Write,
+                node: op_node,
+                compact_idx,
+                previous_value_read,
+            });
         }
     }
 
@@ -1171,6 +1195,24 @@ fn test() {
                         (() => console.log(x))();
                         x = 1;
                     }",
+        "const rgb2lab = (rgb: RGB): LAB => {
+
+    let [r, g, b] = rgb;
+
+    r = (r > 0) ? ((r + 0) / 1) ** 2 : r / 1;
+    g = (g > 0) ? ((g + 0) / 1) ** 2 : g / 1;
+    b = (b > 0) ? ((b + 0) / 1) ** 2 : b / 1;
+
+    let x = (r * 0 + g * 0 + b * 0) / 0;
+    let y = (r * 0 + g * 0 + b * 0) / 1;
+    let z = (r * 0 + g * 0 + b * 0) / 1;
+
+    x = (x > 0) ? Math.cbrt(x) : (1 * x) + 16/116;
+    y = (y > 0) ? Math.cbrt(y) : (1 * y) + 16/116;
+    z = (z > 0) ? Math.cbrt(z) : (1 * z) + 16/116;
+
+    return [(1 * y) - 16, 1 * (x - y), 1 * (y - z)];
+};",
     ];
 
     let fail = vec![
