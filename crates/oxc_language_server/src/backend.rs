@@ -164,7 +164,7 @@ impl LanguageServer for Backend {
             }
         }
 
-        self.worker_manager.set_all_workers(workers).await;
+        self.worker_manager.start_manager(workers).await;
 
         self.capabilities.set(capabilities).map_err(|err| {
             let message = match err {
@@ -297,15 +297,7 @@ impl LanguageServer for Backend {
     ///
     /// See: <https://microsoft.github.io/language-server-protocol/specifications/specification-current/#shutdown>
     async fn shutdown(&self) -> Result<()> {
-        let mut clearing_diagnostics = Vec::new();
-
-        for worker in &*self.worker_manager.read_workers().await {
-            // shutdown each worker and collect the URIs to clear diagnostics.
-            // unregistering file watchers is not necessary, because the client will do it automatically on shutdown.
-            // some clients (`helix`) do not expect any requests after shutdown is sent.
-            let (uris, _) = worker.shutdown().await;
-            clearing_diagnostics.extend(uris);
-        }
+        let clearing_diagnostics = self.worker_manager.stop_manager().await;
 
         // only clear diagnostics when we are using push diagnostics
         if self.capabilities.get().is_some_and(|cap| cap.diagnostic_mode == DiagnosticMode::Push)
