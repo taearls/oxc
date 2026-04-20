@@ -13,7 +13,7 @@ fn test_remove_unused_expression() {
     test("1", "");
     test("1n", "");
     test(";'s'", "");
-    // test("this", "");
+    test("this", "");
     test("/asdf/", "");
     test("(function () {})", "");
     test("(() => {})", "");
@@ -22,6 +22,37 @@ fn test_remove_unused_expression() {
     test("x", "x");
     test("void 0", "");
     test("void x", "x");
+}
+
+#[test]
+fn test_remove_unused_this() {
+    // In a derived class constructor, `this` before `super()` throws a ReferenceError,
+    // so it must be kept (https://github.com/oxc-project/oxc/issues/21364).
+    test(
+        "export class Foo extends Bar { constructor() { this; super(); } }",
+        "export class Foo extends Bar { constructor() { this, super(); } }",
+    );
+    // The `this` inside an arrow captures the enclosing derived constructor's `this`.
+    test(
+        "export class Foo extends Bar { constructor() { (() => { this; })(); super(); } }",
+        "export class Foo extends Bar { constructor() { this, super(); } }",
+    );
+
+    // Non-derived constructors always have `this` initialized — safe to drop.
+    test("export class Foo { constructor() { this; } }", "export class Foo { constructor() {} }");
+    // Derived constructor, but `this` is after `super()` — still kept conservatively
+    // because we don't track whether `super()` has been called.
+    test(
+        "export class Foo extends Bar { constructor() { super(); this; } }",
+        "export class Foo extends Bar { constructor() { super(), this; } }",
+    );
+
+    // In all other positions `this` is always initialized and can be dropped.
+    test("{ this; }", "");
+    test("export class Foo { foo() { this; } }", "export class Foo { foo() {} }");
+    test("export class Foo { static foo() { this; } }", "export class Foo { static foo() {} }");
+    test("export class Foo { static { this; } }", "export class Foo {}");
+    test("export function foo() { this; }", "export function foo() {}");
 }
 
 #[test]
