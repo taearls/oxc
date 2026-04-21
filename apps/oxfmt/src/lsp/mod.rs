@@ -1,4 +1,6 @@
 use std::{
+    env,
+    fmt::Write,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -49,9 +51,17 @@ pub fn create_fake_file_path_from_language_id(
 
 /// Run the language server
 pub async fn run_lsp(js_config_loader: JsConfigLoaderCb, external_formatter: ExternalFormatter) {
+    let version = {
+        let mut version = env!("CARGO_PKG_VERSION").to_string();
+        if let Some(vp_version) = env::var_os("VP_VERSION") {
+            let _ = write!(version, " (VP: {})", vp_version.to_string_lossy());
+        }
+        version
+    };
+
     run_server(
         "oxfmt".to_string(),
-        env!("CARGO_PKG_VERSION").to_string(),
+        version,
         Arc::new(server_formatter::ServerFormatterBuilder::new(
             js_config_loader,
             external_formatter,
