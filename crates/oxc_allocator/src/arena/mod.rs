@@ -31,6 +31,8 @@ mod from_raw_parts;
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_alloc;
 
 /// An arena to allocate into.
 ///
