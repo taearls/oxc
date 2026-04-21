@@ -7,6 +7,7 @@ use oxc_ast::{
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_macros::declare_oxc_lint;
 use oxc_span::{GetSpan, Span};
+use oxc_syntax::line_terminator::LineTerminatorSplitter;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
@@ -171,7 +172,7 @@ fn is_object_sorted(
                         prop.span(),
                         object.properties[i + 1].span(),
                     );
-                    if text_between.contains("\n\n") {
+                    if has_blank_line(text_between) {
                         prev_key = None;
                         continue;
                     }
@@ -226,7 +227,7 @@ fn count_static_groups(
                         prop.span(),
                         object.properties[i + 1].span(),
                     );
-                    if text_between.contains("\n\n") {
+                    if has_blank_line(text_between) {
                         in_static_group = false;
                     }
                 }
@@ -442,6 +443,10 @@ fn extract_text_between_spans(source_text: &str, current_span: Span, next_span: 
     let cur_span_end = current_span.end as usize;
     let next_span_start = next_span.start as usize;
     &source_text[cur_span_end..next_span_start]
+}
+
+fn has_blank_line(text: &str) -> bool {
+    LineTerminatorSplitter::new(text).skip(1).any(str::is_empty)
 }
 
 #[test]
@@ -696,6 +701,14 @@ fn test() {
                                 c: 6
                             }
                         ",
+            Some(serde_json::json!(["asc", { "allowLineSeparatedGroups": true }])),
+        ),
+        (
+            "var obj = {\r\n  c: 1,\r\n  d: 2,\r\n\r\n  a: 3,\r\n  b: 4,\r\n};",
+            Some(serde_json::json!(["asc", { "allowLineSeparatedGroups": true }])),
+        ),
+        (
+            "var obj = {\u{2028}  c: 1,\u{2028}  d: 2,\u{2028}\u{2029}  a: 3,\u{2028}  b: 4,\u{2028}};",
             Some(serde_json::json!(["asc", { "allowLineSeparatedGroups": true }])),
         ),
         (
