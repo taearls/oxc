@@ -34,7 +34,13 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// Panics if reserving space matching `layout` fails.
     #[inline(always)]
     pub fn alloc_layout(&self, layout: Layout) -> NonNull<u8> {
-        self.try_alloc_layout(layout).unwrap_or_else(|_| oom())
+        let ptr =
+            self.try_alloc_layout_fast(layout).unwrap_or_else(|| self.alloc_layout_slow(layout));
+
+        #[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]
+        self.stats.record_allocation();
+
+        ptr
     }
 
     /// Attempt to allocate space for an object with the given `Layout`.
@@ -51,7 +57,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         let res = if let Some(p) = self.try_alloc_layout_fast(layout) {
             Ok(p)
         } else {
-            self.alloc_layout_slow(layout).ok_or(AllocErr)
+            self.try_alloc_layout_slow(layout).ok_or(AllocErr)
         };
 
         #[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]
@@ -303,11 +309,25 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         Some(new_ptr)
     }
 
-    /// Slow path allocation for when we need to allocate a new chunk, because there isn't enough room
-    /// in our current chunk.
+    /// Slow path for `alloc_layout`.
+    /// Called when there isn't enough room in our current chunk, so need to allocate a new chunk.
     #[inline(never)]
     #[cold]
-    fn alloc_layout_slow(&self, layout: Layout) -> Option<NonNull<u8>> {
+    fn alloc_layout_slow(&self, layout: Layout) -> NonNull<u8> {
+        self.try_alloc_layout_slow_impl(layout).unwrap_or_else(|| oom())
+    }
+
+    /// Slow path for `try_alloc_layout`.
+    /// Called when there isn't enough room in our current chunk, so need to allocate a new chunk.
+    #[inline(never)]
+    #[cold]
+    fn try_alloc_layout_slow(&self, layout: Layout) -> Option<NonNull<u8>> {
+        self.try_alloc_layout_slow_impl(layout)
+    }
+
+    /// Slow path for allocation, shared between `alloc_layout` and `try_alloc_layout`.
+    /// Called when there isn't enough room in our current chunk, so need to allocate a new chunk.
+    fn try_alloc_layout_slow_impl(&self, layout: Layout) -> Option<NonNull<u8>> {
         unsafe {
             if !self.can_grow {
                 return None;
