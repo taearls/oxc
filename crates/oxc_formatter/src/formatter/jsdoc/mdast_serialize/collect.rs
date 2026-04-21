@@ -50,9 +50,10 @@ fn collect_inline_impl(node: &Node, out: &mut String, inside_link: bool) {
                 || value.ends_with('`')
                 || (value.starts_with([' ', '\n'])
                     && value.ends_with([' ', '\n'])
-                    && value.chars().any(|c| c != ' ' && c != '\n'));
-            let delim = "`".repeat(delimiter_len);
-            out.push_str(&delim);
+                    && value.bytes().any(|b| b != b' ' && b != b'\n'));
+            for _ in 0..delimiter_len {
+                out.push('`');
+            }
             if needs_padding {
                 out.push(' ');
             }
@@ -60,7 +61,9 @@ fn collect_inline_impl(node: &Node, out: &mut String, inside_link: bool) {
             if needs_padding {
                 out.push(' ');
             }
-            out.push_str(&delim);
+            for _ in 0..delimiter_len {
+                out.push('`');
+            }
         }
         Node::Link(link) if inside_link => {
             // Nested link (e.g. GFM autolink inside explicit link text) —
@@ -184,8 +187,8 @@ fn collect_inline_impl(node: &Node, out: &mut String, inside_link: bool) {
 fn min_not_present_backtick_run(text: &str) -> usize {
     let mut present: Vec<bool> = Vec::new();
     let mut current = 0usize;
-    for ch in text.chars().chain(std::iter::once(' ')) {
-        if ch == '`' {
+    for byte in text.bytes().chain(std::iter::once(b' ')) {
+        if byte == b'`' {
             current += 1;
         } else if current > 0 {
             if present.len() <= current {
