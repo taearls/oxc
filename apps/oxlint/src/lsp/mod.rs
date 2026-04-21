@@ -1,4 +1,4 @@
-use std::{env, fmt::Write, sync::Arc};
+use std::{fmt::Write, sync::Arc};
 
 use oxc_linter::ExternalLinter;
 
@@ -22,7 +22,7 @@ pub async fn run_lsp(
 ) {
     let version = {
         let mut version = env!("CARGO_PKG_VERSION").to_string();
-        if let Some(vp_version) = env::var_os("VP_VERSION") {
+        if let Some(vp_version) = crate::vp_version() {
             let _ = write!(version, " (VP: {})", vp_version.to_string_lossy());
         }
         version
