@@ -1,5 +1,4 @@
 use std::{
-    env,
     fmt::Write,
     path::{Path, PathBuf},
     sync::Arc,
@@ -8,7 +7,7 @@ use std::{
 use oxc_language_server::{LanguageId, run_server};
 use tower_lsp_server::ls_types::Uri;
 
-use crate::core::{ExternalFormatter, JsConfigLoaderCb};
+use crate::core::{ExternalFormatter, JsConfigLoaderCb, utils};
 
 mod options;
 mod server_formatter;
@@ -53,7 +52,7 @@ pub fn create_fake_file_path_from_language_id(
 pub async fn run_lsp(js_config_loader: JsConfigLoaderCb, external_formatter: ExternalFormatter) {
     let version = {
         let mut version = env!("CARGO_PKG_VERSION").to_string();
-        if let Some(vp_version) = env::var_os("VP_VERSION") {
+        if let Some(vp_version) = utils::vp_version() {
             let _ = write!(version, " (VP: {})", vp_version.to_string_lossy());
         }
         version
