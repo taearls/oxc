@@ -12,7 +12,10 @@ use oxc_linter::{
 };
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
-use crate::{DEFAULT_JSONC_OXLINTRC_NAME, DEFAULT_OXLINTRC_NAME, DEFAULT_TS_OXLINTRC_NAME};
+use crate::{
+    DEFAULT_JSONC_OXLINTRC_NAME, DEFAULT_OXLINTRC_NAME, DEFAULT_TS_OXLINTRC_NAME,
+    config_discovery::{ConfigDiscovery, ConfigFileNames},
+};
 
 use crate::config_discovery::{ConfigConflict, DiscoveredConfigFile};
 
@@ -24,6 +27,13 @@ const NODE_MODULES_DIR: &str = "node_modules";
 #[cfg(feature = "napi")]
 use crate::js_config;
 use crate::js_config::JsConfigResult;
+
+const OXLINT_CONFIG_FILE_NAMES: ConfigFileNames = ConfigFileNames {
+    json: DEFAULT_OXLINTRC_NAME,
+    jsonc: DEFAULT_JSONC_OXLINTRC_NAME,
+    js: DEFAULT_TS_OXLINTRC_NAME,
+    vite: VITE_CONFIG_NAME,
+};
 
 /// Discover config files by walking UP from each file's directory to ancestors.
 ///
@@ -101,32 +111,8 @@ pub fn discover_configs_in_tree(
 
 /// Check if a directory contains an oxlint config file.
 fn find_configs_in_directory(dir: &Path) -> Vec<DiscoveredConfigFile> {
-    if vp_version().is_some() {
-        let vite_path = dir.join(VITE_CONFIG_NAME);
-        return if vite_path.is_file() {
-            vec![DiscoveredConfigFile::Vite(vite_path)]
-        } else {
-            Vec::new()
-        };
-    }
-
-    let mut configs = Vec::new();
-
-    let json_path = dir.join(DEFAULT_OXLINTRC_NAME);
-    if json_path.is_file() {
-        configs.push(DiscoveredConfigFile::Json(json_path));
-    }
-    let jsonc_path = dir.join(DEFAULT_JSONC_OXLINTRC_NAME);
-    if jsonc_path.is_file() {
-        configs.push(DiscoveredConfigFile::Jsonc(jsonc_path));
-    }
-
-    let ts_path = dir.join(DEFAULT_TS_OXLINTRC_NAME);
-    if ts_path.is_file() {
-        configs.push(DiscoveredConfigFile::Js(ts_path));
-    }
-
-    configs
+    ConfigDiscovery::new(OXLINT_CONFIG_FILE_NAMES, vp_version().is_some())
+        .find_configs_in_directory(dir)
 }
 
 // Helper types for parallel directory walking
@@ -189,24 +175,8 @@ fn to_discovered_config(entry: &DirEntry, base_config_path: &Path) -> Option<Dis
         // Skip the base config file (e.g., root oxlintrc) to avoid duplicate loading
         return None;
     }
-    let file_name = entry.path().file_name()?;
-    if vp_version().is_some() {
-        return if file_name == VITE_CONFIG_NAME {
-            Some(DiscoveredConfigFile::Vite(entry.path().to_path_buf()))
-        } else {
-            None
-        };
-    }
-
-    if file_name == DEFAULT_OXLINTRC_NAME {
-        Some(DiscoveredConfigFile::Json(entry.path().to_path_buf()))
-    } else if file_name == DEFAULT_JSONC_OXLINTRC_NAME {
-        Some(DiscoveredConfigFile::Jsonc(entry.path().to_path_buf()))
-    } else if file_name == DEFAULT_TS_OXLINTRC_NAME {
-        Some(DiscoveredConfigFile::Js(entry.path().to_path_buf()))
-    } else {
-        None
-    }
+    ConfigDiscovery::new(OXLINT_CONFIG_FILE_NAMES, vp_version().is_some())
+        .discover_config_file(entry.path())
 }
 
 pub struct LoadedConfig {
@@ -505,56 +475,22 @@ impl<'a> ConfigLoader<'a> {
     ///
     /// Returns `Ok(Some(config))` if found, `Ok(None)` if not found, or `Err` on error.
     fn try_load_config_from_dir(&self, dir: &Path) -> Result<Option<Oxlintrc>, OxcDiagnostic> {
-        // Vite+ mode: only vite.config.ts is a candidate
-        #[cfg(feature = "napi")]
-        if vp_version().is_some() {
-            let vite_config_path = dir.join(VITE_CONFIG_NAME);
-            if vite_config_path.is_file() {
-                return self.load_root_js_config(&vite_config_path);
+        let config_file = ConfigDiscovery::new(OXLINT_CONFIG_FILE_NAMES, vp_version().is_some())
+            .find_unique_config_in_directory(dir)
+            .map_err(Into::<oxc_diagnostics::OxcDiagnostic>::into)?;
+
+        match config_file {
+            Some(DiscoveredConfigFile::Json(path) | DiscoveredConfigFile::Jsonc(path)) => {
+                Oxlintrc::from_file(&path).map(Some)
             }
-            return Ok(None);
-        }
-
-        let json_path = dir.join(DEFAULT_OXLINTRC_NAME);
-        let jsonc_path = dir.join(DEFAULT_JSONC_OXLINTRC_NAME);
-        let ts_path = dir.join(DEFAULT_TS_OXLINTRC_NAME);
-
-        let json_exists = json_path.is_file();
-        let jsonc_exists = jsonc_path.is_file();
-        let ts_exists = ts_path.is_file();
-
-        let config_count =
-            usize::from(json_exists) + usize::from(jsonc_exists) + usize::from(ts_exists);
-        if config_count > 1 {
-            let mut configs = Vec::with_capacity(config_count);
-            if json_exists {
-                configs.push(DiscoveredConfigFile::Json(json_path));
+            Some(DiscoveredConfigFile::Js(path)) => {
+                let config = self.load_root_js_config(&path)?;
+                debug_assert!(config.is_some(), "oxlint.config.ts should always return a config");
+                Ok(config)
             }
-            if jsonc_exists {
-                configs.push(DiscoveredConfigFile::Jsonc(jsonc_path));
-            }
-            if ts_exists {
-                configs.push(DiscoveredConfigFile::Js(ts_path));
-            }
-            return Err(ConfigConflict::new(dir.to_path_buf(), configs).into());
+            Some(DiscoveredConfigFile::Vite(path)) => self.load_root_js_config(&path),
+            None => Ok(None),
         }
-
-        if ts_exists {
-            let config = self.load_root_js_config(&ts_path)?;
-            // `None` is only returned for vite.config.ts without `.lint` field,
-            // so `oxlint.config.ts` always returns `Some` here.
-            debug_assert!(config.is_some(), "oxlint.config.ts should always return a config");
-            return Ok(config);
-        }
-
-        if json_exists {
-            return Oxlintrc::from_file(&json_path).map(Some);
-        }
-        if jsonc_exists {
-            return Oxlintrc::from_file(&jsonc_path).map(Some);
-        }
-
-        Ok(None)
     }
 
     pub(crate) fn load_root_config(
