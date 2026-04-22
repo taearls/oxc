@@ -8,14 +8,13 @@ use serde_json::Value;
 
 use crate::{
     api::{format_api, text_to_doc_api},
-    cli::{CliRunner, MigrateSource, Mode, format_command, init_miette, init_rayon},
+    cli::{CliRunner, MigrateSource, Mode, StdinRunner, format_command, init_miette, init_rayon},
     core::{
         ExternalFormatter, JsFormatEmbeddedCb, JsFormatEmbeddedDocCb, JsFormatFileCb,
         JsInitExternalFormatterCb, JsLoadJsConfigCb, JsSortTailwindClassesCb,
         create_js_config_loader, utils,
     },
     lsp::run_lsp,
-    stdin::StdinRunner,
 };
 
 /// NAPI based JS CLI entry point.

@@ -6,8 +6,8 @@ use std::{
 
 use ignore::gitignore::Gitignore;
 
-use crate::cli::walk::resolve_ignore_paths;
-use crate::cli::{CliRunResult, FormatCommand, Mode};
+use super::walk::resolve_ignore_paths;
+use super::{CliRunResult, FormatCommand, Mode};
 use crate::core::{
     ConfigResolver, ExternalFormatter, FormatFileStrategy, FormatResult, JsConfigLoaderCb,
     SourceFormatter, resolve_editorconfig_path, utils,

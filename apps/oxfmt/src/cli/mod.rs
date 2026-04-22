@@ -4,7 +4,9 @@ mod reporter;
 mod result;
 mod runner;
 mod service;
-pub(crate) mod walk;
+#[cfg(feature = "napi")]
+pub(crate) mod stdin;
+mod walk;
 
 pub use crate::core::utils::init_tracing;
 #[cfg(feature = "napi")]
@@ -13,3 +15,5 @@ pub use command::{FormatCommand, Mode, format_command};
 pub use init::{init_miette, init_rayon};
 pub use result::CliRunResult;
 pub use runner::CliRunner;
+#[cfg(feature = "napi")]
+pub use stdin::StdinRunner;
