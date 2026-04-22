@@ -14,7 +14,7 @@ use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
 use crate::{DEFAULT_JSONC_OXLINTRC_NAME, DEFAULT_OXLINTRC_NAME, DEFAULT_TS_OXLINTRC_NAME};
 
-use crate::config_discovery::DiscoveredConfigFile;
+use crate::config_discovery::{ConfigConflict, DiscoveredConfigFile};
 
 #[cfg(feature = "napi")]
 use crate::{VITE_CONFIG_NAME, vp_version};
@@ -379,12 +379,17 @@ impl<'a> ConfigLoader<'a> {
                 + usize::from(jsonc_path.is_some())
                 + usize::from(ts_path.is_some());
             if config_count > 1 {
-                errors.push(ConfigLoadError::Diagnostic(config_conflict_diagnostic(
-                    &dir,
-                    json_path.is_some(),
-                    jsonc_path.is_some(),
-                    ts_path.is_some(),
-                )));
+                let mut configs = Vec::with_capacity(config_count);
+                if let Some(path) = json_path.as_ref() {
+                    configs.push(DiscoveredConfigFile::Json(path.clone()));
+                }
+                if let Some(path) = jsonc_path.as_ref() {
+                    configs.push(DiscoveredConfigFile::Jsonc(path.clone()));
+                }
+                if let Some(path) = ts_path.as_ref() {
+                    configs.push(DiscoveredConfigFile::Js(path.clone()));
+                }
+                errors.push(ConfigLoadError::Diagnostic(ConfigConflict::new(dir, configs).into()));
                 continue;
             }
 
@@ -521,7 +526,17 @@ impl<'a> ConfigLoader<'a> {
         let config_count =
             usize::from(json_exists) + usize::from(jsonc_exists) + usize::from(ts_exists);
         if config_count > 1 {
-            return Err(config_conflict_diagnostic(dir, json_exists, jsonc_exists, ts_exists));
+            let mut configs = Vec::with_capacity(config_count);
+            if json_exists {
+                configs.push(DiscoveredConfigFile::Json(json_path));
+            }
+            if jsonc_exists {
+                configs.push(DiscoveredConfigFile::Jsonc(jsonc_path));
+            }
+            if ts_exists {
+                configs.push(DiscoveredConfigFile::Js(ts_path));
+            }
+            return Err(ConfigConflict::new(dir.to_path_buf(), configs).into());
         }
 
         if ts_exists {
@@ -717,47 +732,6 @@ pub fn build_nested_configs(
     }
 
     nested_configs
-}
-
-fn config_conflict_diagnostic(
-    dir: &Path,
-    has_json: bool,
-    has_jsonc: bool,
-    has_ts: bool,
-) -> OxcDiagnostic {
-    fn format_conflicting_config_names(config_names: &[&str]) -> String {
-        debug_assert!(config_names.len() > 1);
-
-        let mut quoted_names =
-            config_names.iter().map(|name| format!("'{name}'")).collect::<Vec<_>>();
-        if quoted_names.len() == 2 {
-            return format!("{} and {}", quoted_names[0], quoted_names[1]);
-        }
-
-        let last = quoted_names.pop().unwrap();
-        format!("{}, and {last}", quoted_names.join(", "))
-    }
-    let mut config_names = Vec::with_capacity(3);
-    if has_json {
-        config_names.push(DEFAULT_OXLINTRC_NAME);
-    }
-    if has_jsonc {
-        config_names.push(DEFAULT_JSONC_OXLINTRC_NAME);
-    }
-    if has_ts {
-        config_names.push(DEFAULT_TS_OXLINTRC_NAME);
-    }
-
-    let config_list = format_conflicting_config_names(&config_names);
-    let message = if config_names.len() == 2 {
-        format!("Both {config_list} found in {}.", dir.display())
-    } else {
-        format!("Multiple config files found in {}: {config_list}.", dir.display())
-    };
-
-    OxcDiagnostic::error(message)
-    .with_note("Only one of `.oxlintrc.json`, `.oxlintrc.jsonc`, or `oxlint.config.ts` is allowed per directory.")
-    .with_help("Delete one of the configuration files.")
 }
 
 fn js_config_not_supported_diagnostic(path: &Path) -> OxcDiagnostic {
