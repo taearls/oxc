@@ -1,12 +1,13 @@
 pub(crate) mod command;
 mod init;
 mod reporter;
+mod resolve;
 mod result;
-mod runner;
 mod service;
 #[cfg(feature = "napi")]
-pub(crate) mod stdin;
+mod stdin_runner;
 mod walk;
+mod walk_runner;
 
 pub use crate::core::utils::init_tracing;
 #[cfg(feature = "napi")]
@@ -14,6 +15,6 @@ pub use command::MigrateSource;
 pub use command::{FormatCommand, Mode, format_command};
 pub use init::{init_miette, init_rayon};
 pub use result::CliRunResult;
-pub use runner::CliRunner;
 #[cfg(feature = "napi")]
-pub use stdin::StdinRunner;
+pub use stdin_runner::StdinRunner;
+pub use walk_runner::WalkRunner;

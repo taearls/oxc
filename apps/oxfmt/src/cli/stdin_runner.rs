@@ -4,10 +4,12 @@ use std::{
     path::PathBuf,
 };
 
-use ignore::gitignore::Gitignore;
-
-use super::walk::{resolve_file_scope_config, resolve_ignore_paths};
-use super::{CliRunResult, FormatCommand, Mode};
+use super::{
+    CliRunResult, FormatCommand, Mode,
+    resolve::{
+        build_global_ignore_matchers, is_ignored, resolve_file_scope_config, resolve_ignore_paths,
+    },
+};
 use crate::core::{
     ConfigResolver, ExternalFormatter, FormatFileStrategy, FormatResult, JsConfigLoaderCb,
     SourceFormatter, resolve_editorconfig_path, utils,
@@ -124,20 +126,19 @@ impl StdinRunner {
             }
         }
 
-        // Check if the file is ignored by global ignores or config`.ignorePatterns`
-        let resolved_ignore_paths = match resolve_ignore_paths(&cwd, &ignore_options.ignore_path) {
-            Ok(paths) => paths,
+        // Check if the file is ignored by global ignores or config's `ignorePatterns`
+        let global_matchers = match resolve_ignore_paths(&cwd, &ignore_options.ignore_path)
+            .and_then(|paths| build_global_ignore_matchers(&cwd, &[], &paths))
+        {
+            Ok(matchers) => matchers,
             Err(err) => {
                 utils::print_and_flush(stderr, &format!("{err}\n"));
                 return CliRunResult::InvalidOptionConfig;
             }
         };
-        let is_ignored = resolved_ignore_paths.iter().any(|ignore_path| {
-            let (gitignore, _) = Gitignore::new(ignore_path);
-            gitignore.matched_path_or_any_parents(strategy.path(), false).is_ignore()
-        }) || config_resolver.is_path_ignored(strategy.path(), false);
-
-        if is_ignored {
+        if is_ignored(&global_matchers, strategy.path(), false, true)
+            || config_resolver.is_path_ignored(strategy.path(), false)
+        {
             utils::print_and_flush(stdout, &source_text);
             return CliRunResult::FormatSucceeded;
         }
