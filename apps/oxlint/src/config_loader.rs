@@ -14,6 +14,8 @@ use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
 use crate::{DEFAULT_JSONC_OXLINTRC_NAME, DEFAULT_OXLINTRC_NAME, DEFAULT_TS_OXLINTRC_NAME};
 
+use crate::config_discovery::DiscoveredConfigFile;
+
 #[cfg(feature = "napi")]
 use crate::{VITE_CONFIG_NAME, vp_version};
 
@@ -23,23 +25,6 @@ const NODE_MODULES_DIR: &str = "node_modules";
 #[cfg(feature = "napi")]
 use crate::js_config;
 use crate::js_config::JsConfigResult;
-
-#[derive(Debug, Hash, PartialEq, Eq)]
-pub enum DiscoveredConfigFile {
-    Json(PathBuf),
-    Jsonc(PathBuf),
-    Js(PathBuf),
-}
-
-impl DiscoveredConfigFile {
-    pub fn path(&self) -> &Path {
-        match self {
-            DiscoveredConfigFile::Json(path)
-            | DiscoveredConfigFile::Jsonc(path)
-            | DiscoveredConfigFile::Js(path) => path,
-        }
-    }
-}
 
 /// Discover config files by walking UP from each file's directory to ancestors.
 ///
@@ -836,7 +821,8 @@ mod test {
 
     use oxc_linter::{ConfigStoreBuilder, ExternalPluginStore};
 
-    use super::{ConfigLoadError, ConfigLoader, DiscoveredConfigFile, is_js_config_path};
+    use super::{ConfigLoadError, ConfigLoader, is_js_config_path};
+    use crate::config_discovery::DiscoveredConfigFile;
     #[cfg(feature = "napi")]
     use crate::js_config::{JsConfigLoaderCb, JsConfigResult};
 
