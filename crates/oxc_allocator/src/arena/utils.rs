@@ -5,12 +5,12 @@ use std::{alloc::Layout, hint::unreachable_unchecked};
 pub use super::bumpalo_alloc::AllocErr;
 
 #[inline]
-pub fn is_pointer_aligned_to<T>(pointer: *mut T, align: usize) -> bool {
+pub fn is_pointer_aligned_to<T>(ptr: *mut T, align: usize) -> bool {
     debug_assert!(align.is_power_of_two());
 
-    let pointer = pointer as usize;
-    let pointer_aligned = round_down_to(pointer, align);
-    pointer == pointer_aligned
+    let addr = ptr as usize;
+    let aligned_addr = round_down_to(addr, align);
+    addr == aligned_addr
 }
 
 #[inline]

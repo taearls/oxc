@@ -50,21 +50,21 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 return;
             }
 
-            let cur_chunk = self.current_chunk_footer.get();
+            let current_footer_ptr = self.current_chunk_footer.get();
 
             // Deallocate all chunks except the current one
-            let prev_chunk =
-                cur_chunk.as_ref().previous_chunk_footer_ptr.replace(EMPTY_CHUNK.get());
-            dealloc_chunk_list(prev_chunk);
+            let prev_footer_ptr =
+                current_footer_ptr.as_ref().previous_chunk_footer_ptr.replace(EMPTY_CHUNK.get());
+            dealloc_chunk_list(prev_footer_ptr);
 
             // Reset the bump cursor to the end of the chunk.
             // We don't need to reset `cursor_ptr` in `ChunkFooter`, as it'll be set if the chunk is retired later on.
             // `iter_allocated_chunks_raw` ignores `cursor_ptr` of the current chunk.
             debug_assert!(
-                is_pointer_aligned_to(cur_chunk.as_ptr(), MIN_ALIGN),
-                "bump pointer {cur_chunk:#p} should be aligned to the minimum alignment of {MIN_ALIGN:#x}"
+                is_pointer_aligned_to(current_footer_ptr.as_ptr(), MIN_ALIGN),
+                "bump pointer {current_footer_ptr:#p} should be aligned to the minimum alignment of {MIN_ALIGN:#x}"
             );
-            self.cursor_ptr.set(cur_chunk.cast::<u8>());
+            self.cursor_ptr.set(current_footer_ptr.cast::<u8>());
 
             let current_chunk_footer = self.current_chunk_footer.get().as_ref();
             debug_assert!(
@@ -90,12 +90,15 @@ impl<const MIN_ALIGN: usize> Drop for Arena<MIN_ALIGN> {
 }
 
 #[inline]
-unsafe fn dealloc_chunk_list(mut footer: NonNull<ChunkFooter>) {
+unsafe fn dealloc_chunk_list(mut footer_ptr: NonNull<ChunkFooter>) {
     unsafe {
-        while !footer.as_ref().is_empty() {
-            let f = footer;
-            footer = f.as_ref().previous_chunk_footer_ptr.get();
-            alloc::dealloc(f.as_ref().start_ptr.as_ptr(), f.as_ref().layout);
+        while !footer_ptr.as_ref().is_empty() {
+            let current_footer_ptr = footer_ptr;
+            footer_ptr = current_footer_ptr.as_ref().previous_chunk_footer_ptr.get();
+            alloc::dealloc(
+                current_footer_ptr.as_ref().start_ptr.as_ptr(),
+                current_footer_ptr.as_ref().layout,
+            );
         }
     }
 }

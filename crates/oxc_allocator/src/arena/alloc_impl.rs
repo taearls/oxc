@@ -54,8 +54,8 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// Errors if reserving space matching `layout` fails.
     #[inline(always)]
     pub fn try_alloc_layout(&self, layout: Layout) -> Result<NonNull<u8>, AllocErr> {
-        let res = if let Some(p) = self.try_alloc_layout_fast(layout) {
-            Ok(p)
+        let res = if let Some(ptr) = self.try_alloc_layout_fast(layout) {
+            Ok(ptr)
         } else {
             self.try_alloc_layout_slow(layout).ok_or(AllocErr)
         };
@@ -334,8 +334,8 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             }
 
             // Get a new chunk from the global allocator
-            let current_footer = self.current_chunk_footer.get();
-            let current_layout = current_footer.as_ref().layout;
+            let current_footer_ptr = self.current_chunk_footer.get();
+            let current_layout = current_footer_ptr.as_ref().layout;
 
             // By default, we want our new chunk to be about twice as big as the previous chunk.
             // If the global allocator refuses it, we try to divide it by half until it works
@@ -353,11 +353,14 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 }
             });
 
-            let new_footer = chunk_memory_details.find_map(|new_chunk_memory_details| {
-                Self::new_chunk(new_chunk_memory_details, layout, current_footer)
+            let new_footer_ptr = chunk_memory_details.find_map(|new_chunk_memory_details| {
+                Self::new_chunk(new_chunk_memory_details, layout, current_footer_ptr)
             })?;
 
-            debug_assert_eq!(new_footer.as_ref().start_ptr.as_ptr() as usize % layout.align(), 0);
+            debug_assert_eq!(
+                new_footer_ptr.as_ref().start_ptr.as_ptr() as usize % layout.align(),
+                0
+            );
 
             // Sync `Arena::cursor_ptr` back to the retiring chunk's footer so iteration over chunks
             // can read its final cursor position later.
@@ -367,16 +370,16 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             // to the empty chunk's footer, which is the existing value of empty chunk footer's `cursor_ptr` anyway.
             // But nonetheless, the empty chunk footer is a `static`, accessible from all threads simultaneously.
             // Updating it from 2 threads simultaneously would be a data race (UB), even though both writes are no-ops.
-            if !current_footer.as_ref().is_empty() {
-                current_footer.as_ref().cursor_ptr.set(self.cursor_ptr.get());
+            if !current_footer_ptr.as_ref().is_empty() {
+                current_footer_ptr.as_ref().cursor_ptr.set(self.cursor_ptr.get());
             }
 
             // Set the new chunk as our new current chunk, and sync `start_ptr` and `cursor_ptr` accordingly.
             // Initial cursor sits at the footer (end of the allocatable region).
             // The footer is aligned on `CHUNK_ALIGN >= MIN_ALIGN`, so no rounding is needed.
-            self.start_ptr.set(new_footer.as_ref().start_ptr);
-            self.cursor_ptr.set(new_footer.cast::<u8>());
-            self.current_chunk_footer.set(new_footer);
+            self.start_ptr.set(new_footer_ptr.as_ref().start_ptr);
+            self.cursor_ptr.set(new_footer_ptr.cast::<u8>());
+            self.current_chunk_footer.set(new_footer_ptr);
 
             // And then we can rely on `try_alloc_layout_fast` to allocate space within this chunk
             let ptr = self.try_alloc_layout_fast(layout);
@@ -519,10 +522,10 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         if align_is_compatible && unsafe { self.is_last_allocation(ptr) } {
             // Try to allocate the delta size within this same block so we can reuse the currently allocated space
             let delta = new_size - old_size;
-            if let Some(p) =
+            if let Some(new_ptr) =
                 self.try_alloc_layout_fast(layout_from_size_align(delta, old_layout.align())?)
             {
-                unsafe { ptr::copy(ptr.as_ptr(), p.as_ptr(), old_size) };
+                unsafe { ptr::copy(ptr.as_ptr(), new_ptr.as_ptr(), old_size) };
 
                 #[cfg(all(
                     feature = "track_allocations",
@@ -530,7 +533,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 ))]
                 self.stats.record_reallocation();
 
-                return Ok(p);
+                return Ok(new_ptr);
             }
         }
 
