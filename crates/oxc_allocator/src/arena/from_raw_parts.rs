@@ -77,7 +77,9 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// * No live references to data in the current chunk before `cursor_ptr` can exist.
     pub unsafe fn set_cursor_ptr(&self, cursor_ptr: NonNull<u8>) {
         debug_assert!(cursor_ptr.as_ptr() >= self.start_ptr.get().as_ptr());
-        debug_assert!(cursor_ptr.as_ptr() <= self.current_chunk_footer.get().as_ptr().cast::<u8>());
+        debug_assert!(
+            cursor_ptr.as_ptr() <= self.current_chunk_footer_ptr.get().as_ptr().cast::<u8>()
+        );
         debug_assert!(cursor_ptr.addr().get().is_multiple_of(MIN_ALIGN));
 
         // SAFETY: Caller guarantees `Arena` has at least 1 allocated chunk, and `cursor_ptr` is valid
@@ -88,12 +90,12 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// Get pointer to end of the data region of this [`Arena`]'s current chunk
     /// i.e to the start of the `ChunkFooter`.
     pub fn data_end_ptr(&self) -> NonNull<u8> {
-        self.current_chunk_footer.get().cast::<u8>()
+        self.current_chunk_footer_ptr.get().cast::<u8>()
     }
 
     /// Get pointer to end of this [`Arena`]'s current chunk (after the `ChunkFooter`).
     pub fn end_ptr(&self) -> NonNull<u8> {
-        let chunk_footer_ptr = self.current_chunk_footer.get();
+        let chunk_footer_ptr = self.current_chunk_footer_ptr.get();
 
         // SAFETY: `chunk_footer_ptr` always points to a valid `ChunkFooter`, so stepping past it cannot be
         // out of bounds of the chunk's allocation. If `Arena` has not allocated, `chunk_footer_ptr`

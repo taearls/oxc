@@ -46,11 +46,11 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         // Takes `&mut self` so `self` must be unique, and there can't be any borrows active
         // that would get invalidated by resetting
         unsafe {
-            if self.current_chunk_footer.get().as_ref().is_empty() {
+            if self.current_chunk_footer_ptr.get().as_ref().is_empty() {
                 return;
             }
 
-            let current_footer_ptr = self.current_chunk_footer.get();
+            let current_footer_ptr = self.current_chunk_footer_ptr.get();
 
             // Deallocate all chunks except the current one
             let prev_footer_ptr =
@@ -66,14 +66,14 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             );
             self.cursor_ptr.set(current_footer_ptr.cast::<u8>());
 
-            let current_chunk_footer = self.current_chunk_footer.get().as_ref();
+            let current_chunk_footer = self.current_chunk_footer_ptr.get().as_ref();
             debug_assert!(
                 current_chunk_footer.previous_chunk_footer_ptr.get().as_ref().is_empty(),
                 "We should only have a single chunk"
             );
             debug_assert_eq!(
                 self.cursor_ptr.get(),
-                self.current_chunk_footer.get().cast::<u8>(),
+                self.current_chunk_footer_ptr.get().cast::<u8>(),
                 "Our chunk's bump cursor should be reset to the start of its allocation"
             );
         }
@@ -84,7 +84,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
 impl<const MIN_ALIGN: usize> Drop for Arena<MIN_ALIGN> {
     fn drop(&mut self) {
         unsafe {
-            dealloc_chunk_list(self.current_chunk_footer.get());
+            dealloc_chunk_list(self.current_chunk_footer_ptr.get());
         }
     }
 }

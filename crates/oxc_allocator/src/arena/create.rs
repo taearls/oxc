@@ -288,7 +288,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
 
         Self {
             cursor_ptr: Cell::new(cursor_ptr),
-            current_chunk_footer: Cell::new(chunk_footer_ptr),
+            current_chunk_footer_ptr: Cell::new(chunk_footer_ptr),
             start_ptr: Cell::new(start_ptr),
             can_grow: true,
             #[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]

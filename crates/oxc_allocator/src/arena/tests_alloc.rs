@@ -22,7 +22,7 @@ struct TestArena<const MIN_ALIGN: usize = 1> {
 
 impl<const MIN_ALIGN: usize> TestArena<MIN_ALIGN> {
     /// Create a `TestArena` with `cursor_ptr` and `start_ptr` set to the given addresses.
-    /// `current_chunk_footer` is pointed at `cursor` (satisfying `cursor <= footer` debug assert).
+    /// `current_chunk_footer_ptr` is pointed at `cursor` (satisfying `cursor <= footer` debug assert).
     /// The footer pointer is never dereferenced in `try_alloc_layout_fast`.
     fn new(start: usize, cursor: usize) -> Self {
         // Check input is valid
@@ -44,7 +44,7 @@ impl<const MIN_ALIGN: usize> TestArena<MIN_ALIGN> {
         let start_ptr = NonNull::new(start as *mut u8).unwrap();
         let arena = Arena {
             cursor_ptr: Cell::new(cursor_ptr),
-            current_chunk_footer: Cell::new(cursor_ptr.cast::<ChunkFooter>()),
+            current_chunk_footer_ptr: Cell::new(cursor_ptr.cast::<ChunkFooter>()),
             start_ptr: Cell::new(start_ptr),
             can_grow: false,
             #[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]

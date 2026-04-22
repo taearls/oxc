@@ -79,9 +79,9 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             "start pointer {start_ptr:#p} should be less than or equal to bump pointer {cursor_ptr:#p}"
         );
         debug_assert!(
-            cursor_ptr <= self.current_chunk_footer.get().cast::<u8>().as_ptr(),
+            cursor_ptr <= self.current_chunk_footer_ptr.get().cast::<u8>().as_ptr(),
             "bump pointer {cursor_ptr:#p} should be less than or equal to footer pointer {:#p}",
-            self.current_chunk_footer.get()
+            self.current_chunk_footer_ptr.get()
         );
         #[expect(clippy::checked_conversions)]
         {
@@ -334,7 +334,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             }
 
             // Get a new chunk from the global allocator
-            let current_footer_ptr = self.current_chunk_footer.get();
+            let current_footer_ptr = self.current_chunk_footer_ptr.get();
             let current_layout = current_footer_ptr.as_ref().layout;
 
             // By default, we want our new chunk to be about twice as big as the previous chunk.
@@ -379,7 +379,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             // The footer is aligned on `CHUNK_ALIGN >= MIN_ALIGN`, so no rounding is needed.
             self.start_ptr.set(new_footer_ptr.as_ref().start_ptr);
             self.cursor_ptr.set(new_footer_ptr.cast::<u8>());
-            self.current_chunk_footer.set(new_footer_ptr);
+            self.current_chunk_footer_ptr.set(new_footer_ptr);
 
             // And then we can rely on `try_alloc_layout_fast` to allocate space within this chunk
             let ptr = self.try_alloc_layout_fast(layout);
