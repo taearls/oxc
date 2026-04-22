@@ -648,7 +648,7 @@ configuration for a full reference.
 
 #### settings.jest.version
 
-type: `integer`
+type: `integer | string`
 
 default: `null`
 

@@ -59,6 +59,7 @@ export type LintPluginOptionsSchema =
 export type LintPlugins = LintPluginOptionsSchema[];
 export type DummyRule = AllowWarnDeny | [AllowWarnDeny, ...unknown[]];
 export type OxlintOverrides = OxlintOverride[];
+export type JestVersionSchema = number | string;
 export type TagNamePreference =
   | string
   | {
@@ -553,7 +554,7 @@ export interface JestPluginSettings {
    * ::: warning
    * Using this config will override the `no-deprecated-functions`' config set.
    */
-  version?: number;
+  version?: JestVersionSchema;
   [k: string]: unknown;
 }
 export interface JSDocPluginSettings {
