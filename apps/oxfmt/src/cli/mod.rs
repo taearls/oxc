@@ -4,7 +4,7 @@ mod reporter;
 mod result;
 mod runner;
 mod service;
-mod walk;
+pub(crate) mod walk;
 
 pub use crate::core::utils::init_tracing;
 #[cfg(feature = "napi")]

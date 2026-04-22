@@ -4,6 +4,9 @@ use std::{
     path::PathBuf,
 };
 
+use ignore::gitignore::Gitignore;
+
+use crate::cli::walk::resolve_ignore_paths;
 use crate::cli::{CliRunResult, FormatCommand, Mode};
 use crate::core::{
     ConfigResolver, ExternalFormatter, FormatFileStrategy, FormatResult, JsConfigLoaderCb,
@@ -40,7 +43,7 @@ impl StdinRunner {
         let stderr = &mut BufWriter::new(io::stderr());
 
         let cwd = self.cwd;
-        let FormatCommand { mode, config_options, .. } = self.options;
+        let FormatCommand { mode, config_options, ignore_options, .. } = self.options;
 
         let Mode::Stdin(filepath) = mode else {
             unreachable!("`StdinRunner::run()` called with non-Stdin mode");
@@ -97,6 +100,24 @@ impl StdinRunner {
             utils::print_and_flush(stderr, "Unsupported file type for stdin-filepath\n");
             return CliRunResult::InvalidOptionConfig;
         };
+
+        // Check if the file is ignored by global ignores or config`.ignorePatterns`
+        let resolved_ignore_paths = match resolve_ignore_paths(&cwd, &ignore_options.ignore_path) {
+            Ok(paths) => paths,
+            Err(err) => {
+                utils::print_and_flush(stderr, &format!("{err}\n"));
+                return CliRunResult::InvalidOptionConfig;
+            }
+        };
+        let is_ignored = resolved_ignore_paths.iter().any(|ignore_path| {
+            let (gitignore, _) = Gitignore::new(ignore_path);
+            gitignore.matched_path_or_any_parents(strategy.path(), false).is_ignore()
+        }) || config_resolver.is_path_ignored(strategy.path(), false);
+
+        if is_ignored {
+            utils::print_and_flush(stdout, &source_text);
+            return CliRunResult::FormatSucceeded;
+        }
 
         // Resolve options for the stdin file entry
         let resolved_options = config_resolver.resolve(&strategy);
