@@ -369,7 +369,7 @@ pub fn resolve_ignore_paths(cwd: &Path, ignore_paths: &[PathBuf]) -> Result<Vec<
 
 /// Resolve the nearest config scope for a file target.
 /// Returns `None` if the file belongs to the root scope.
-fn resolve_file_scope_config(
+pub(super) fn resolve_file_scope_config(
     file: &Path,
     root_config_dir: Option<&Path>,
     editorconfig_path: Option<&Path>,

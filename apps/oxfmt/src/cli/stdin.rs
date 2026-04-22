@@ -6,7 +6,7 @@ use std::{
 
 use ignore::gitignore::Gitignore;
 
-use super::walk::resolve_ignore_paths;
+use super::walk::{resolve_file_scope_config, resolve_ignore_paths};
 use super::{CliRunResult, FormatCommand, Mode};
 use crate::core::{
     ConfigResolver, ExternalFormatter, FormatFileStrategy, FormatResult, JsConfigLoaderCb,
@@ -100,6 +100,29 @@ impl StdinRunner {
             utils::print_and_flush(stderr, "Unsupported file type for stdin-filepath\n");
             return CliRunResult::InvalidOptionConfig;
         };
+
+        // Resolve nested config based on filepath's parent directory
+        // (same as CLI direct file path behavior)
+        let detect_nested =
+            config_options.config.is_none() && !config_options.disable_nested_config;
+        if detect_nested {
+            match resolve_file_scope_config(
+                strategy.path(),
+                config_resolver.config_dir(),
+                editorconfig_path.as_deref(),
+                Some(&self.js_config_loader),
+            ) {
+                Ok(Some(nested)) => config_resolver = nested,
+                Ok(None) => {} // No nested config or same as root — use root
+                Err(err) => {
+                    utils::print_and_flush(
+                        stderr,
+                        &format!("Failed to load configuration file.\n{err}\n"),
+                    );
+                    return CliRunResult::InvalidOptionConfig;
+                }
+            }
+        }
 
         // Check if the file is ignored by global ignores or config`.ignorePatterns`
         let resolved_ignore_paths = match resolve_ignore_paths(&cwd, &ignore_options.ignore_path) {
