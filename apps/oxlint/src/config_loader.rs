@@ -373,7 +373,12 @@ impl<'a> ConfigLoader<'a> {
                         Err(e) => errors.push(e),
                     }
                 }
-                Some(DiscoveredConfigFile::Js(path)) => js_configs.push(path),
+                Some(DiscoveredConfigFile::Js(path)) => {
+                    js_configs.push(path);
+                }
+                Some(DiscoveredConfigFile::Vite(_)) => {
+                    // TODO: will be implemented in future
+                }
                 None => {
                     debug_assert!(
                         false,

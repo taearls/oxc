@@ -12,12 +12,13 @@ pub enum DiscoveredConfigFile {
     Json(PathBuf),
     Jsonc(PathBuf),
     Js(PathBuf),
+    Vite(PathBuf),
 }
 
 impl DiscoveredConfigFile {
     pub fn path(&self) -> &Path {
         match self {
-            Self::Json(path) | Self::Jsonc(path) | Self::Js(path) => path,
+            Self::Json(path) | Self::Jsonc(path) | Self::Js(path) | Self::Vite(path) => path,
         }
     }
 }
