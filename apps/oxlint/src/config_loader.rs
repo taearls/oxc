@@ -346,62 +346,41 @@ impl<'a> ConfigLoader<'a> {
         let mut configs = Vec::new();
         let mut errors = Vec::new();
 
-        let mut by_dir =
-            FxHashMap::<PathBuf, (Option<PathBuf>, Option<PathBuf>, Option<PathBuf>)>::default();
+        let mut by_dir = FxHashMap::<PathBuf, Vec<DiscoveredConfigFile>>::default();
 
         for config in paths {
-            match config {
-                DiscoveredConfigFile::Json(path) => {
-                    let Some(dir) = path.parent().map(Path::to_path_buf) else {
-                        continue;
-                    };
-                    by_dir.entry(dir).or_default().0 = Some(path);
-                }
-                DiscoveredConfigFile::Jsonc(path) => {
-                    let Some(dir) = path.parent().map(Path::to_path_buf) else {
-                        continue;
-                    };
-                    by_dir.entry(dir).or_default().1 = Some(path);
-                }
-                DiscoveredConfigFile::Js(path) => {
-                    let Some(dir) = path.parent().map(Path::to_path_buf) else {
-                        continue;
-                    };
-                    by_dir.entry(dir).or_default().2 = Some(path);
-                }
-            }
+            let Some(dir) = config.path().parent().map(Path::to_path_buf) else {
+                continue;
+            };
+
+            by_dir.entry(dir).or_default().push(config);
         }
 
         let mut js_configs = Vec::new();
 
-        for (dir, (json_path, jsonc_path, ts_path)) in by_dir {
-            let config_count = usize::from(json_path.is_some())
-                + usize::from(jsonc_path.is_some())
-                + usize::from(ts_path.is_some());
-            if config_count > 1 {
-                let mut configs = Vec::with_capacity(config_count);
-                if let Some(path) = json_path.as_ref() {
-                    configs.push(DiscoveredConfigFile::Json(path.clone()));
-                }
-                if let Some(path) = jsonc_path.as_ref() {
-                    configs.push(DiscoveredConfigFile::Jsonc(path.clone()));
-                }
-                if let Some(path) = ts_path.as_ref() {
-                    configs.push(DiscoveredConfigFile::Js(path.clone()));
-                }
-                errors.push(ConfigLoadError::Diagnostic(ConfigConflict::new(dir, configs).into()));
+        for (dir, config_files) in by_dir {
+            if config_files.len() > 1 {
+                errors.push(ConfigLoadError::Diagnostic(
+                    ConfigConflict::new(dir.clone(), config_files).into(),
+                ));
                 continue;
             }
 
-            if let Some(path) = json_path.or(jsonc_path) {
-                match Self::load(&path) {
-                    Ok(config) => configs.push(config),
-                    Err(e) => errors.push(e),
+            match config_files.into_iter().next() {
+                Some(DiscoveredConfigFile::Json(path) | DiscoveredConfigFile::Jsonc(path)) => {
+                    match Self::load(path.as_path()) {
+                        Ok(config) => configs.push(config),
+                        Err(e) => errors.push(e),
+                    }
                 }
-            }
-
-            if let Some(path) = ts_path {
-                js_configs.push(path);
+                Some(DiscoveredConfigFile::Js(path)) => js_configs.push(path),
+                None => {
+                    debug_assert!(
+                        false,
+                        "Expected at least one config file for directory {}",
+                        dir.display()
+                    );
+                }
             }
         }
 
