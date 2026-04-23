@@ -1454,6 +1454,15 @@ mod test {
             Some(AllowWarnDeny::Deny)
         );
 
+        let config =
+            config_store_from_str(r#"{ "options": {"respectEslintDisableDirectives": false } }"#);
+        assert_eq!(config.base.config.options.respect_eslint_disable_directives, Some(false));
+
+        let config = config_store_from_str(
+            r#"{ "extends": ["fixtures/extends_config/options/respect_eslint_disable_directives_false.json"] }"#,
+        );
+        assert_eq!(config.base.config.options.respect_eslint_disable_directives, Some(false));
+
         let config = config_store_from_str(
             r#"{ "extends": ["fixtures/extends_config/options/deny_warnings_true.json"] }"#,
         );

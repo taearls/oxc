@@ -305,7 +305,7 @@ pub fn create_unused_directives_report(
 
     // Report unused enable comments
     let unused_enable = directives.unused_enable_comments();
-    for (rule_name, span) in unused_enable {
+    for (_directive_prefix, rule_name, span) in unused_enable {
         let message = if let Some(rule_name) = rule_name {
             format!(
                 "Unused oxlint-enable directive (no matching oxlint-disable directives were found for {rule_name})."
