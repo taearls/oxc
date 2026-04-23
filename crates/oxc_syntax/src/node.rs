@@ -2,7 +2,7 @@
 
 use bitflags::bitflags;
 
-use oxc_allocator::{Allocator, CloneIn};
+use oxc_allocator::{Allocator, CloneIn, Dummy};
 use oxc_ast_macros::ast;
 use oxc_index::define_nonmax_u32_index_type;
 
@@ -26,6 +26,13 @@ impl NodeId {
 impl Default for NodeId {
     #[inline]
     fn default() -> Self {
+        Self::DUMMY
+    }
+}
+
+impl<'a> Dummy<'a> for NodeId {
+    #[inline]
+    fn dummy(_: &'a Allocator) -> Self {
         Self::DUMMY
     }
 }
