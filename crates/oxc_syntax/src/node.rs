@@ -11,6 +11,7 @@ define_nonmax_u32_index_type! {
     #[ast]
     #[clone_in(default)]
     #[content_eq(skip)]
+    #[estree(skip)]
     pub struct NodeId;
 }
 
