@@ -77,6 +77,7 @@ impl Schema {
     ///
     /// # Panics
     /// Panics if no type with supplied name.
+    #[expect(dead_code)]
     pub fn type_by_name_mut(&mut self, name: &str) -> &mut TypeDef {
         let type_id = self.type_names[name];
         &mut self.types[type_id]
