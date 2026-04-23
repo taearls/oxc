@@ -52,7 +52,7 @@ impl Generator for AstBuilderGenerator {
 
     /// Generate `AstBuilder`.
     fn generate(&self, schema: &Schema, _codegen: &Codegen) -> Output {
-        let comment_node_id_type_id = schema.type_names["CommentNodeId"];
+        let comment_node_id_type_id = schema.type_names["NodeId"];
 
         let fns = schema
             .types
@@ -82,13 +82,7 @@ impl Generator for AstBuilderGenerator {
 
             ///@@line_break
             use oxc_allocator::{Allocator, Box, IntoIn, Vec};
-            use oxc_syntax::{
-                comment_node::CommentNodeId,
-                node::NodeId,
-                scope::ScopeId,
-                symbol::SymbolId,
-                reference::ReferenceId
-            };
+            use oxc_syntax::{node::NodeId, scope::ScopeId, symbol::SymbolId, reference::ReferenceId};
 
             ///@@line_break
             use oxc_str::{Ident, Str};
@@ -514,9 +508,6 @@ fn get_struct_fn_params_and_fields(
             }
 
             fields.push(quote!( #param_ident: Default::default() ));
-            return None;
-        } else if param.is_comment_node_id {
-            fields.push(quote!( #param_ident: self.get_comment_node_id() ));
             return None;
         }
 
