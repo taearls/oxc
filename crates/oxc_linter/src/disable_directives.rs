@@ -30,6 +30,37 @@ impl DirectivePrefix {
             Self::Oxlint => "oxlint-enable",
         }
     }
+
+    #[must_use]
+    pub fn unused_disable_message(self) -> String {
+        format!("Unused {} directive (no problems were reported).", self.disable_directive_name())
+    }
+
+    #[must_use]
+    pub fn unused_disable_rule_message(self, rule_name: &str) -> String {
+        format!(
+            "Unused {} directive (no problems were reported from {rule_name}).",
+            self.disable_directive_name()
+        )
+    }
+
+    #[must_use]
+    pub fn unused_enable_message(self) -> String {
+        format!(
+            "Unused {} directive (no matching {} directives were found).",
+            self.enable_directive_name(),
+            self.disable_directive_name()
+        )
+    }
+
+    #[must_use]
+    pub fn unused_enable_rule_message(self, rule_name: &str) -> String {
+        format!(
+            "Unused {} directive (no matching {} directives were found for {rule_name}).",
+            self.enable_directive_name(),
+            self.disable_directive_name()
+        )
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -1228,19 +1259,15 @@ pub fn create_unused_directives_diagnostics(
         match unused_comment.r#type {
             RuleCommentType::All => {
                 diagnostics.push(
-                    OxcDiagnostic::warn(
-                        "Unused eslint-disable directive (no problems were reported).",
-                    )
-                    .with_label(span)
-                    .with_severity(severity),
+                    OxcDiagnostic::warn(unused_comment.directive_prefix.unused_disable_message())
+                        .with_label(span)
+                        .with_severity(severity),
                 );
             }
             RuleCommentType::Single(rules) => {
                 for rule in rules {
-                    let rule_message = format!(
-                        "Unused eslint-disable directive (no problems were reported from {}).",
-                        rule.rule_name,
-                    );
+                    let rule_message =
+                        rule.directive_prefix.unused_disable_rule_message(&rule.rule_name);
                     diagnostics.push(
                         OxcDiagnostic::warn(rule_message)
                             .with_label(rule.name_span)
@@ -1253,14 +1280,11 @@ pub fn create_unused_directives_diagnostics(
 
     // Report unused enable comments
     let unused_enable = directives.unused_enable_comments();
-    for (_directive_prefix, rule_name, span) in unused_enable {
+    for (directive_prefix, rule_name, span) in unused_enable {
         let message = if let Some(rule_name) = rule_name {
-            format!(
-                "Unused eslint-enable directive (no matching eslint-disable directives were found for {rule_name})."
-            )
+            directive_prefix.unused_enable_rule_message(rule_name)
         } else {
-            "Unused eslint-enable directive (no matching eslint-disable directives were found)."
-                .to_string()
+            directive_prefix.unused_enable_message()
         };
         diagnostics.push(OxcDiagnostic::warn(message).with_label(*span).with_severity(severity));
     }

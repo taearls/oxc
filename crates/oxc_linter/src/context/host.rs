@@ -345,7 +345,6 @@ impl<'a> ContextHost<'a> {
         // report unused disable
         // relate to lint result, check after linter run finish
         let unused_disable_comments = self.disable_directives().collect_unused_disable_comments();
-        let message_for_disable = "Unused eslint-disable directive (no problems were reported).";
         let fix_message = "remove unused disable directive";
         let source_text = self.semantic().source_text();
 
@@ -354,11 +353,12 @@ impl<'a> ContextHost<'a> {
             let fix_span = unused_disable_comment.fix_span;
             match &unused_disable_comment.r#type {
                 RuleCommentType::All => {
-                    // eslint-disable
                     self.push_diagnostic(Message::new(
-                        OxcDiagnostic::error(message_for_disable)
-                            .with_label(span)
-                            .with_severity(rule_severity),
+                        OxcDiagnostic::error(
+                            unused_disable_comment.directive_prefix.unused_disable_message(),
+                        )
+                        .with_label(span)
+                        .with_severity(rule_severity),
                         PossibleFixes::Single(
                             Fix::delete(fix_span)
                                 .with_kind(FixKind::Suggestion)
@@ -368,10 +368,9 @@ impl<'a> ContextHost<'a> {
                 }
                 RuleCommentType::Single(rules_vec) => {
                     for rule in rules_vec {
-                        let rule_message = Cow::<str>::Owned(format!(
-                            "Unused eslint-disable directive (no problems were reported from {}).",
-                            rule.rule_name
-                        ));
+                        let rule_message = Cow::<str>::Owned(
+                            rule.directive_prefix.unused_disable_rule_message(&rule.rule_name),
+                        );
 
                         let fix = rule.create_fix(source_text, span).with_message(fix_message);
 
@@ -391,17 +390,12 @@ impl<'a> ContextHost<'a> {
             Vec::with_capacity(unused_enable_comments.len());
         // report unused enable
         // not relate to lint result, check during comment directives' construction
-        let message_for_enable =
-            "Unused eslint-enable directive (no matching eslint-disable directives were found).";
-        for (_directive_prefix, rule_name, enable_comment_span) in
-            self.disable_directives().unused_enable_comments()
-        {
+        for (directive_prefix, rule_name, enable_comment_span) in unused_enable_comments {
             unused_directive_diagnostics.push((
-                rule_name.as_ref().map_or(Cow::Borrowed(message_for_enable), |name| {
-                    Cow::Owned(format!(
-                        "Unused eslint-enable directive (no matching eslint-disable directives were found for {name})."
-                    ))
-                }),
+                rule_name.as_ref().map_or_else(
+                    || Cow::Owned(directive_prefix.unused_enable_message()),
+                    |name| Cow::Owned(directive_prefix.unused_enable_rule_message(name)),
+                ),
                 *enable_comment_span,
             ));
         }
