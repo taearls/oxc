@@ -8,7 +8,7 @@ use crate::{
     Codegen, Generator,
     generators::define_generator,
     output::Output,
-    schema::{Def, EnumDef, FieldDef, Schema, StructDef, TypeDef, TypeId},
+    schema::{Def, EnumDef, FieldDef, Schema, StructDef, StructOrEnum, TypeDef, TypeId},
 };
 
 const FORMATTER_CRATE_PATH: &str = "crates/oxc_formatter";
@@ -44,15 +44,14 @@ impl Generator for FormatterAstNodesGenerator {
         let no_following_node_type_ids = get_no_following_node_type_ids(schema);
 
         let impls = schema
-            .types
-            .iter()
+            .structs_and_enums()
             .filter_map(|type_def| match type_def {
-                TypeDef::Struct(struct_def)
+                StructOrEnum::Struct(struct_def)
                     if struct_def.visit.has_visitor() && !struct_def.builder.skip =>
                 {
                     Some(generate_struct_impls(struct_def, &no_following_node_type_ids, schema))
                 }
-                TypeDef::Enum(enum_def) if enum_def.visit.has_visitor() => {
+                StructOrEnum::Enum(enum_def) if enum_def.visit.has_visitor() => {
                     Some(generate_enum_impls(enum_def, schema))
                 }
                 _ => None,

@@ -8,7 +8,9 @@ use syn::Ident;
 use crate::{
     AST_CRATE_PATH, Codegen, Generator, Result,
     output::{Output, output_path},
-    schema::{Def, EnumDef, FieldDef, Schema, StructDef, TypeDef, TypeId, VariantDef},
+    schema::{
+        Def, EnumDef, FieldDef, Schema, StructDef, StructOrEnum, TypeDef, TypeId, VariantDef,
+    },
     utils::{create_safe_ident, is_reserved_name},
 };
 
@@ -56,14 +58,14 @@ impl Generator for AstBuilderGenerator {
             schema.type_by_name("NodeId").as_struct().unwrap().containers.cell_id.unwrap();
 
         let fns = schema
-            .types
-            .iter()
+            .structs_and_enums()
             .filter(|&type_def| match type_def {
-                TypeDef::Struct(struct_def) => {
+                StructOrEnum::Struct(struct_def) => {
                     !struct_def.builder.skip && struct_def.visit.has_visitor()
                 }
-                TypeDef::Enum(enum_def) => !enum_def.builder.skip && enum_def.visit.has_visitor(),
-                _ => false,
+                StructOrEnum::Enum(enum_def) => {
+                    !enum_def.builder.skip && enum_def.visit.has_visitor()
+                }
             })
             .map(|type_def| generate_builder_methods(type_def, node_id_cell_type_id, schema))
             .collect::<TokenStream>();
@@ -174,18 +176,17 @@ enum GenericType {
 
 /// Generate builder methods for a type.
 fn generate_builder_methods(
-    type_def: &TypeDef,
+    type_def: StructOrEnum<'_>,
     node_id_cell_type_id: TypeId,
     schema: &Schema,
 ) -> TokenStream {
     match type_def {
-        TypeDef::Struct(struct_def) => {
+        StructOrEnum::Struct(struct_def) => {
             generate_builder_methods_for_struct(struct_def, node_id_cell_type_id, schema)
         }
-        TypeDef::Enum(enum_def) => {
+        StructOrEnum::Enum(enum_def) => {
             generate_builder_methods_for_enum(enum_def, node_id_cell_type_id, schema)
         }
-        _ => unreachable!(),
     }
 }
 

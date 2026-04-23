@@ -10,7 +10,7 @@ use quote::{format_ident, quote};
 use crate::{
     AST_CRATE_PATH, Codegen, Generator,
     output::{Output, output_path},
-    schema::{Def, Schema, TypeDef, TypeId},
+    schema::{Def, Schema, StructDef, TypeId},
 };
 
 use super::define_generator;
@@ -31,10 +31,9 @@ impl Generator for GetIdGenerator {
             semantic_id_type_ids[index] = schema.type_names[type_name];
         }
 
-        let impls = schema
-            .types
-            .iter()
-            .filter_map(|type_def| generate_for_type(type_def, &semantic_id_type_ids, schema));
+        let impls = schema.structs().filter_map(|struct_def| {
+            generate_for_struct(struct_def, &semantic_id_type_ids, schema)
+        });
 
         let output = quote! {
             use oxc_syntax::{node::NodeId, reference::ReferenceId, scope::ScopeId, symbol::SymbolId};
@@ -49,13 +48,11 @@ impl Generator for GetIdGenerator {
     }
 }
 
-fn generate_for_type(
-    type_def: &TypeDef,
+fn generate_for_struct(
+    struct_def: &StructDef,
     semantic_id_type_ids: &[TypeId; SEMANTIC_ID_TYPES.len()],
     schema: &Schema,
 ) -> Option<TokenStream> {
-    let TypeDef::Struct(struct_def) = type_def else { return None };
-
     let struct_name = struct_def.name();
 
     // Generate semantic ID getters/setters (`node_id`, `scope_id`, `symbol_id`, `reference_id`)

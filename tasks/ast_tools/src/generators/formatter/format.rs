@@ -8,7 +8,7 @@ use crate::{
     Codegen, Generator,
     generators::{define_generator, formatter::ast_nodes::get_node_type},
     output::Output,
-    schema::{Def, EnumDef, Schema, StructDef, TypeDef, TypeId},
+    schema::{Def, EnumDef, Schema, StructDef, StructOrEnum, TypeDef, TypeId},
 };
 
 use super::ast_nodes::formatter_output_path;
@@ -59,15 +59,14 @@ impl Generator for FormatterFormatGenerator {
         let parenthesis_type_ids = get_needs_parentheses_type_ids(schema);
 
         let impls = schema
-            .types
-            .iter()
+            .structs_and_enums()
             .filter_map(|type_def| match type_def {
-                TypeDef::Struct(struct_def)
+                StructOrEnum::Struct(struct_def)
                     if struct_def.visit.has_visitor() && !struct_def.builder.skip =>
                 {
                     Some(generate_struct_implementation(struct_def, &parenthesis_type_ids, schema))
                 }
-                TypeDef::Enum(enum_def) if enum_def.visit.has_visitor() => {
+                StructOrEnum::Enum(enum_def) if enum_def.visit.has_visitor() => {
                     Some(generate_enum_implementation(enum_def, schema))
                 }
                 _ => None,
