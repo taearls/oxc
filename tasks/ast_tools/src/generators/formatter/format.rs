@@ -309,13 +309,6 @@ fn generate_enum_implementation(enum_def: &EnumDef, schema: &Schema) -> TokenStr
         match_arm
     });
 
-    let parent = if enum_def.kind.has_kind {
-        quote! {
-            let parent = allocator.alloc(AstNodes::#enum_ident(transmute_self(self)))
-        }
-    } else {
-        quote! { let parent = self.parent }
-    };
     let node_type = get_node_type(&enum_ty);
 
     let inline_trailing_suppression = match enum_def.name() {
@@ -355,7 +348,7 @@ fn generate_enum_implementation(enum_def: &EnumDef, schema: &Schema) -> TokenStr
             fn fmt(&self, f: &mut Formatter<'_, 'a>) {
                 #inline_trailing_suppression
                 let allocator = self.allocator;
-                #parent;
+                let parent = self.parent;
                 match self.inner {
                     #(#variant_match_arms)*
                     #(#inherits_match_arms)*
