@@ -3,6 +3,7 @@
 //! * `AstType` type definition.
 //! * `AstKind` type definition.
 //! * `AstKind::ty` method.
+//! * `AstKind::node_id` & `AstKind::set_node_id` methods.
 //! * `AstKind::as_*` methods.
 //! * `GetSpan` impl for `AstKind`.
 //! * `GetAddress` impl for `AstKind`.
