@@ -1,6 +1,6 @@
 //! Token
 
-use std::{fmt, mem, ptr, ptr::NonNull};
+use std::{fmt, mem, ptr::NonNull};
 
 use oxc_span::Span;
 
@@ -338,9 +338,9 @@ impl Token {
         // SAFETY: Caller guarantees `shift` points to valid `bool`.
         // This method borrows `Token`, so valid to read field via a reference - can't be aliased.
         unsafe {
-            let field_ptr = ptr::from_ref(self).cast::<bool>().add(offset);
-            debug_assert!(*field_ptr.cast::<u8>() <= 1);
-            *field_ptr.as_ref().unwrap_unchecked()
+            let field_ptr = NonNull::from_ref(self).cast::<bool>().add(offset);
+            debug_assert!(field_ptr.cast::<u8>().read() <= 1);
+            *field_ptr.as_ref()
         }
     }
 
