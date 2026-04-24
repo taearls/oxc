@@ -1,4 +1,4 @@
-use std::{env, path::PathBuf};
+use std::{env, path::Path};
 
 use serde_json::Value;
 
@@ -7,7 +7,7 @@ use oxc_napi::OxcError;
 use crate::core::{
     ExternalFormatter, FormatResult, FormatStrategyBuilder, JsFormatEmbeddedCb,
     JsFormatEmbeddedDocCb, JsFormatFileCb, JsInitExternalFormatterCb, JsSortTailwindClassesCb,
-    SourceFormatter, resolve_options_from_value,
+    SourceFormatter, resolve_options_from_value, utils,
 };
 
 pub struct ApiFormatResult {
@@ -57,10 +57,8 @@ pub fn run(
     }
 
     // Determine format strategy from file path
-    let Ok(strategy) = FormatStrategyBuilder::default()
-        .build(PathBuf::from(filename))
-        .map(|s| s.resolve_relative_path(&cwd))
-    else {
+    let filepath = utils::normalize_relative_path(&cwd, Path::new(filename));
+    let Ok(strategy) = FormatStrategyBuilder::default().build(filepath) else {
         external_formatter.cleanup();
         return ApiFormatResult {
             code: source_text,
