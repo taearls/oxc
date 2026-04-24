@@ -452,7 +452,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         // This is how much space we would *actually* reclaim while satisfying the requested alignment
         let delta = round_down_to(old_size - new_size, new_layout.align().max(MIN_ALIGN));
 
-        if unsafe { self.is_last_allocation(ptr) }
+        if self.is_last_allocation(ptr)
                 // Only reclaim the excess space (which requires a copy) if it is worth it:
                 // we are actually going to recover "enough" space and we can do a non-overlapping copy.
                 //
@@ -519,7 +519,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
 
         let align_is_compatible = old_layout.align() >= new_layout.align();
 
-        if align_is_compatible && unsafe { self.is_last_allocation(ptr) } {
+        if align_is_compatible && self.is_last_allocation(ptr) {
             // Try to allocate the delta size within this same block so we can reuse the currently allocated space
             let delta = new_size - old_size;
             if let Some(new_ptr) =
@@ -547,8 +547,9 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         Ok(new_ptr)
     }
 
+    /// Returns `true` if the given pointer is the last allocation made in this arena.
     #[inline]
-    unsafe fn is_last_allocation(&self, ptr: NonNull<u8>) -> bool {
+    fn is_last_allocation(&self, ptr: NonNull<u8>) -> bool {
         self.cursor_ptr.get() == ptr
     }
 }
