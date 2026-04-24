@@ -3518,7 +3518,7 @@ unsafe fn walk_jsx_expression<'a, State, Tr: Traverse<'a, State>>(
     traverser.enter_jsx_expression(&mut *node, ctx);
     match &mut *node {
         JSXExpression::EmptyExpression(node) => {
-            walk_jsx_empty_expression(traverser, node as *mut _, ctx)
+            walk_jsx_empty_expression(traverser, (&mut **node) as *mut _, ctx)
         }
         JSXExpression::BooleanLiteral(_)
         | JSXExpression::NullLiteral(_)

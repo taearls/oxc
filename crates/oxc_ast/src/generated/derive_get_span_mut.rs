@@ -1345,7 +1345,7 @@ impl GetSpanMut for JSXExpressionContainer<'_> {
 impl GetSpanMut for JSXExpression<'_> {
     fn span_mut(&mut self) -> &mut Span {
         match self {
-            Self::EmptyExpression(it) => GetSpanMut::span_mut(it),
+            Self::EmptyExpression(it) => GetSpanMut::span_mut(&mut **it),
             Self::BooleanLiteral(it) => GetSpanMut::span_mut(&mut **it),
             Self::NullLiteral(it) => GetSpanMut::span_mut(&mut **it),
             Self::NumericLiteral(it) => GetSpanMut::span_mut(&mut **it),

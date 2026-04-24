@@ -1345,7 +1345,7 @@ impl GetSpan for JSXExpressionContainer<'_> {
 impl GetSpan for JSXExpression<'_> {
     fn span(&self) -> Span {
         match self {
-            Self::EmptyExpression(it) => GetSpan::span(it),
+            Self::EmptyExpression(it) => GetSpan::span(&**it),
             Self::BooleanLiteral(it) => GetSpan::span(&**it),
             Self::NullLiteral(it) => GetSpan::span(&**it),
             Self::NumericLiteral(it) => GetSpan::span(&**it),

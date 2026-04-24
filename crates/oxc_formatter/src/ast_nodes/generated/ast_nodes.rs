@@ -6874,7 +6874,7 @@ impl<'a> AstNode<'a, JSXExpression<'a>> {
         let node = match self.inner {
             JSXExpression::EmptyExpression(s) => {
                 AstNodes::JSXEmptyExpression(self.allocator.alloc(AstNode {
-                    inner: s,
+                    inner: s.as_ref(),
                     parent,
                     allocator: self.allocator,
                     following_span_start: self.following_span_start,

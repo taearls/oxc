@@ -1087,13 +1087,13 @@ const _: () = {
     assert!(align_of::<JSXMemberExpressionObject>() == 8);
 
     // Padding: 4 bytes
-    assert!(size_of::<JSXExpressionContainer>() == 40);
+    assert!(size_of::<JSXExpressionContainer>() == 32);
     assert!(align_of::<JSXExpressionContainer>() == 8);
     assert!(offset_of!(JSXExpressionContainer, span) == 0);
     assert!(offset_of!(JSXExpressionContainer, node_id) == 8);
     assert!(offset_of!(JSXExpressionContainer, expression) == 16);
 
-    assert!(size_of::<JSXExpression>() == 24);
+    assert!(size_of::<JSXExpression>() == 16);
     assert!(align_of::<JSXExpression>() == 8);
 
     // Padding: 4 bytes
@@ -2898,13 +2898,13 @@ const _: () = if cfg!(target_family = "wasm") || align_of::<u64>() == 8 {
     assert!(align_of::<JSXMemberExpressionObject>() == 4);
 
     // Padding: 0 bytes
-    assert!(size_of::<JSXExpressionContainer>() == 28);
+    assert!(size_of::<JSXExpressionContainer>() == 20);
     assert!(align_of::<JSXExpressionContainer>() == 4);
     assert!(offset_of!(JSXExpressionContainer, span) == 0);
     assert!(offset_of!(JSXExpressionContainer, node_id) == 8);
     assert!(offset_of!(JSXExpressionContainer, expression) == 12);
 
-    assert!(size_of::<JSXExpression>() == 16);
+    assert!(size_of::<JSXExpression>() == 8);
     assert!(align_of::<JSXExpression>() == 4);
 
     // Padding: 0 bytes

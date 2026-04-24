@@ -3614,7 +3614,7 @@ function deserializeJSXExpression(pos) {
     case 50:
       return deserializeBoxPrivateFieldExpression(pos + 8);
     case 64:
-      return deserializeJSXEmptyExpression(pos + 8);
+      return deserializeBoxJSXEmptyExpression(pos + 8);
     default:
       throw Error(`Unexpected discriminant ${uint8[pos]} for JSXExpression`);
   }
@@ -6686,6 +6686,10 @@ function deserializeBoxJSXNamespacedName(pos) {
 
 function deserializeBoxJSXMemberExpression(pos) {
   return deserializeJSXMemberExpression(int32[pos >> 2]);
+}
+
+function deserializeBoxJSXEmptyExpression(pos) {
+  return deserializeJSXEmptyExpression(int32[pos >> 2]);
 }
 
 function deserializeBoxJSXAttribute(pos) {

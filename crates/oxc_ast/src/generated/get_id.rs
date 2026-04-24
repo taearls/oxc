@@ -4103,6 +4103,8 @@ impl JSXMemberExpressionObject<'_> {
 
 impl JSXExpression<'_> {
     /// Get [`NodeId`] of [`JSXExpression`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
+    #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
             Self::EmptyExpression(it) => it.node_id(),

@@ -7270,7 +7270,7 @@ function constructJSXExpression(pos, ast) {
     case 50:
       return constructBoxPrivateFieldExpression(pos + 8, ast);
     case 64:
-      return new JSXEmptyExpression(pos + 8, ast);
+      return constructBoxJSXEmptyExpression(pos + 8, ast);
     default:
       throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for JSXExpression`);
   }
@@ -13457,6 +13457,10 @@ function constructBoxJSXNamespacedName(pos, ast) {
 
 function constructBoxJSXMemberExpression(pos, ast) {
   return new JSXMemberExpression(ast.buffer.int32[pos >> 2], ast);
+}
+
+function constructBoxJSXEmptyExpression(pos, ast) {
+  return new JSXEmptyExpression(ast.buffer.int32[pos >> 2], ast);
 }
 
 function constructBoxJSXAttribute(pos, ast) {

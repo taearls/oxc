@@ -3136,7 +3136,7 @@ function walkJSXExpression(pos, ast, visitors) {
       walkBoxPrivateFieldExpression(pos + 8, ast, visitors);
       return;
     case 64:
-      walkJSXEmptyExpression(pos + 8, ast, visitors);
+      walkBoxJSXEmptyExpression(pos + 8, ast, visitors);
       return;
     default:
       throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for JSXExpression`);
@@ -5489,6 +5489,10 @@ function walkBoxJSXNamespacedName(pos, ast, visitors) {
 
 function walkBoxJSXMemberExpression(pos, ast, visitors) {
   return walkJSXMemberExpression(ast.buffer.int32[pos >> 2], ast, visitors);
+}
+
+function walkBoxJSXEmptyExpression(pos, ast, visitors) {
+  return walkJSXEmptyExpression(ast.buffer.int32[pos >> 2], ast, visitors);
 }
 
 function walkBoxJSXAttribute(pos, ast, visitors) {

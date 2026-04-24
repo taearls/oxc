@@ -9546,20 +9546,37 @@ impl<'a> AstBuilder<'a> {
 
     /// Build a [`JSXExpression::EmptyExpression`].
     ///
+    /// This node contains a [`JSXEmptyExpression`] that will be stored in the memory arena.
+    ///
     /// ## Parameters
     /// * `span`: Node location in source code.
     #[inline]
     pub fn jsx_expression_empty_expression(self, span: Span) -> JSXExpression<'a> {
-        JSXExpression::EmptyExpression(self.jsx_empty_expression(span))
+        JSXExpression::EmptyExpression(self.alloc_jsx_empty_expression(span))
     }
 
     /// Build a [`JSXEmptyExpression`].
+    ///
+    /// If you want the built node to be allocated in the memory arena,
+    /// use [`AstBuilder::alloc_jsx_empty_expression`] instead.
     ///
     /// ## Parameters
     /// * `span`: Node location in source code.
     #[inline]
     pub fn jsx_empty_expression(self, span: Span) -> JSXEmptyExpression {
         JSXEmptyExpression { node_id: Default::default(), span }
+    }
+
+    /// Build a [`JSXEmptyExpression`], and store it in the memory arena.
+    ///
+    /// Returns a [`Box`] containing the newly-allocated node.
+    /// If you want a stack-allocated node, use [`AstBuilder::jsx_empty_expression`] instead.
+    ///
+    /// ## Parameters
+    /// * `span`: Node location in source code.
+    #[inline]
+    pub fn alloc_jsx_empty_expression(self, span: Span) -> Box<'a, JSXEmptyExpression> {
+        Box::new_in(self.jsx_empty_expression(span), self.allocator)
     }
 
     /// Build a [`JSXAttributeItem::Attribute`].
