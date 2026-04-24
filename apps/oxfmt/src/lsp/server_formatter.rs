@@ -12,7 +12,7 @@ use oxc_language_server::{
 
 use crate::core::{
     ConfigResolver, ExternalFormatter, FormatFileStrategy, FormatResult, JsConfigLoaderCb,
-    SourceFormatter, config_file_names, has_config_in_directory, resolve_editorconfig_path, utils,
+    SourceFormatter, config_discovery, resolve_editorconfig_path, utils,
 };
 use crate::lsp::create_fake_file_path_from_language_id;
 use crate::lsp::options::FormatOptions as LSPFormatOptions;
@@ -168,7 +168,11 @@ impl Tool for ServerFormatter {
                 vec![config_path.clone()]
             } else {
                 // Watch for config files in all subdirectories (nested config support)
-                config_file_names().into_iter().map(|name| format!("**/{name}")).collect()
+                config_discovery()
+                    .config_file_names()
+                    .into_iter()
+                    .map(|name| format!("**/{name}"))
+                    .collect()
             };
 
         patterns.push(".editorconfig".to_string());
@@ -296,7 +300,7 @@ impl ServerFormatter {
         };
 
         for dir in start_dir.ancestors() {
-            if has_config_in_directory(dir) {
+            if !config_discovery().find_configs_in_directory(dir).is_empty() {
                 return ConfigScope::Dir(dir.to_path_buf());
             }
         }
@@ -320,7 +324,7 @@ impl ServerFormatter {
 
         result.unwrap_or_else(|err| {
             warn!("Failed to load config at {}: {err}, falling back to default", cwd.display());
-            let mut resolver = ConfigResolver::from_json_config(Path::new("."), None, None)
+            let mut resolver = ConfigResolver::from_json_config(None, None)
                 .expect("Default ConfigResolver should never fail");
             resolver
                 .build_and_validate()

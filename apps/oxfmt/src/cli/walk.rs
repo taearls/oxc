@@ -12,7 +12,7 @@ use tracing::instrument;
 use super::resolve::{build_global_ignore_matchers, is_ignored, resolve_file_scope_config};
 #[cfg(feature = "napi")]
 use crate::core::JsConfigLoaderCb;
-use crate::core::{ConfigResolver, FormatFileStrategy, has_config_in_directory};
+use crate::core::{ConfigResolver, FormatFileStrategy, config_discovery};
 
 /// A file entry paired with its scope's config resolver.
 pub struct FormatEntry {
@@ -397,7 +397,7 @@ fn prescan_config_locations(
     let mut config_dirs = vec![];
     for entry in configure_walk_builder(builder).build().flatten() {
         let dir = entry.path();
-        if has_config_in_directory(dir) {
+        if !config_discovery().find_configs_in_directory(dir).is_empty() {
             config_dirs.push(dir.to_path_buf());
         }
     }

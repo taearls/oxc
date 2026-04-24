@@ -33,15 +33,11 @@ const OXFMT_CONFIG_FILE_NAMES: ConfigFileNames = ConfigFileNames {
     vite: "vite.config.ts",
 };
 
-fn config_discovery() -> ConfigDiscovery {
+pub fn config_discovery() -> ConfigDiscovery {
     ConfigDiscovery::new(
         OXFMT_CONFIG_FILE_NAMES,
         cfg!(feature = "napi") && utils::vp_version().is_some(),
     )
-}
-
-pub fn config_file_names() -> Vec<&'static str> {
-    config_discovery().config_file_names()
 }
 
 pub fn resolve_editorconfig_path(cwd: &Path) -> Option<PathBuf> {
@@ -178,10 +174,10 @@ pub struct ConfigResolver {
     cached_options: Option<(OxfmtOptions, Value)>,
     /// Resolved overrides from `.oxfmtrc` for file-specific matching.
     oxfmtrc_overrides: Option<OxfmtrcOverrides>,
-    /// Parsed `.editorconfig`, if any.
-    editorconfig: Option<EditorConfig>,
     /// Ignore glob built from this config's `ignorePatterns`.
     ignore_glob: Option<Gitignore>,
+    /// Parsed `.editorconfig`, if any.
+    editorconfig: Option<EditorConfig>,
 }
 
 impl ConfigResolver {
@@ -197,8 +193,8 @@ impl ConfigResolver {
             config_dir,
             cached_options: None,
             oxfmtrc_overrides: None,
-            editorconfig,
             ignore_glob: None,
+            editorconfig,
         }
     }
 
@@ -238,103 +234,55 @@ impl ConfigResolver {
         editorconfig_path: Option<&Path>,
         #[cfg(feature = "napi")] js_config_loader: Option<&JsConfigLoaderCb>,
     ) -> Result<Self, String> {
+        // Always load the nearest `.editorconfig` if exists
+        let editorconfig = load_editorconfig(cwd, editorconfig_path)?;
+
         // Explicit path: normalize and load directly
         if let Some(config_path) = oxfmtrc_path {
             let path = utils::normalize_relative_path(cwd, config_path);
-            return Self::load_config_at(
-                cwd,
-                &path,
-                editorconfig_path,
-                #[cfg(feature = "napi")]
-                js_config_loader,
-            );
-        }
 
-        // Auto-discovery: search upwards from cwd, load in one pass
-        Self::discover_config(
-            cwd,
-            editorconfig_path,
-            #[cfg(feature = "napi")]
-            js_config_loader,
-        )
-    }
-
-    /// Load a config file at a known path.
-    /// Handles both JSON/JSONC and JS/TS config files.
-    fn load_config_at(
-        cwd: &Path,
-        path: &Path,
-        editorconfig_path: Option<&Path>,
-        #[cfg(feature = "napi")] js_config_loader: Option<&JsConfigLoaderCb>,
-    ) -> Result<Self, String> {
-        let config_file = if is_js_config_path(path) {
-            DiscoveredConfigFile::Js(path.to_path_buf())
-        } else {
-            DiscoveredConfigFile::Json(path.to_path_buf())
-        };
-
-        Self::load_discovered_config(
-            cwd,
-            config_file,
-            editorconfig_path,
-            #[cfg(feature = "napi")]
-            js_config_loader,
-        )
-        .map(|config| config.expect("only Vite configs can be skipped"))
-    }
-
-    fn load_discovered_config(
-        cwd: &Path,
-        config_file: DiscoveredConfigFile,
-        editorconfig_path: Option<&Path>,
-        #[cfg(feature = "napi")] js_config_loader: Option<&JsConfigLoaderCb>,
-    ) -> Result<Option<Self>, String> {
-        match config_file {
-            DiscoveredConfigFile::Json(path) | DiscoveredConfigFile::Jsonc(path) => {
-                Self::from_json_config(cwd, Some(&path), editorconfig_path).map(Some)
-            }
-            config_file @ (DiscoveredConfigFile::Js(_) | DiscoveredConfigFile::Vite(_)) => {
-                let is_vite_config = matches!(config_file, DiscoveredConfigFile::Vite(_));
-                let path = config_file.path();
-
+            if is_js_config_path(&path) {
                 #[cfg(not(feature = "napi"))]
                 {
-                    let _ = is_vite_config;
                     return Err(format!(
                         "JS/TS config file ({}) is not supported in pure Rust CLI.\nUse JSON/JSONC instead.",
                         path.display()
                     ));
                 }
-
                 #[cfg(feature = "napi")]
                 {
-                    // Load successful and `.fmt` field found -> Use it as config.
-                    // Load failed (e.g. syntax error, missing dependencies) -> Propagate error.
                     let raw_config = load_js_config(
                         js_config_loader
                             .expect("JS config loader must be set when `napi` feature is enabled"),
-                        path,
-                    )?;
-
-                    let Some(raw_config) = raw_config else {
-                        if is_vite_config {
-                            return Ok(None);
-                        }
-                        return Err(format!(
+                        &path,
+                    )?
+                    // In Vite+ mode, `loadVitePlusConfig` returns `null` when `.fmt` is missing.
+                    // For explicitly specified config, this is always an error.
+                    .ok_or_else(|| {
+                        format!(
                             "Expected a `fmt` field in the default export of {}",
                             path.display()
-                        ));
-                    };
+                        )
+                    })?;
 
-                    let editorconfig = load_editorconfig(cwd, editorconfig_path)?;
-                    Ok(Some(Self::new(
+                    return Ok(Self::new(
                         raw_config,
                         path.parent().map(Path::to_path_buf),
                         editorconfig,
-                    )))
+                    ));
                 }
             }
+
+            return Self::from_json_config(Some(&path), editorconfig);
         }
+
+        // Auto-discovery: search upwards from cwd, load in one pass
+        Self::discover_config(
+            cwd,
+            editorconfig,
+            #[cfg(feature = "napi")]
+            js_config_loader,
+        )
     }
 
     /// Auto-discover and load config by searching upwards from `cwd`.
@@ -343,7 +291,7 @@ impl ConfigResolver {
     /// but lacks a `.fmt` field, it is skipped and the search continues.
     fn discover_config(
         cwd: &Path,
-        editorconfig_path: Option<&Path>,
+        editorconfig: Option<EditorConfig>,
         #[cfg(feature = "napi")] js_config_loader: Option<&JsConfigLoaderCb>,
     ) -> Result<Self, String> {
         let discovery = config_discovery();
@@ -355,22 +303,71 @@ impl ConfigResolver {
                 continue;
             };
 
-            let Some(config) = Self::load_discovered_config(
-                cwd,
-                config_file,
-                editorconfig_path,
-                #[cfg(feature = "napi")]
-                js_config_loader,
-            )?
-            else {
-                continue;
-            };
+            match config_file {
+                DiscoveredConfigFile::Json(path) | DiscoveredConfigFile::Jsonc(path) => {
+                    return Self::from_json_config(Some(&path), editorconfig);
+                }
+                DiscoveredConfigFile::Js(path) => {
+                    #[cfg(not(feature = "napi"))]
+                    {
+                        return Err(format!(
+                            "JS/TS config file ({}) is not supported in pure Rust CLI.\nUse JSON/JSONC instead.",
+                            path.display()
+                        ));
+                    }
+                    #[cfg(feature = "napi")]
+                    {
+                        // JS `loadJsConfig()` (non-Vite+ mode) never returns `null`,
+                        // failures are raised as errors by `load_js_config()`.
+                        let raw_config = load_js_config(
+                            js_config_loader.expect(
+                                "JS config loader must be set when `napi` feature is enabled",
+                            ),
+                            &path,
+                        )?
+                        .expect("loadJsConfig never returns null for non-Vite JS config");
 
-            return Ok(config);
+                        return Ok(Self::new(
+                            raw_config,
+                            path.parent().map(Path::to_path_buf),
+                            editorconfig,
+                        ));
+                    }
+                }
+                DiscoveredConfigFile::Vite(path) => {
+                    #[cfg(not(feature = "napi"))]
+                    {
+                        return Err(format!(
+                            "JS/TS config file ({}) is not supported in pure Rust CLI.\nUse JSON/JSONC instead.",
+                            path.display()
+                        ));
+                    }
+                    #[cfg(feature = "napi")]
+                    {
+                        // JS `loadVitePlusConfig()` (Vite+ mode) returns `null`
+                        // when `.fmt` is missing, skip and continue searching upwards.
+                        let Some(raw_config) = load_js_config(
+                            js_config_loader.expect(
+                                "JS config loader must be set when `napi` feature is enabled",
+                            ),
+                            &path,
+                        )?
+                        else {
+                            continue;
+                        };
+
+                        return Ok(Self::new(
+                            raw_config,
+                            path.parent().map(Path::to_path_buf),
+                            editorconfig,
+                        ));
+                    }
+                }
+            }
         }
 
-        // No config found — use defaults
-        Self::from_json_config(cwd, None, editorconfig_path)
+        // No config found, use defaults
+        Self::from_json_config(None, editorconfig)
     }
 
     /// Create a resolver by loading JSON/JSONC config from a file path.
@@ -378,9 +375,8 @@ impl ConfigResolver {
     /// Also used as the default (empty config) fallback when no config file is found.
     #[instrument(level = "debug", name = "oxfmt::config::from_json_config", skip_all)]
     pub(crate) fn from_json_config(
-        cwd: &Path,
         oxfmtrc_path: Option<&Path>,
-        editorconfig_path: Option<&Path>,
+        editorconfig: Option<EditorConfig>,
     ) -> Result<Self, String> {
         // Read and parse config file, or use empty JSON if not found
         let json_string = match oxfmtrc_path {
@@ -402,7 +398,6 @@ impl ConfigResolver {
             serde_json::from_str(&json_string).map_err(|err| err.to_string())?;
         // Store the config directory for override path resolution
         let config_dir = oxfmtrc_path.and_then(|p| p.parent().map(Path::to_path_buf));
-        let editorconfig = load_editorconfig(cwd, editorconfig_path)?;
 
         Ok(Self::new(raw_config, config_dir, editorconfig))
     }
@@ -545,6 +540,29 @@ fn load_js_config(
     })?;
 
     Ok(if value.is_null() { None } else { Some(value) })
+}
+
+/// Build an ignore glob from config `ignorePatterns`.
+/// Patterns are resolved relative to the config file's directory.
+fn build_ignore_glob(
+    config_dir: Option<&Path>,
+    ignore_patterns: &[String],
+) -> Result<Option<Gitignore>, String> {
+    if ignore_patterns.is_empty() {
+        return Ok(None);
+    }
+    let Some(config_dir) = config_dir else {
+        return Ok(None);
+    };
+
+    let mut builder = GitignoreBuilder::new(config_dir);
+    for pattern in ignore_patterns {
+        if builder.add_line(None, pattern).is_err() {
+            return Err(format!("Failed to add ignore pattern `{pattern}` from `ignorePatterns`"));
+        }
+    }
+    let gitignore = builder.build().map_err(|_| "Failed to build ignores".to_string())?;
+    Ok(Some(gitignore))
 }
 
 // ---
@@ -753,34 +771,4 @@ fn apply_editorconfig(config: &mut FormatConfig, props: &EditorConfigProperties)
             _ => {}
         }
     }
-}
-
-// ---
-
-/// Check if a directory contains any recognized config file.
-pub fn has_config_in_directory(dir: &Path) -> bool {
-    !config_discovery().find_configs_in_directory(dir).is_empty()
-}
-
-/// Build an ignore glob from config `ignorePatterns`.
-/// Patterns are resolved relative to the config file's directory.
-fn build_ignore_glob(
-    config_dir: Option<&Path>,
-    ignore_patterns: &[String],
-) -> Result<Option<Gitignore>, String> {
-    if ignore_patterns.is_empty() {
-        return Ok(None);
-    }
-    let Some(config_dir) = config_dir else {
-        return Ok(None);
-    };
-
-    let mut builder = GitignoreBuilder::new(config_dir);
-    for pattern in ignore_patterns {
-        if builder.add_line(None, pattern).is_err() {
-            return Err(format!("Failed to add ignore pattern `{pattern}` from `ignorePatterns`"));
-        }
-    }
-    let gitignore = builder.build().map_err(|_| "Failed to build ignores".to_string())?;
-    Ok(Some(gitignore))
 }
