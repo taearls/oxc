@@ -12,7 +12,7 @@ use super::bumpalo_alloc::AllocErr;
 use crate::tracking::AllocationStats;
 
 use super::{
-    Arena, CHUNK_ALIGN, CHUNK_FOOTER_SIZE, ChunkFooter, EMPTY_CHUNK,
+    Arena, CHUNK_ALIGN, CHUNK_FOOTER_SIZE, ChunkFooter, EMPTY_CHUNK_FOOTER,
     utils::{is_pointer_aligned_to, layout_from_size_align, oom, round_up_to},
 };
 
@@ -162,7 +162,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     // for specifying the minimum alignment.
     #[inline] // Because it's very cheap
     pub fn with_min_align() -> Self {
-        Self::new_impl(EMPTY_CHUNK.get())
+        Self::new_impl(EMPTY_CHUNK_FOOTER.get())
     }
 
     /// Create a new `Arena` that enforces a minimum alignment, and starts with room for at least `capacity` bytes.
@@ -248,7 +248,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 // to avoid `Arena::with_capacity` allocating 16 KiB even when requested `capacity` is much smaller.
                 Self::new_chunk_memory_details(Some(capacity), layout).ok_or(AllocErr)?,
                 layout,
-                EMPTY_CHUNK.get(),
+                EMPTY_CHUNK_FOOTER.get(),
             )
             .ok_or(AllocErr)?
         };

@@ -4,7 +4,8 @@
 use std::{alloc::Layout, cell::Cell, ptr::NonNull};
 
 use super::{
-    Arena, CHUNK_ALIGN, CHUNK_FOOTER_SIZE, ChunkFooter, EMPTY_CHUNK, utils::is_pointer_aligned_to,
+    Arena, CHUNK_ALIGN, CHUNK_FOOTER_SIZE, ChunkFooter, EMPTY_CHUNK_FOOTER,
+    utils::is_pointer_aligned_to,
 };
 
 impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
@@ -46,7 +47,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         let chunk_footer = ChunkFooter {
             start_ptr,
             layout,
-            previous_chunk_footer_ptr: Cell::new(EMPTY_CHUNK.get()),
+            previous_chunk_footer_ptr: Cell::new(EMPTY_CHUNK_FOOTER.get()),
             cursor_ptr: Cell::new(chunk_footer_ptr.cast::<u8>()),
         };
 
