@@ -3992,6 +3992,8 @@ impl ImportDeclarationSpecifier<'_> {
 
 impl ImportAttributeKey<'_> {
     /// Get [`NodeId`] of [`ImportAttributeKey`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
+    #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
             Self::Identifier(it) => it.node_id(),
@@ -4058,6 +4060,8 @@ impl ExportDefaultDeclarationKind<'_> {
 
 impl ModuleExportName<'_> {
     /// Get [`NodeId`] of [`ModuleExportName`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
+    #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
             Self::IdentifierName(it) => it.node_id(),
@@ -4366,6 +4370,8 @@ impl TSTypePredicateName<'_> {
 
 impl TSModuleDeclarationName<'_> {
     /// Get [`NodeId`] of [`TSModuleDeclarationName`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
+    #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
             Self::Identifier(it) => it.node_id(),
