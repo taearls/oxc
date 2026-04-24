@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::path::Path;
 
 use serde_json::Value;
@@ -280,6 +279,7 @@ impl SourceFormatter {
         external_options: Value,
         sort_options: Option<&sort_package_json::SortOptions>,
     ) -> Result<String, OxcDiagnostic> {
+        use std::borrow::Cow;
         let source_text: Cow<'_, str> = if let Some(options) = sort_options {
             match sort_package_json::sort_package_json_with_options(source_text, options) {
                 Ok(sorted) => Cow::Owned(sorted),
