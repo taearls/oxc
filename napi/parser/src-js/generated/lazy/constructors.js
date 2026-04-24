@@ -536,7 +536,7 @@ function constructArrayExpressionElement(pos, ast) {
     case 64:
       return constructBoxSpreadElement(pos + 8, ast);
     case 65:
-      return new Elision(pos + 8, ast);
+      return constructBoxElision(pos + 8, ast);
     default:
       throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ArrayExpressionElement`);
   }
@@ -12855,11 +12855,15 @@ function constructBoxV8IntrinsicExpression(pos, ast) {
 function constructVecArrayExpressionElement(pos, ast) {
   const { int32 } = ast.buffer,
     pos32 = pos >> 2;
-  return new NodeArray(int32[pos32], int32[pos32 + 2], 24, constructArrayExpressionElement, ast);
+  return new NodeArray(int32[pos32], int32[pos32 + 2], 16, constructArrayExpressionElement, ast);
 }
 
 function constructBoxSpreadElement(pos, ast) {
   return new SpreadElement(ast.buffer.int32[pos >> 2], ast);
+}
+
+function constructBoxElision(pos, ast) {
+  return new Elision(ast.buffer.int32[pos >> 2], ast);
 }
 
 function constructVecObjectPropertyKind(pos, ast) {

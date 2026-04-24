@@ -340,7 +340,7 @@ function deserializeArrayExpressionElement(pos) {
     case 64:
       return deserializeBoxSpreadElement(pos + 8);
     case 65:
-      return deserializeElision(pos + 8);
+      return deserializeBoxElision(pos + 8);
     default:
       throw Error(`Unexpected discriminant ${uint8[pos]} for ArrayExpressionElement`);
   }
@@ -5568,16 +5568,20 @@ function deserializeVecArrayExpressionElement(pos) {
   let arr = [],
     pos32 = pos >> 2;
   pos = int32[pos32];
-  let endPos = pos + int32[pos32 + 2] * 24;
+  let endPos = pos + (int32[pos32 + 2] << 4);
   for (; pos !== endPos; ) {
     arr.push(deserializeArrayExpressionElement(pos));
-    pos += 24;
+    pos += 16;
   }
   return arr;
 }
 
 function deserializeBoxSpreadElement(pos) {
   return deserializeSpreadElement(int32[pos >> 2]);
+}
+
+function deserializeBoxElision(pos) {
+  return deserializeElision(int32[pos >> 2]);
 }
 
 function deserializeVecObjectPropertyKind(pos) {

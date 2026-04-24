@@ -113,7 +113,7 @@ impl GetSpan for ArrayExpressionElement<'_> {
     fn span(&self) -> Span {
         match self {
             Self::SpreadElement(it) => GetSpan::span(&**it),
-            Self::Elision(it) => GetSpan::span(it),
+            Self::Elision(it) => GetSpan::span(&**it),
             Self::BooleanLiteral(it) => GetSpan::span(&**it),
             Self::NullLiteral(it) => GetSpan::span(&**it),
             Self::NumericLiteral(it) => GetSpan::span(&**it),

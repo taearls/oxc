@@ -3512,6 +3512,8 @@ impl Expression<'_> {
 
 impl ArrayExpressionElement<'_> {
     /// Get [`NodeId`] of [`ArrayExpressionElement`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
+    #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
             Self::SpreadElement(it) => it.node_id(),

@@ -119,7 +119,7 @@ impl<'a> Dummy<'a> for ArrayExpression<'a> {
 impl<'a> Dummy<'a> for ArrayExpressionElement<'a> {
     /// Create a dummy [`ArrayExpressionElement`].
     ///
-    /// Does not allocate any data into arena.
+    /// Has cost of making 1 allocation (16 bytes).
     fn dummy(allocator: &'a Allocator) -> Self {
         Self::Elision(Dummy::dummy(allocator))
     }

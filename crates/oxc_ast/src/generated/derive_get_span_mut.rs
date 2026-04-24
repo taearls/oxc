@@ -113,7 +113,7 @@ impl GetSpanMut for ArrayExpressionElement<'_> {
     fn span_mut(&mut self) -> &mut Span {
         match self {
             Self::SpreadElement(it) => GetSpanMut::span_mut(&mut **it),
-            Self::Elision(it) => GetSpanMut::span_mut(it),
+            Self::Elision(it) => GetSpanMut::span_mut(&mut **it),
             Self::BooleanLiteral(it) => GetSpanMut::span_mut(&mut **it),
             Self::NullLiteral(it) => GetSpanMut::span_mut(&mut **it),
             Self::NumericLiteral(it) => GetSpanMut::span_mut(&mut **it),

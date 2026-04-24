@@ -515,7 +515,7 @@ function walkArrayExpressionElement(pos, ast, visitors) {
       walkBoxSpreadElement(pos + 8, ast, visitors);
       return;
     case 65:
-      walkElision(pos + 8, ast, visitors);
+      walkBoxElision(pos + 8, ast, visitors);
       return;
     default:
       throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for ArrayExpressionElement`);
@@ -4899,15 +4899,19 @@ function walkVecArrayExpressionElement(pos, ast, visitors) {
   const { int32 } = ast.buffer,
     pos32 = pos >> 2;
   pos = int32[pos32];
-  const endPos = pos + int32[pos32 + 2] * 24;
+  const endPos = pos + int32[pos32 + 2] * 16;
   while (pos < endPos) {
     walkArrayExpressionElement(pos, ast, visitors);
-    pos += 24;
+    pos += 16;
   }
 }
 
 function walkBoxSpreadElement(pos, ast, visitors) {
   return walkSpreadElement(ast.buffer.int32[pos >> 2], ast, visitors);
+}
+
+function walkBoxElision(pos, ast, visitors) {
+  return walkElision(ast.buffer.int32[pos >> 2], ast, visitors);
 }
 
 function walkVecObjectPropertyKind(pos, ast, visitors) {

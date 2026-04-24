@@ -278,7 +278,9 @@ unsafe fn walk_array_expression_element<'a, Tr: Traverse<'a>>(
         ArrayExpressionElement::SpreadElement(node) => {
             walk_spread_element(traverser, (&mut **node) as *mut _, ctx)
         }
-        ArrayExpressionElement::Elision(node) => walk_elision(traverser, node as *mut _, ctx),
+        ArrayExpressionElement::Elision(node) => {
+            walk_elision(traverser, (&mut **node) as *mut _, ctx)
+        }
         ArrayExpressionElement::BooleanLiteral(_)
         | ArrayExpressionElement::NullLiteral(_)
         | ArrayExpressionElement::NumericLiteral(_)

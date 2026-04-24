@@ -1350,7 +1350,7 @@ impl<'a> AstNode<'a, ArrayExpressionElement<'a>> {
             }
             ArrayExpressionElement::Elision(s) => {
                 AstNodes::Elision(self.allocator.alloc(AstNode {
-                    inner: s,
+                    inner: s.as_ref(),
                     parent,
                     allocator: self.allocator,
                     following_span_start: self.following_span_start,
