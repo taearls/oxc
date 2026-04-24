@@ -577,23 +577,22 @@ impl LanguageServer for Backend {
         }
     }
 
-    /// It will remove the in-memory file content, because the file is saved to disk.
+    /// It will save the in-memory file content, because non file-system files needs to be keep tracked too, and can not be accessed by the OS file system.
     /// It will re-lint the file and send updated diagnostics, if necessary.
     ///
     /// See: <https://microsoft.github.io/language-server-protocol/specifications/specification-current/#textDocument_didSave>
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
         debug!("oxc server did save");
         let uri = params.text_document.uri;
-        let Some(worker) = self.worker_manager.get_worker_for_uri(&uri).await else {
-            return;
-        };
-
         if let Some(content) = params.text {
             self.file_system.write().await.set(uri.clone(), content);
         }
 
-        let document = self.file_system.read().await.get_document(&uri);
         if self.capabilities.get().is_some_and(|cap| cap.diagnostic_mode == DiagnosticMode::Push) {
+            let Some(worker) = self.worker_manager.get_worker_for_uri(&uri).await else {
+                return;
+            };
+            let document = self.file_system.read().await.get_document(&uri);
             match worker.run_diagnostic_on_save(&document).await {
                 Err(err) => {
                     error!("running diagnostics for {} failed: {err}", uri.as_str());
@@ -616,9 +615,6 @@ impl LanguageServer for Backend {
     /// See: <https://microsoft.github.io/language-server-protocol/specifications/specification-current/#textDocument_didChange>
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
         let uri = params.text_document.uri;
-        let Some(worker) = self.worker_manager.get_worker_for_uri(&uri).await else {
-            return;
-        };
         if let Some(content) = params
             .content_changes
             .into_iter()
@@ -630,6 +626,9 @@ impl LanguageServer for Backend {
 
         let document = self.file_system.read().await.get_document(&uri);
 
+        let Some(worker) = self.worker_manager.get_worker_for_uri(&uri).await else {
+            return;
+        };
         // Remove the internal cache for the document.
         // When the editor requests `textDocument/codeAction`, it may use its diagnostic cache to generate actions.
         // This could cause code actions to be generated with stale diagnostics if the cache is not cleared here.
@@ -684,10 +683,6 @@ impl LanguageServer for Backend {
             }
         }
 
-        let Some(worker) = self.worker_manager.get_worker_for_uri(&uri).await else {
-            return;
-        };
-
         let content = params.text_document.text;
 
         self.file_system.write().await.set_with_language(
@@ -696,9 +691,13 @@ impl LanguageServer for Backend {
             content,
         );
 
-        let document = self.file_system.read().await.get_document(&uri);
-
         if self.capabilities.get().is_some_and(|cap| cap.diagnostic_mode == DiagnosticMode::Push) {
+            let Some(worker) = self.worker_manager.get_worker_for_uri(&uri).await else {
+                return;
+            };
+
+            let document = self.file_system.read().await.get_document(&uri);
+
             match worker.run_diagnostic(&document).await {
                 Err(err) => {
                     error!("running diagnostics for {} failed: {err}", uri.as_str());
@@ -726,9 +725,13 @@ impl LanguageServer for Backend {
     /// See: <https://microsoft.github.io/language-server-protocol/specifications/specification-current/#textDocument_didClose>
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         let uri = &params.text_document.uri;
+        self.file_system.write().await.remove(uri);
+
         let Some(worker) = self.worker_manager.get_worker_for_uri(uri).await else {
             return;
         };
+
+        worker.remove_uri_cache(&params.text_document.uri).await;
 
         // Clone the root URI now so we can use it after dropping the read lock.
         let worker_root_uri = if self.worker_manager.is_single_file_mode() {
@@ -736,9 +739,6 @@ impl LanguageServer for Backend {
         } else {
             None
         };
-
-        self.file_system.write().await.remove(uri);
-        worker.remove_uri_cache(&params.text_document.uri).await;
 
         // Drop the read lock before potentially acquiring the write lock in
         // try_shutdown_empty_workspace.
