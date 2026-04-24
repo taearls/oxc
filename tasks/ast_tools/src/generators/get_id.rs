@@ -167,7 +167,17 @@ fn generate_for_enum(enum_def: &EnumDef, schema: &Schema) -> Option<TokenStream>
         }
     }
 
-    let maybe_inline = if all_variants_boxed { quote!( #[inline(always)] ) } else { quote!() };
+    // If all variants are boxed, add `#[inline(always)]` to the method.
+    // `NodeId` field is in a consistent position in all AST structs, so if all variants are boxed,
+    // the method should boil down to a single instruction.
+    let maybe_inline = if all_variants_boxed {
+        quote! {
+            ///@ `#[inline(always)]` because this should boil down to a single instruction.
+            #[inline(always)]
+        }
+    } else {
+        quote!()
+    };
 
     let matches = enum_def.all_variants(schema).map(|variant| {
         let variant_ident = variant.ident();

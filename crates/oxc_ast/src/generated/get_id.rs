@@ -3459,6 +3459,7 @@ impl JSDocUnknownType {
 
 impl Expression<'_> {
     /// Get [`NodeId`] of [`Expression`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3564,6 +3565,7 @@ impl ArrayExpressionElement<'_> {
 
 impl ObjectPropertyKind<'_> {
     /// Get [`NodeId`] of [`ObjectPropertyKind`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3575,6 +3577,7 @@ impl ObjectPropertyKind<'_> {
 
 impl PropertyKey<'_> {
     /// Get [`NodeId`] of [`PropertyKey`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3629,6 +3632,7 @@ impl PropertyKey<'_> {
 
 impl MemberExpression<'_> {
     /// Get [`NodeId`] of [`MemberExpression`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3641,6 +3645,7 @@ impl MemberExpression<'_> {
 
 impl Argument<'_> {
     /// Get [`NodeId`] of [`Argument`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3694,6 +3699,7 @@ impl Argument<'_> {
 
 impl AssignmentTarget<'_> {
     /// Get [`NodeId`] of [`AssignmentTarget`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3713,6 +3719,7 @@ impl AssignmentTarget<'_> {
 
 impl SimpleAssignmentTarget<'_> {
     /// Get [`NodeId`] of [`SimpleAssignmentTarget`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3730,6 +3737,7 @@ impl SimpleAssignmentTarget<'_> {
 
 impl AssignmentTargetPattern<'_> {
     /// Get [`NodeId`] of [`AssignmentTargetPattern`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3741,6 +3749,7 @@ impl AssignmentTargetPattern<'_> {
 
 impl AssignmentTargetMaybeDefault<'_> {
     /// Get [`NodeId`] of [`AssignmentTargetMaybeDefault`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3761,6 +3770,7 @@ impl AssignmentTargetMaybeDefault<'_> {
 
 impl AssignmentTargetProperty<'_> {
     /// Get [`NodeId`] of [`AssignmentTargetProperty`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3772,6 +3782,7 @@ impl AssignmentTargetProperty<'_> {
 
 impl ChainElement<'_> {
     /// Get [`NodeId`] of [`ChainElement`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3786,6 +3797,7 @@ impl ChainElement<'_> {
 
 impl Statement<'_> {
     /// Get [`NodeId`] of [`Statement`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3828,6 +3840,7 @@ impl Statement<'_> {
 
 impl Declaration<'_> {
     /// Get [`NodeId`] of [`Declaration`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3846,6 +3859,7 @@ impl Declaration<'_> {
 
 impl ForStatementInit<'_> {
     /// Get [`NodeId`] of [`ForStatementInit`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3899,6 +3913,7 @@ impl ForStatementInit<'_> {
 
 impl ForStatementLeft<'_> {
     /// Get [`NodeId`] of [`ForStatementLeft`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3919,6 +3934,7 @@ impl ForStatementLeft<'_> {
 
 impl BindingPattern<'_> {
     /// Get [`NodeId`] of [`BindingPattern`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3932,6 +3948,7 @@ impl BindingPattern<'_> {
 
 impl ClassElement<'_> {
     /// Get [`NodeId`] of [`ClassElement`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3946,6 +3963,7 @@ impl ClassElement<'_> {
 
 impl ModuleDeclaration<'_> {
     /// Get [`NodeId`] of [`ModuleDeclaration`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3961,6 +3979,7 @@ impl ModuleDeclaration<'_> {
 
 impl ImportDeclarationSpecifier<'_> {
     /// Get [`NodeId`] of [`ImportDeclarationSpecifier`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -3983,6 +4002,7 @@ impl ImportAttributeKey<'_> {
 
 impl ExportDefaultDeclarationKind<'_> {
     /// Get [`NodeId`] of [`ExportDefaultDeclarationKind`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -4049,6 +4069,7 @@ impl ModuleExportName<'_> {
 
 impl JSXElementName<'_> {
     /// Get [`NodeId`] of [`JSXElementName`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -4063,6 +4084,7 @@ impl JSXElementName<'_> {
 
 impl JSXMemberExpressionObject<'_> {
     /// Get [`NodeId`] of [`JSXMemberExpressionObject`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -4127,6 +4149,7 @@ impl JSXExpression<'_> {
 
 impl JSXAttributeItem<'_> {
     /// Get [`NodeId`] of [`JSXAttributeItem`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -4138,6 +4161,7 @@ impl JSXAttributeItem<'_> {
 
 impl JSXAttributeName<'_> {
     /// Get [`NodeId`] of [`JSXAttributeName`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -4149,6 +4173,7 @@ impl JSXAttributeName<'_> {
 
 impl JSXAttributeValue<'_> {
     /// Get [`NodeId`] of [`JSXAttributeValue`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -4162,6 +4187,7 @@ impl JSXAttributeValue<'_> {
 
 impl JSXChild<'_> {
     /// Get [`NodeId`] of [`JSXChild`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -4176,6 +4202,7 @@ impl JSXChild<'_> {
 
 impl TSEnumMemberName<'_> {
     /// Get [`NodeId`] of [`TSEnumMemberName`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -4189,6 +4216,7 @@ impl TSEnumMemberName<'_> {
 
 impl TSLiteral<'_> {
     /// Get [`NodeId`] of [`TSLiteral`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -4204,6 +4232,7 @@ impl TSLiteral<'_> {
 
 impl TSType<'_> {
     /// Get [`NodeId`] of [`TSType`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -4250,6 +4279,7 @@ impl TSType<'_> {
 
 impl TSTupleElement<'_> {
     /// Get [`NodeId`] of [`TSTupleElement`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -4298,6 +4328,7 @@ impl TSTupleElement<'_> {
 
 impl TSTypeName<'_> {
     /// Get [`NodeId`] of [`TSTypeName`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -4310,6 +4341,7 @@ impl TSTypeName<'_> {
 
 impl TSSignature<'_> {
     /// Get [`NodeId`] of [`TSSignature`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -4344,6 +4376,7 @@ impl TSModuleDeclarationName<'_> {
 
 impl TSModuleDeclarationBody<'_> {
     /// Get [`NodeId`] of [`TSModuleDeclarationBody`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -4355,6 +4388,7 @@ impl TSModuleDeclarationBody<'_> {
 
 impl TSTypeQueryExprName<'_> {
     /// Get [`NodeId`] of [`TSTypeQueryExprName`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -4368,6 +4402,7 @@ impl TSTypeQueryExprName<'_> {
 
 impl TSImportTypeQualifier<'_> {
     /// Get [`NodeId`] of [`TSImportTypeQualifier`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
@@ -4379,6 +4414,7 @@ impl TSImportTypeQualifier<'_> {
 
 impl TSModuleReference<'_> {
     /// Get [`NodeId`] of [`TSModuleReference`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
     #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
