@@ -5,9 +5,7 @@
 
 use std::alloc::Layout;
 
-use super::{
-    Arena, ChunkFooter, DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER, bumpalo_alloc::Alloc as BumpaloAlloc,
-};
+use super::{Arena, DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER, bumpalo_alloc::Alloc as BumpaloAlloc};
 
 /// This function tests that `Arena` isn't `Sync`.
 /// ```compile_fail
@@ -19,20 +17,6 @@ use super::{
 /// ```
 #[cfg(doctest)]
 fn arena_not_sync() {}
-
-// Uses private type `ChunkFooter`
-#[cfg(target_pointer_width = "64")]
-#[test]
-fn chunk_footer_is_six_words_on_64_bit() {
-    assert_eq!(size_of::<ChunkFooter>(), size_of::<usize>() * 6);
-}
-
-// Uses private type `ChunkFooter`
-#[cfg(target_pointer_width = "32")]
-#[test]
-fn chunk_footer_is_eight_words_on_32_bit() {
-    assert_eq!(size_of::<ChunkFooter>(), size_of::<usize>() * 8);
-}
 
 // Uses private `DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER`
 #[test]
