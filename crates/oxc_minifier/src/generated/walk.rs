@@ -4998,7 +4998,9 @@ unsafe fn walk_ts_type_predicate_name<'a, Tr: Traverse<'a>>(
         TSTypePredicateName::Identifier(node) => {
             walk_identifier_name(traverser, (&mut **node) as *mut _, ctx)
         }
-        TSTypePredicateName::This(node) => walk_ts_this_type(traverser, node as *mut _, ctx),
+        TSTypePredicateName::This(node) => {
+            walk_ts_this_type(traverser, (&mut **node) as *mut _, ctx)
+        }
     }
     traverser.exit_ts_type_predicate_name(&mut *node, ctx);
 }

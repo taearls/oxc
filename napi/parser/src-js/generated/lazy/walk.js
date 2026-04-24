@@ -4219,7 +4219,7 @@ function walkTSTypePredicate(pos, ast, visitors) {
   }
 
   walkTSTypePredicateName(pos + 16, ast, visitors);
-  walkOptionBoxTSTypeAnnotation(pos + 40, ast, visitors);
+  walkOptionBoxTSTypeAnnotation(pos + 32, ast, visitors);
 
   if (exit !== null) exit(node);
 }
@@ -4230,7 +4230,7 @@ function walkTSTypePredicateName(pos, ast, visitors) {
       walkBoxIdentifierName(pos + 8, ast, visitors);
       return;
     case 1:
-      walkTSThisType(pos + 8, ast, visitors);
+      walkBoxTSThisType(pos + 8, ast, visitors);
       return;
     default:
       throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSTypePredicateName`);

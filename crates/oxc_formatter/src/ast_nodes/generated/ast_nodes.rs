@@ -9411,7 +9411,7 @@ impl<'a> AstNode<'a, TSTypePredicateName<'a>> {
                 }))
             }
             TSTypePredicateName::This(s) => AstNodes::TSThisType(self.allocator.alloc(AstNode {
-                inner: s,
+                inner: s.as_ref(),
                 parent,
                 allocator: self.allocator,
                 following_span_start: self.following_span_start,

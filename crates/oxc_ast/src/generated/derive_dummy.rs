@@ -2776,7 +2776,7 @@ impl<'a> Dummy<'a> for TSInterfaceHeritage<'a> {
 impl<'a> Dummy<'a> for TSTypePredicate<'a> {
     /// Create a dummy [`TSTypePredicate`].
     ///
-    /// Does not allocate any data into arena.
+    /// Has cost of making 1 allocation (16 bytes).
     fn dummy(allocator: &'a Allocator) -> Self {
         Self {
             node_id: Dummy::dummy(allocator),
@@ -2791,7 +2791,7 @@ impl<'a> Dummy<'a> for TSTypePredicate<'a> {
 impl<'a> Dummy<'a> for TSTypePredicateName<'a> {
     /// Create a dummy [`TSTypePredicateName`].
     ///
-    /// Does not allocate any data into arena.
+    /// Has cost of making 1 allocation (16 bytes).
     fn dummy(allocator: &'a Allocator) -> Self {
         Self::This(Dummy::dummy(allocator))
     }

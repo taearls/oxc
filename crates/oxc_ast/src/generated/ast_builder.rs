@@ -13793,11 +13793,13 @@ impl<'a> AstBuilder<'a> {
 
     /// Build a [`TSTypePredicateName::This`].
     ///
+    /// This node contains a [`TSThisType`] that will be stored in the memory arena.
+    ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
     #[inline]
     pub fn ts_type_predicate_name_this(self, span: Span) -> TSTypePredicateName<'a> {
-        TSTypePredicateName::This(self.ts_this_type(span))
+        TSTypePredicateName::This(self.alloc_ts_this_type(span))
     }
 
     /// Build a [`TSModuleDeclaration`].

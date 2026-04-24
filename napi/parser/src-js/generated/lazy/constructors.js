@@ -10295,7 +10295,7 @@ export class TSTypePredicate {
 
   get typeAnnotation() {
     const internal = this.#internal;
-    return constructOptionBoxTSTypeAnnotation(internal.pos + 40, internal.ast);
+    return constructOptionBoxTSTypeAnnotation(internal.pos + 32, internal.ast);
   }
 
   toJSON() {
@@ -10321,7 +10321,7 @@ function constructTSTypePredicateName(pos, ast) {
     case 0:
       return constructBoxIdentifierName(pos + 8, ast);
     case 1:
-      return new TSThisType(pos + 8, ast);
+      return constructBoxTSThisType(pos + 8, ast);
     default:
       throw new Error(`Unexpected discriminant ${ast.buffer[pos]} for TSTypePredicateName`);
   }

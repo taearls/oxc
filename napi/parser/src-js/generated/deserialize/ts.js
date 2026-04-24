@@ -3877,7 +3877,7 @@ function deserializeTSTypePredicate(pos) {
     end: deserializeI32(pos + 4),
   };
   node.parameterName = deserializeTSTypePredicateName(pos + 16);
-  node.typeAnnotation = deserializeOptionBoxTSTypeAnnotation(pos + 40);
+  node.typeAnnotation = deserializeOptionBoxTSTypeAnnotation(pos + 32);
   return node;
 }
 
@@ -3886,7 +3886,7 @@ function deserializeTSTypePredicateName(pos) {
     case 0:
       return deserializeBoxIdentifierName(pos + 8);
     case 1:
-      return deserializeTSThisType(pos + 8);
+      return deserializeBoxTSThisType(pos + 8);
     default:
       throw Error(`Unexpected discriminant ${uint8[pos]} for TSTypePredicateName`);
   }

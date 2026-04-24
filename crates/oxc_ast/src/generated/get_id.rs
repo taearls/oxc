@@ -4364,6 +4364,8 @@ impl TSSignature<'_> {
 
 impl TSTypePredicateName<'_> {
     /// Get [`NodeId`] of [`TSTypePredicateName`].
+    // `#[inline(always)]` because this should boil down to a single instruction.
+    #[inline(always)]
     pub fn node_id(&self) -> NodeId {
         match self {
             Self::Identifier(it) => it.node_id(),

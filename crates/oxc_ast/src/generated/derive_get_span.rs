@@ -1952,7 +1952,7 @@ impl GetSpan for TSTypePredicateName<'_> {
     fn span(&self) -> Span {
         match self {
             Self::Identifier(it) => GetSpan::span(&**it),
-            Self::This(it) => GetSpan::span(it),
+            Self::This(it) => GetSpan::span(&**it),
         }
     }
 }

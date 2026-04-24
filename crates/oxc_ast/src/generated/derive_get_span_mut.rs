@@ -1952,7 +1952,7 @@ impl GetSpanMut for TSTypePredicateName<'_> {
     fn span_mut(&mut self) -> &mut Span {
         match self {
             Self::Identifier(it) => GetSpanMut::span_mut(&mut **it),
-            Self::This(it) => GetSpanMut::span_mut(it),
+            Self::This(it) => GetSpanMut::span_mut(&mut **it),
         }
     }
 }
