@@ -335,14 +335,17 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
 
             // Get a new chunk from the global allocator
             let current_footer_ptr = self.current_chunk_footer_ptr.get();
+
             let current_layout = current_footer_ptr.as_ref().layout;
+            let current_size_without_footer = current_layout.size() - CHUNK_FOOTER_SIZE;
 
             // By default, we want our new chunk to be about twice as big as the previous chunk.
             // If the global allocator refuses it, we try to divide it by half until it works
             // or the requested size is smaller than the default footer size.
             let min_new_chunk_size = layout.size().max(DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER);
-            let mut base_size =
-                (current_layout.size() - CHUNK_FOOTER_SIZE).checked_mul(2)?.max(min_new_chunk_size);
+            // `current_size_without_footer * 2` cannot overflow because `Layout::size()` is always `<= isize::MAX`
+            let mut base_size = (current_size_without_footer * 2).max(min_new_chunk_size);
+
             let mut chunk_memory_details = iter::from_fn(|| {
                 if base_size >= min_new_chunk_size {
                     let size = base_size;
