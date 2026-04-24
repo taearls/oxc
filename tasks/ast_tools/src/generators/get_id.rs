@@ -10,7 +10,7 @@ use quote::{format_ident, quote};
 use crate::{
     AST_CRATE_PATH, Codegen, Generator,
     output::{Output, output_path},
-    schema::{Def, EnumDef, Schema, StructDef, TypeDef, TypeId},
+    schema::{Def, EnumDef, Schema, StructDef, TypeId},
 };
 
 use super::define_generator;
@@ -149,31 +149,39 @@ fn generate_for_struct(
 }
 
 fn generate_for_enum(enum_def: &EnumDef, schema: &Schema) -> Option<TokenStream> {
-    if !enum_def.all_variants(schema).all(|variant| {
-        variant.field_type(schema).is_some_and(|field_type| type_has_node_id(field_type, schema))
-    }) {
-        return None;
+    // Check all variants are structs with a `NodeId` field (`has_kind` is only `true` for structs that do).
+    // Also check if all variants are boxed.
+    let mut all_variants_boxed = true;
+
+    for variant in enum_def.all_variants(schema) {
+        let mut field_type = variant.field_type(schema)?;
+        if let Some(box_def) = field_type.as_box() {
+            field_type = box_def.inner_type(schema);
+        } else {
+            all_variants_boxed = false;
+        }
+
+        let struct_def = field_type.as_struct()?;
+        if !struct_def.kind.has_kind {
+            return None;
+        }
     }
 
-    let enum_name = enum_def.name();
-    let enum_ty = enum_def.ty_anon(schema);
+    let maybe_inline = if all_variants_boxed { quote!( #[inline(always)] ) } else { quote!() };
+
     let matches = enum_def.all_variants(schema).map(|variant| {
         let variant_ident = variant.ident();
         quote!( Self::#variant_ident(it) => it.node_id() )
     });
-    let get_doc = format!(" Get [`NodeId`] of [`{enum_name}`].");
 
-    let should_inline = enum_def.all_variants(schema).all(|variant| {
-        variant.field_type(schema).is_some_and(|field_type| field_type.as_box().is_some())
-    });
-
-    let inline = if should_inline { quote!( #[inline(always)] ) } else { quote!() };
+    let enum_ty = enum_def.ty_anon(schema);
+    let get_doc = format!(" Get [`NodeId`] of [`{}`].", enum_def.name());
 
     Some(quote! {
         ///@@line_break
         impl #enum_ty {
             #[doc = #get_doc]
-            #inline
+            #maybe_inline
             pub fn node_id(&self) -> NodeId {
                 match self {
                     #(#matches),*
@@ -181,14 +189,4 @@ fn generate_for_enum(enum_def: &EnumDef, schema: &Schema) -> Option<TokenStream>
             }
         }
     })
-}
-
-fn type_has_node_id(type_def: &TypeDef, schema: &Schema) -> bool {
-    if let TypeDef::Struct(struct_def) =
-        type_def.as_box().map_or(type_def, |box_def| box_def.inner_type(schema))
-    {
-        return struct_def.kind.has_kind;
-    }
-
-    false
 }
