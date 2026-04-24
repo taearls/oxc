@@ -1,9 +1,6 @@
+use std::{alloc::Layout, fmt::Debug, mem, ptr};
+
 use oxc_allocator::arena::Arena;
-use std::alloc::Layout;
-use std::fmt::Debug;
-use std::mem;
-use std::ptr;
-use std::usize;
 
 #[test]
 fn can_iterate_over_allocated_things() {

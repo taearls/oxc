@@ -7,10 +7,14 @@
     clippy::uninlined_format_args
 )]
 
-use oxc_allocator::arena::Arena;
+use std::{
+    alloc::{GlobalAlloc, Layout, System},
+    sync::atomic::{AtomicBool, Ordering},
+};
+
 use rand::RngExt as _;
-use std::alloc::{GlobalAlloc, Layout, System};
-use std::sync::atomic::{AtomicBool, Ordering};
+
+use oxc_allocator::arena::Arena;
 
 /// A custom allocator that wraps the system allocator, but lets us force
 /// allocation failures for testing.
