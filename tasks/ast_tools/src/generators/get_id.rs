@@ -10,7 +10,7 @@ use quote::{format_ident, quote};
 use crate::{
     AST_CRATE_PATH, Codegen, Generator,
     output::{Output, output_path},
-    schema::{Def, Schema, StructDef, TypeId},
+    schema::{Def, EnumDef, Schema, StructDef, TypeDef, TypeId},
 };
 
 use super::define_generator;
@@ -31,17 +31,24 @@ impl Generator for GetIdGenerator {
             semantic_id_type_ids[index] = schema.type_names[type_name];
         }
 
-        let impls = schema.structs().filter_map(|struct_def| {
+        let struct_impls = schema.structs().filter_map(|struct_def| {
             generate_for_struct(struct_def, &semantic_id_type_ids, schema)
         });
 
+        let enum_impls = schema.enums().filter_map(|enum_def| generate_for_enum(enum_def, schema));
+
         let output = quote! {
+            #![expect(clippy::inline_always)]
+            #![expect(clippy::match_same_arms)]
+
             use oxc_syntax::{node::NodeId, reference::ReferenceId, scope::ScopeId, symbol::SymbolId};
 
             ///@@line_break
             use crate::ast::*;
 
-            #(#impls)*
+            #(#struct_impls)*
+
+            #(#enum_impls)*
         };
 
         Output::Rust { path: output_path(AST_CRATE_PATH, "get_id.rs"), tokens: output }
@@ -139,4 +146,49 @@ fn generate_for_struct(
             #methods
         }
     })
+}
+
+fn generate_for_enum(enum_def: &EnumDef, schema: &Schema) -> Option<TokenStream> {
+    if !enum_def.all_variants(schema).all(|variant| {
+        variant.field_type(schema).is_some_and(|field_type| type_has_node_id(field_type, schema))
+    }) {
+        return None;
+    }
+
+    let enum_name = enum_def.name();
+    let enum_ty = enum_def.ty_anon(schema);
+    let matches = enum_def.all_variants(schema).map(|variant| {
+        let variant_ident = variant.ident();
+        quote!( Self::#variant_ident(it) => it.node_id() )
+    });
+    let get_doc = format!(" Get [`NodeId`] of [`{enum_name}`].");
+
+    let should_inline = enum_def.all_variants(schema).all(|variant| {
+        variant.field_type(schema).is_some_and(|field_type| field_type.as_box().is_some())
+    });
+
+    let inline = if should_inline { quote!( #[inline(always)] ) } else { quote!() };
+
+    Some(quote! {
+        ///@@line_break
+        impl #enum_ty {
+            #[doc = #get_doc]
+            #inline
+            pub fn node_id(&self) -> NodeId {
+                match self {
+                    #(#matches),*
+                }
+            }
+        }
+    })
+}
+
+fn type_has_node_id(type_def: &TypeDef, schema: &Schema) -> bool {
+    if let TypeDef::Struct(struct_def) =
+        type_def.as_box().map_or(type_def, |box_def| box_def.inner_type(schema))
+    {
+        return struct_def.kind.has_kind;
+    }
+
+    false
 }
