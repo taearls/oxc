@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     context::LintContext,
     rule::{DefaultRuleConfig, Rule},
+    utils::is_react_component_name,
 };
 
 fn export_all_components_diagnostic(span: Span) -> OxcDiagnostic {
@@ -214,10 +215,6 @@ impl OnlyExportComponents {
         DEFAULT_REACT_HOCS.contains(&name) || self.custom_hocs.iter().any(|h| h.as_str() == name)
     }
 
-    fn starts_with_ascii_upper(s: &str) -> bool {
-        matches!(s.as_bytes().first(), Some(b'A'..=b'Z'))
-    }
-
     fn can_be_react_function_component(&self, init: Option<&Expression>) -> bool {
         if let Some(raw_init) = init {
             let js_init = Self::skip_ts_expression(raw_init);
@@ -308,7 +305,7 @@ impl OnlyExportComponents {
                 AstKind::VariableDeclaration(var_decl) => {
                     var_decl.declarations.iter().find_map(|declarator| {
                         if let BindingPattern::BindingIdentifier(binding_id) = &declarator.id
-                            && Self::starts_with_ascii_upper(&binding_id.name)
+                            && is_react_component_name(&binding_id.name)
                             && self.can_be_react_function_component(declarator.init.as_ref())
                             && !Self::is_exported(ctx, node.id())
                         {
@@ -318,8 +315,7 @@ impl OnlyExportComponents {
                     })
                 }
                 AstKind::Function(func) => func.id.as_ref().and_then(|id| {
-                    if Self::starts_with_ascii_upper(&id.name) && !Self::is_exported(ctx, node.id())
-                    {
+                    if is_react_component_name(&id.name) && !Self::is_exported(ctx, node.id()) {
                         Some(id.span)
                     } else {
                         None
@@ -531,7 +527,7 @@ impl OnlyExportComponents {
         }
 
         if is_function {
-            return if Self::starts_with_ascii_upper(name) {
+            return if is_react_component_name(name) {
                 ExportType::ReactComponent
             } else {
                 ExportType::NonComponent(span)
@@ -557,7 +553,7 @@ impl OnlyExportComponents {
                 // identifier, etc.) does not matter.
                 if self.is_callee_hoc(&call_expr.callee)
                     && !call_expr.arguments.is_empty()
-                    && Self::starts_with_ascii_upper(name)
+                    && is_react_component_name(name)
                 {
                     return ExportType::ReactComponent;
                 }
@@ -571,7 +567,7 @@ impl OnlyExportComponents {
             }
         }
 
-        if Self::starts_with_ascii_upper(name) {
+        if is_react_component_name(name) {
             ExportType::ReactComponent
         } else {
             ExportType::NonComponent(span)
