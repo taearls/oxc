@@ -13,7 +13,7 @@ mod js_config;
 pub use config::resolve_options_from_value;
 pub use config::{ConfigResolver, ResolvedOptions, config_discovery, resolve_editorconfig_path};
 pub use format::{FormatResult, SourceFormatter};
-pub use support::FormatFileStrategy;
+pub use support::{FormatStrategy, FormatStrategyBuilder};
 
 #[cfg(feature = "napi")]
 pub use external_formatter::{

@@ -18,7 +18,7 @@ use oxc_toml::Options as TomlFormatterOptions;
 #[cfg(feature = "napi")]
 use super::js_config::JsConfigLoaderCb;
 use super::{
-    FormatFileStrategy,
+    FormatStrategy, FormatStrategyBuilder,
     oxfmtrc::{
         EndOfLineConfig, FormatConfig, OxfmtOptions, OxfmtOverrideConfig, Oxfmtrc,
         finalize_external_options, sync_external_options, to_oxfmt_options,
@@ -54,7 +54,7 @@ pub fn resolve_editorconfig_path(cwd: &Path) -> Option<PathBuf> {
 #[cfg(feature = "napi")]
 pub fn resolve_options_from_value(
     raw_config: Value,
-    strategy: &FormatFileStrategy,
+    strategy: &FormatStrategy,
     cwd: Option<&Path>,
 ) -> Result<ResolvedOptions, String> {
     let mut format_config: FormatConfig =
@@ -84,7 +84,7 @@ pub enum ResolvedOptions {
         /// For embedded language (xxx-in-js) formatting
         external_options: Value,
         /// Optional filepath override for external callbacks (e.g., Tailwind sorter).
-        /// When set, this path is used instead of `FormatFileStrategy::path`
+        /// When set, this path is used instead of `FormatStrategy::path`
         /// as the `options.filepath` passed to external callbacks.
         /// Needed for js-in-xxx where the strategy path is a dummy,
         /// but callbacks need the parent file path to resolve their config.
@@ -106,13 +106,13 @@ pub enum ResolvedOptions {
 }
 
 impl ResolvedOptions {
-    /// Build `ResolvedOptions` from `OxfmtOptions`, `external_options`, and `FormatFileStrategy`.
+    /// Build `ResolvedOptions` from `OxfmtOptions`, `external_options`, and `FormatStrategy`.
     ///
     /// This also applies plugin-specific options (Tailwind, oxfmt plugin flags) based on strategy.
     fn from_oxfmt_options(
         oxfmt_options: OxfmtOptions,
         mut external_options: Value,
-        strategy: &FormatFileStrategy,
+        strategy: &FormatStrategy,
     ) -> Self {
         // Apply plugin-specific options based on strategy
         finalize_external_options(&mut external_options, strategy);
@@ -124,21 +124,21 @@ impl ResolvedOptions {
         let OxfmtOptions { format_options, toml_options, insert_final_newline, .. } = oxfmt_options;
 
         match strategy {
-            FormatFileStrategy::OxcFormatter { .. } => ResolvedOptions::OxcFormatter {
+            FormatStrategy::OxcFormatter { .. } => ResolvedOptions::OxcFormatter {
                 format_options: Box::new(format_options),
                 external_options,
                 filepath_override: None,
                 insert_final_newline,
             },
-            FormatFileStrategy::OxfmtToml { .. } => {
+            FormatStrategy::OxfmtToml { .. } => {
                 ResolvedOptions::OxfmtToml { toml_options, insert_final_newline }
             }
             #[cfg(feature = "napi")]
-            FormatFileStrategy::ExternalFormatter { .. } => {
+            FormatStrategy::ExternalFormatter { .. } => {
                 ResolvedOptions::ExternalFormatter { external_options, insert_final_newline }
             }
             #[cfg(feature = "napi")]
-            FormatFileStrategy::ExternalFormatterPackageJson { .. } => {
+            FormatStrategy::ExternalFormatterPackageJson { .. } => {
                 ResolvedOptions::ExternalFormatterPackageJson {
                     external_options,
                     sort_package_json,
@@ -178,6 +178,9 @@ pub struct ConfigResolver {
     ignore_glob: Option<Gitignore>,
     /// Parsed `.editorconfig`, if any.
     editorconfig: Option<EditorConfig>,
+    /// Builder for creating [`FormatStrategy`] from file paths.
+    /// Carries per-scope experimental flags (e.g. `experimentalSvelte`).
+    strategy_builder: FormatStrategyBuilder,
 }
 
 impl ConfigResolver {
@@ -195,12 +198,18 @@ impl ConfigResolver {
             oxfmtrc_overrides: None,
             ignore_glob: None,
             editorconfig,
+            strategy_builder: FormatStrategyBuilder::default(),
         }
     }
 
     /// Returns the directory containing the config file, if any was loaded.
     pub fn config_dir(&self) -> Option<&Path> {
         self.config_dir.as_deref()
+    }
+
+    /// Returns the [`FormatStrategyBuilder`] for this config scope.
+    pub fn strategy_builder(&self) -> &FormatStrategyBuilder {
+        &self.strategy_builder
     }
 
     /// Returns `true` if this config has any `ignorePatterns`.
@@ -466,7 +475,7 @@ impl ConfigResolver {
     /// # Errors
     /// Returns error if merged override options are invalid (e.g. conflicting settings).
     #[instrument(level = "debug", name = "oxfmt::config::resolve", skip_all, fields(path = %strategy.path().display()))]
-    pub fn resolve(&self, strategy: &FormatFileStrategy) -> Result<ResolvedOptions, String> {
+    pub fn resolve(&self, strategy: &FormatStrategy) -> Result<ResolvedOptions, String> {
         let (oxfmt_options, external_options) = self.resolve_options(strategy.path())?;
         Ok(ResolvedOptions::from_oxfmt_options(oxfmt_options, external_options, strategy))
     }

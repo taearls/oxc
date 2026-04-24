@@ -11,8 +11,8 @@ use oxc_language_server::{
 };
 
 use crate::core::{
-    ConfigResolver, ExternalFormatter, FormatFileStrategy, FormatResult, JsConfigLoaderCb,
-    SourceFormatter, config_discovery, resolve_editorconfig_path, utils,
+    ConfigResolver, ExternalFormatter, FormatResult, JsConfigLoaderCb, SourceFormatter,
+    config_discovery, resolve_editorconfig_path, utils,
 };
 use crate::lsp::create_fake_file_path_from_language_id;
 use crate::lsp::options::FormatOptions as LSPFormatOptions;
@@ -336,11 +336,6 @@ impl ServerFormatter {
     /// Resolve config and format a file at the given path.
     /// Returns `None` if the file is unsupported or ignored.
     fn resolve_and_format(&self, path: &Path, source_text: &str) -> Option<FormatResult> {
-        let Ok(strategy) = FormatFileStrategy::try_from(path.to_path_buf()) else {
-            debug!("Unsupported file type for formatting: {}", path.display());
-            return None;
-        };
-
         let config_scope = self.resolve_config_scope(path);
         let cache = self.config_cache.pin();
         let cached = cache.get_or_insert_with(config_scope.clone(), || {
@@ -355,6 +350,11 @@ impl ServerFormatter {
             debug!("File is ignored by config ignorePatterns: {}", path.display());
             return None;
         }
+
+        let Ok(strategy) = cached.strategy_builder().build(path.to_path_buf()) else {
+            debug!("Unsupported file type for formatting: {}", path.display());
+            return None;
+        };
 
         let resolved_options = match cached.resolve(&strategy) {
             Ok(options) => options,

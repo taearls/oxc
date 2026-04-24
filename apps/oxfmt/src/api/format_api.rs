@@ -5,9 +5,9 @@ use serde_json::Value;
 use oxc_napi::OxcError;
 
 use crate::core::{
-    ExternalFormatter, FormatFileStrategy, FormatResult, JsFormatEmbeddedCb, JsFormatEmbeddedDocCb,
-    JsFormatFileCb, JsInitExternalFormatterCb, JsSortTailwindClassesCb, SourceFormatter,
-    resolve_options_from_value,
+    ExternalFormatter, FormatResult, FormatStrategyBuilder, JsFormatEmbeddedCb,
+    JsFormatEmbeddedDocCb, JsFormatFileCb, JsInitExternalFormatterCb, JsSortTailwindClassesCb,
+    SourceFormatter, resolve_options_from_value,
 };
 
 pub struct ApiFormatResult {
@@ -57,7 +57,8 @@ pub fn run(
     }
 
     // Determine format strategy from file path
-    let Ok(strategy) = FormatFileStrategy::try_from(PathBuf::from(filename))
+    let Ok(strategy) = FormatStrategyBuilder::default()
+        .build(PathBuf::from(filename))
         .map(|s| s.resolve_relative_path(&cwd))
     else {
         external_formatter.cleanup();
