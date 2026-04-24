@@ -3,7 +3,7 @@ use std::{borrow::Cow, sync::Arc};
 use futures::future::join_all;
 use rustc_hash::FxBuildHasher;
 use serde_json::Value;
-use tokio::sync::{OnceCell, RwLock, SetError};
+use tokio::sync::{OnceCell, SetError};
 use tower_lsp_server::{
     Client, LanguageServer,
     jsonrpc::{Error, ErrorCode, Result},
@@ -68,8 +68,7 @@ pub struct Backend {
     capabilities: OnceCell<Capabilities>,
     // A simple in-memory file system to store the content of open files.
     // The client will send the content of in-memory files on `textDocument/didOpen` and `textDocument/didChange`.
-    // This is only needed when the client supports `textDocument/formatting` request.
-    file_system: Arc<RwLock<LSPFileSystem>>,
+    file_system: Arc<LSPFileSystem>,
 }
 
 impl LanguageServer for Backend {
@@ -214,10 +213,8 @@ impl LanguageServer for Backend {
                 vec![serde_json::Value::Null; needed_configurations.len()]
             };
 
-            // Snapshot all open-file URIs in one read lock so we don't need to
-            // re-acquire the lock just to iterate the list of URIs. Individual
-            // document lookups still take their own read lock per URI.
-            let known_uris = self.file_system.read().await.keys();
+            // All open-file URIs
+            let known_uris = self.file_system.keys();
             // will only be filled when using push diagnostic model
             let mut new_diagnostics = Vec::new();
 
@@ -239,10 +236,7 @@ impl LanguageServer for Backend {
                     let Some(worker) = self.worker_manager.get_worker_for_uri(uri).await else {
                         continue;
                     };
-                    let document = {
-                        let fs_guard = self.file_system.read().await;
-                        fs_guard.get_document(uri)
-                    };
+                    let document = self.file_system.get_document(uri);
                     let diagnostics = worker.run_diagnostic(&document).await;
                     match diagnostics {
                         Err(err) => {
@@ -316,7 +310,7 @@ impl LanguageServer for Backend {
         {
             self.clear_diagnostics(clearing_diagnostics).await;
         }
-        self.file_system.write().await.clear();
+        self.file_system.clear();
 
         Ok(())
     }
@@ -388,12 +382,11 @@ impl LanguageServer for Backend {
         let mut needs_diagnostics_refresh = false;
         let diagnostic_mode =
             self.capabilities.get().map(|cap| cap.diagnostic_mode.clone()).unwrap_or_default();
-        let fs_guard = if diagnostic_mode == DiagnosticMode::Push {
-            Some(self.file_system.read().await)
+        let fs = if diagnostic_mode == DiagnosticMode::Push {
+            Some(self.file_system.as_ref())
         } else {
             None
         };
-        let fs_ref = fs_guard.as_deref();
 
         for option in resolved_options {
             let Some(worker) =
@@ -403,7 +396,7 @@ impl LanguageServer for Backend {
             };
 
             let (diagnostics, registrations, unregistrations) = worker
-                .did_change_configuration(option.options, &mut needs_diagnostics_refresh, fs_ref)
+                .did_change_configuration(option.options, &mut needs_diagnostics_refresh, fs)
                 .await;
 
             if let Some(diagnostics) = diagnostics {
@@ -452,12 +445,11 @@ impl LanguageServer for Backend {
         let mut needs_diagnostics_refresh = false;
         let diagnostic_mode =
             self.capabilities.get().map(|cap| cap.diagnostic_mode.clone()).unwrap_or_default();
-        let fs_guard = if diagnostic_mode == DiagnosticMode::Push {
-            Some(self.file_system.read().await)
+        let fs = if diagnostic_mode == DiagnosticMode::Push {
+            Some(self.file_system.as_ref())
         } else {
             None
         };
-        let fs_ref = fs_guard.as_deref();
 
         for file_event in &params.changes {
             // We do not expect multiple changes from the same workspace folder.
@@ -467,7 +459,7 @@ impl LanguageServer for Backend {
                 continue;
             };
             let (diagnostics, registrations, unregistrations) = worker
-                .did_change_watched_files(file_event, &mut needs_diagnostics_refresh, fs_ref)
+                .did_change_watched_files(file_event, &mut needs_diagnostics_refresh, fs)
                 .await;
 
             if let Some(diagnostics) = diagnostics {
@@ -585,14 +577,14 @@ impl LanguageServer for Backend {
         debug!("oxc server did save");
         let uri = params.text_document.uri;
         if let Some(content) = params.text {
-            self.file_system.write().await.set(uri.clone(), content);
+            self.file_system.set(uri.clone(), content);
         }
 
         if self.capabilities.get().is_some_and(|cap| cap.diagnostic_mode == DiagnosticMode::Push) {
             let Some(worker) = self.worker_manager.get_worker_for_uri(&uri).await else {
                 return;
             };
-            let document = self.file_system.read().await.get_document(&uri);
+            let document = self.file_system.get_document(&uri);
             match worker.run_diagnostic_on_save(&document).await {
                 Err(err) => {
                     error!("running diagnostics for {} failed: {err}", uri.as_str());
@@ -621,10 +613,10 @@ impl LanguageServer for Backend {
             .next()
             .map(|c: TextDocumentContentChangeEvent| c.text)
         {
-            self.file_system.write().await.set(uri.clone(), content);
+            self.file_system.set(uri.clone(), content);
         }
 
-        let document = self.file_system.read().await.get_document(&uri);
+        let document = self.file_system.get_document(&uri);
 
         let Some(worker) = self.worker_manager.get_worker_for_uri(&uri).await else {
             return;
@@ -685,7 +677,7 @@ impl LanguageServer for Backend {
 
         let content = params.text_document.text;
 
-        self.file_system.write().await.set_with_language(
+        self.file_system.set_with_language(
             uri.clone(),
             LanguageId::new(params.text_document.language_id),
             content,
@@ -696,7 +688,7 @@ impl LanguageServer for Backend {
                 return;
             };
 
-            let document = self.file_system.read().await.get_document(&uri);
+            let document = self.file_system.get_document(&uri);
 
             match worker.run_diagnostic(&document).await {
                 Err(err) => {
@@ -725,7 +717,7 @@ impl LanguageServer for Backend {
     /// See: <https://microsoft.github.io/language-server-protocol/specifications/specification-current/#textDocument_didClose>
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         let uri = &params.text_document.uri;
-        self.file_system.write().await.remove(uri);
+        self.file_system.remove(uri);
 
         let Some(worker) = self.worker_manager.get_worker_for_uri(uri).await else {
             return;
@@ -745,7 +737,7 @@ impl LanguageServer for Backend {
         drop(worker);
 
         if let Some(root_uri) = worker_root_uri {
-            let open_uris = self.file_system.read().await.keys();
+            let open_uris = self.file_system.keys();
             let result =
                 self.worker_manager.try_shutdown_empty_workspace(&root_uri, &open_uris).await;
 
@@ -854,7 +846,7 @@ impl LanguageServer for Backend {
             )));
         };
 
-        let document = self.file_system.read().await.get_document(uri);
+        let document = self.file_system.get_document(uri);
         let diagnostics = worker.run_diagnostic(&document).await;
 
         let diagnostics = match diagnostics {
@@ -917,7 +909,7 @@ impl LanguageServer for Backend {
             return Ok(None);
         };
 
-        let document = self.file_system.read().await.get_document(uri);
+        let document = self.file_system.get_document(uri);
         match worker.format_file(&document).await {
             Ok(edits) => {
                 if edits.is_empty() {
@@ -943,7 +935,7 @@ impl Backend {
             server_info,
             worker_manager: WorkerManager::new(tool),
             capabilities: OnceCell::new(),
-            file_system: Arc::new(RwLock::new(LSPFileSystem::default())),
+            file_system: Arc::new(LSPFileSystem::default()),
         }
     }
 
