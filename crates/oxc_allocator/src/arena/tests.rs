@@ -75,14 +75,14 @@ fn test_realloc() {
         let layout = Layout::from_size_align(10, 1).unwrap();
         let p = b.alloc_layout(layout);
         let q = (&b).realloc(p, layout, 11).unwrap();
-        assert_eq!(q.as_ptr() as usize, p.as_ptr() as usize - 1);
+        assert_eq!(q.as_ptr().addr(), p.as_ptr().addr() - 1);
         b.reset();
 
         // `realloc` will allocate a new chunk when growing the last allocation, if need be
         let layout = Layout::from_size_align(1, 1).unwrap();
         let p = b.alloc_layout(layout);
         let q = (&b).realloc(p, layout, CAPACITY + 1).unwrap();
-        assert_ne!(q.as_ptr() as usize, p.as_ptr() as usize - CAPACITY);
+        assert_ne!(q.as_ptr().addr(), p.as_ptr().addr() - CAPACITY);
         b.reset();
 
         // `realloc` will allocate and copy when reallocating anything that wasn't the last allocation
@@ -90,7 +90,7 @@ fn test_realloc() {
         let p = b.alloc_layout(layout);
         let _ = b.alloc_layout(layout);
         let q = (&b).realloc(p, layout, 2).unwrap();
-        assert!(q.as_ptr() as usize != p.as_ptr() as usize - 1);
+        assert!(q.as_ptr().addr() != p.as_ptr().addr() - 1);
         b.reset();
     }
 }

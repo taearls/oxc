@@ -24,7 +24,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// assert!(capacity >= 100);
     /// ```
     pub fn chunk_capacity(&self) -> usize {
-        self.cursor_ptr.get().as_ptr() as usize - self.start_ptr.get().as_ptr() as usize
+        self.cursor_ptr.get().as_ptr().addr() - self.start_ptr.get().as_ptr().addr()
     }
 
     /// Get an iterator over each chunk of allocated memory that this arena has allocated into.

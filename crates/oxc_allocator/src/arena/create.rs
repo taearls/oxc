@@ -13,7 +13,7 @@ use crate::tracking::AllocationStats;
 
 use super::{
     Arena, CHUNK_ALIGN, CHUNK_FOOTER_SIZE, ChunkFooter, EMPTY_CHUNK,
-    utils::{layout_from_size_align, oom, round_up_to},
+    utils::{is_pointer_aligned_to, layout_from_size_align, oom, round_up_to},
 };
 
 /// The typical page size these days.
@@ -152,7 +152,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// let arena = ArenaAlign8::with_min_align();
     /// for x in 0..u8::MAX {
     ///     let x = arena.alloc(x);
-    ///     assert_eq!((x as *mut _ as usize) % 8, 0, "x is aligned to 8");
+    ///     assert!(std::ptr::from_ref(x).addr().is_multiple_of(8), "x is aligned to 8");
     /// }
     /// ```
     //
@@ -182,7 +182,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// let mut arena = ArenaAlign8::with_min_align_and_capacity(8 * 100);
     /// for x in 0..100_u64 {
     ///     let x = arena.alloc(x);
-    ///     assert_eq!((x as *mut _ as usize) % 8, 0, "x is aligned to 8");
+    ///     assert!(std::ptr::from_ref(x).addr().is_multiple_of(8), "x is aligned to 8");
     /// }
     /// assert_eq!(
     ///     arena.iter_allocated_chunks().count(), 1,
@@ -214,7 +214,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// let mut arena = ArenaAlign8::try_with_min_align_and_capacity(8 * 100)?;
     /// for x in 0..100_u64 {
     ///     let x = arena.alloc(x);
-    ///     assert_eq!((x as *mut _ as usize) % 8, 0, "x is aligned to 8");
+    ///     assert!(std::ptr::from_ref(x).addr().is_multiple_of(8), "x is aligned to 8");
     /// }
     /// assert_eq!(
     ///     arena.iter_allocated_chunks().count(), 1,
@@ -318,8 +318,8 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 round_up_to(new_size_without_footer + OVERHEAD, TYPICAL_PAGE_SIZE)? - OVERHEAD;
         }
 
-        debug_assert_eq!(align % CHUNK_ALIGN, 0);
-        debug_assert_eq!(new_size_without_footer % CHUNK_ALIGN, 0);
+        debug_assert!(align.is_multiple_of(CHUNK_ALIGN));
+        debug_assert!(new_size_without_footer.is_multiple_of(CHUNK_ALIGN));
         let size = new_size_without_footer
             .checked_add(CHUNK_FOOTER_SIZE)
             .unwrap_or_else(allocation_size_overflow);
@@ -346,8 +346,8 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
 
             // The `ChunkFooter` is at the end of the chunk
             let footer_ptr = start_ptr.as_ptr().add(new_size_without_footer);
-            debug_assert_eq!((start_ptr.as_ptr() as usize) % align, 0);
-            debug_assert_eq!(footer_ptr as usize % CHUNK_ALIGN, 0);
+            debug_assert!(is_pointer_aligned_to(start_ptr.as_ptr(), align));
+            debug_assert!(is_pointer_aligned_to(footer_ptr, CHUNK_ALIGN));
             #[expect(
                 clippy::cast_ptr_alignment,
                 reason = "footer_ptr is aligned to CHUNK_ALIGN, which is == align_of::<ChunkFooter>()"
@@ -357,7 +357,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             // Initial cursor sits at the footer, which is the end of the allocatable region.
             // The footer is aligned on `CHUNK_ALIGN`, which is `>= MIN_ALIGN`, so this is already aligned to `MIN_ALIGN`.
             let cursor_ptr = NonNull::new_unchecked(footer_ptr.cast::<u8>());
-            debug_assert_eq!(cursor_ptr.as_ptr() as usize % MIN_ALIGN, 0);
+            debug_assert!(is_pointer_aligned_to(cursor_ptr.as_ptr(), MIN_ALIGN));
 
             ptr::write(
                 footer_ptr,

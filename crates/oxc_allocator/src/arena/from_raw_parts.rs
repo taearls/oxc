@@ -3,7 +3,9 @@
 
 use std::{alloc::Layout, cell::Cell, ptr::NonNull};
 
-use super::{Arena, CHUNK_ALIGN, CHUNK_FOOTER_SIZE, ChunkFooter, EMPTY_CHUNK};
+use super::{
+    Arena, CHUNK_ALIGN, CHUNK_FOOTER_SIZE, ChunkFooter, EMPTY_CHUNK, utils::is_pointer_aligned_to,
+};
 
 impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// Construct a static-sized [`Arena`] from an existing memory allocation.
@@ -26,7 +28,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// * `start_ptr` must have permission for writes.
     pub unsafe fn from_raw_parts(start_ptr: NonNull<u8>, size: usize) -> Self {
         // Debug assert that `start_ptr` and `size` fulfill size and alignment requirements
-        debug_assert!((start_ptr.as_ptr() as usize).is_multiple_of(CHUNK_ALIGN));
+        debug_assert!(is_pointer_aligned_to(start_ptr.as_ptr(), CHUNK_ALIGN));
         debug_assert!(size.is_multiple_of(CHUNK_ALIGN));
         debug_assert!(size >= CHUNK_FOOTER_SIZE);
 
