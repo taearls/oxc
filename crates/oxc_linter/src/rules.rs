@@ -779,11 +779,7 @@ pub(crate) mod vue {
     pub mod valid_define_props;
 }
 
-pub(crate) mod shared {
-    pub mod consistent_test_it;
-    pub mod expect_expect;
-    pub mod valid_title;
-}
+pub(crate) mod shared;
 
 // Re-export RuleEnum, RULES, and all rule type aliases from generated code
 pub use crate::generated::rules_enum::*;
