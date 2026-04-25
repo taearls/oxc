@@ -346,13 +346,13 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
 
             // The `ChunkFooter` is at the end of the chunk
             let footer_ptr = start_ptr.add(new_size_without_footer).cast::<ChunkFooter>();
-            debug_assert!(is_pointer_aligned_to(start_ptr.as_ptr(), align));
-            debug_assert!(is_pointer_aligned_to(footer_ptr.as_ptr(), CHUNK_ALIGN));
+            debug_assert!(is_pointer_aligned_to(start_ptr, align));
+            debug_assert!(is_pointer_aligned_to(footer_ptr, CHUNK_ALIGN));
 
             // Initial cursor sits at the footer, which is the end of the allocatable region.
             // The footer is aligned on `CHUNK_ALIGN`, which is `>= MIN_ALIGN`, so this is already aligned to `MIN_ALIGN`.
             let cursor_ptr = footer_ptr.cast::<u8>();
-            debug_assert!(is_pointer_aligned_to(cursor_ptr.as_ptr(), MIN_ALIGN));
+            debug_assert!(is_pointer_aligned_to(cursor_ptr, MIN_ALIGN));
 
             footer_ptr.write(ChunkFooter {
                 start_ptr,

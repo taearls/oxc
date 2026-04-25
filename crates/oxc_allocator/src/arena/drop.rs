@@ -63,7 +63,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             // We don't need to reset `cursor_ptr` in `ChunkFooter`, as it'll be set if the chunk is retired later on.
             // `iter_allocated_chunks_raw` ignores `cursor_ptr` of the current chunk.
             debug_assert!(
-                is_pointer_aligned_to(current_footer_ptr.as_ptr(), MIN_ALIGN),
+                is_pointer_aligned_to(current_footer_ptr, MIN_ALIGN),
                 "bump pointer {current_footer_ptr:#p} should be aligned to the minimum alignment of {MIN_ALIGN:#x}"
             );
             self.cursor_ptr.set(current_footer_ptr.cast::<u8>());

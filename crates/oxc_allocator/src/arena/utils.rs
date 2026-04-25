@@ -4,8 +4,37 @@ use std::{alloc::Layout, hint::unreachable_unchecked, ptr::NonNull};
 
 pub use super::bumpalo_alloc::AllocErr;
 
+/// Types that expose a pointer address.
+///
+/// Implemented for `*const T`, `*mut T`, and `NonNull<T>` so `is_pointer_aligned_to`
+/// can take any of them without forcing callers to pre-convert.
+pub trait Pointer {
+    fn addr(self) -> usize;
+}
+
+impl<T: ?Sized> Pointer for *const T {
+    #[inline]
+    fn addr(self) -> usize {
+        self.addr()
+    }
+}
+
+impl<T: ?Sized> Pointer for *mut T {
+    #[inline]
+    fn addr(self) -> usize {
+        self.addr()
+    }
+}
+
+impl<T: ?Sized> Pointer for NonNull<T> {
+    #[inline]
+    fn addr(self) -> usize {
+        self.addr().get()
+    }
+}
+
 #[inline]
-pub fn is_pointer_aligned_to<T>(ptr: *mut T, align: usize) -> bool {
+pub fn is_pointer_aligned_to<P: Pointer>(ptr: P, align: usize) -> bool {
     debug_assert!(align.is_power_of_two());
 
     let addr = ptr.addr();

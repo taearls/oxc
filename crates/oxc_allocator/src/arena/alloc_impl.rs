@@ -355,10 +355,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 Self::new_chunk(new_chunk_memory_details, layout, current_footer_ptr)
             })?;
 
-            debug_assert!(is_pointer_aligned_to(
-                new_footer_ptr.as_ref().start_ptr.as_ptr(),
-                layout.align()
-            ));
+            debug_assert!(is_pointer_aligned_to(new_footer_ptr.as_ref().start_ptr, layout.align()));
 
             // Sync `Arena::cursor_ptr` back to the retiring chunk's footer so iteration over chunks
             // can read its final cursor position later.
@@ -395,7 +392,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 let cursor_ptr = self.cursor_ptr.get().add(layout.size());
                 let cursor_ptr = round_nonnull_ptr_up_to_unchecked(cursor_ptr, MIN_ALIGN);
                 debug_assert!(
-                    is_pointer_aligned_to(cursor_ptr.as_ptr(), MIN_ALIGN),
+                    is_pointer_aligned_to(cursor_ptr, MIN_ALIGN),
                     "bump pointer {cursor_ptr:#p} should be aligned to the minimum alignment of {MIN_ALIGN:#x}"
                 );
                 self.cursor_ptr.set(cursor_ptr);
@@ -420,7 +417,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         // In the case of (2), to successfully "shrink" the allocation, we have to allocate a whole new region
         // for the new layout.
         if old_layout.align() < new_layout.align() {
-            return if is_pointer_aligned_to(ptr.as_ptr(), new_layout.align()) {
+            return if is_pointer_aligned_to(ptr, new_layout.align()) {
                 Ok(ptr)
             } else {
                 let new_ptr = self.try_alloc_layout(new_layout)?;
@@ -438,7 +435,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             };
         }
 
-        debug_assert!(is_pointer_aligned_to(ptr.as_ptr(), new_layout.align()));
+        debug_assert!(is_pointer_aligned_to(ptr, new_layout.align()));
 
         let old_size = old_layout.size();
         let new_size = new_layout.size();
@@ -477,7 +474,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 // Note: `new_ptr` is aligned, because ptr *has to* be aligned, and we made sure delta is aligned
                 let new_ptr = self.cursor_ptr.get().add(delta);
                 debug_assert!(
-                    is_pointer_aligned_to(new_ptr.as_ptr(), MIN_ALIGN),
+                    is_pointer_aligned_to(new_ptr, MIN_ALIGN),
                     "bump pointer {new_ptr:#p} should be aligned to the minimum alignment of {MIN_ALIGN:#x}"
                 );
                 self.cursor_ptr.set(new_ptr);

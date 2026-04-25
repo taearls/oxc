@@ -29,7 +29,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// * `start_ptr` must have permission for writes.
     pub unsafe fn from_raw_parts(start_ptr: NonNull<u8>, size: usize) -> Self {
         // Debug assert that `start_ptr` and `size` fulfill size and alignment requirements
-        debug_assert!(is_pointer_aligned_to(start_ptr.as_ptr(), CHUNK_ALIGN));
+        debug_assert!(is_pointer_aligned_to(start_ptr, CHUNK_ALIGN));
         debug_assert!(size.is_multiple_of(CHUNK_ALIGN));
         debug_assert!(size >= CHUNK_FOOTER_SIZE);
 
@@ -81,7 +81,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     pub unsafe fn set_cursor_ptr(&self, cursor_ptr: NonNull<u8>) {
         debug_assert!(cursor_ptr >= self.start_ptr.get());
         debug_assert!(cursor_ptr <= self.current_chunk_footer_ptr.get().cast::<u8>());
-        debug_assert!(is_pointer_aligned_to(cursor_ptr.as_ptr(), MIN_ALIGN));
+        debug_assert!(is_pointer_aligned_to(cursor_ptr, MIN_ALIGN));
 
         // SAFETY: Caller guarantees `Arena` has at least 1 allocated chunk, and `cursor_ptr` is valid
         #[expect(clippy::unnecessary_safety_comment)]
