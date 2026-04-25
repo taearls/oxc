@@ -24,12 +24,11 @@ pub struct WarnTodo;
 declare_oxc_lint!(
     /// ### What it does
     ///
-    /// This rule triggers warnings when `.todo` is used in `describe`, `it`, or `test` functions.
-    /// It is recommended to use this with your CI pipeline to annotate PR diffs.
+    /// This rule warns about usage of `.todo` in `describe`, `it`, or `test` functions.
     ///
     /// ### Why is this bad?
     ///
-    /// The test that you push should be completed, any pending/"TODO" code should not be committed.
+    /// The tests you push should be complete. Any pending/`TODO` code should not be committed.
     ///
     /// ### Examples
     ///
