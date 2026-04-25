@@ -33,13 +33,17 @@ impl<T: ?Sized> Pointer for NonNull<T> {
     }
 }
 
-#[inline]
+/// Check if a pointer is aligned to a given alignment.
+///
+/// `align` must be a power of 2.
+//
+// `#[inline(always)]` because it's only 1 instruction when `align` is statically known, or 2 instructions otherwise.
+// When `align` is statically known, we want this inlined so that knowledge can be capitalized on.
+#[inline(always)]
 pub fn is_pointer_aligned_to<P: Pointer>(ptr: P, align: usize) -> bool {
     debug_assert!(align.is_power_of_two());
 
-    let addr = ptr.addr();
-    let aligned_addr = round_down_to(addr, align);
-    addr == aligned_addr
+    (ptr.addr() & (align - 1)) == 0
 }
 
 #[inline]
