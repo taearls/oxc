@@ -1,4 +1,4 @@
-use std::mem;
+use std::{mem, ptr::NonNull};
 
 use ::quickcheck::{Arbitrary, Gen};
 
@@ -232,10 +232,10 @@ quickcheck! {
     fn all_allocations_in_a_chunk(values: Vec<BigValue>) -> () {
         let b = Arena::new();
         let allocated: Vec<&BigValue> = values.into_iter().map(|val| b.alloc(val) as &_).collect();
-        let chunks: Vec<(*mut u8, usize)> = unsafe { b.iter_allocated_chunks_raw() }.collect();
+        let chunks: Vec<(NonNull<u8>, usize)> = unsafe { b.iter_allocated_chunks_raw() }.collect();
         for alloc in allocated.into_iter() {
             assert!(chunks.iter().any(|&(ptr, size)| {
-                let ptr = ptr as usize;
+                let ptr = ptr.addr().get();
                 let chunk = (ptr, ptr + size);
                 contains(chunk, range(alloc))
             }));
@@ -247,11 +247,11 @@ quickcheck! {
         for val in values {
             b.alloc(val);
         }
-        let raw_chunks: Vec<(_, _)> = unsafe { b.iter_allocated_chunks_raw() }.collect();
+        let raw_chunks: Vec<(NonNull<u8>, usize)> = unsafe { b.iter_allocated_chunks_raw() }.collect();
         let chunks: Vec<&[_]> = b.iter_allocated_chunks().collect();
         assert_eq!(raw_chunks.len(), chunks.len());
         for ((ptr, size), chunk) in raw_chunks.into_iter().zip(chunks) {
-            assert_eq!(ptr as *const _, chunk.as_ptr() as *const _);
+            assert_eq!(ptr.as_ptr().cast_const(), chunk.as_ptr().cast::<u8>());
             assert_eq!(size, chunk.len());
         }
     }

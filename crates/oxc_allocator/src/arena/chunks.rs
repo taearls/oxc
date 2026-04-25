@@ -1,6 +1,6 @@
 //! Methods to get info about the chunks of memory allocated by an `Arena`, and associated iterator types.
 
-use std::{iter::FusedIterator, marker::PhantomData, mem, ptr::NonNull, slice};
+use std::{iter::FusedIterator, marker::PhantomData, mem, ptr::NonNull};
 
 use super::{Arena, CHUNK_FOOTER_SIZE, ChunkFooter};
 
@@ -188,8 +188,7 @@ impl<'a, const MIN_ALIGN: usize> Iterator for ChunkIter<'a, MIN_ALIGN> {
     fn next(&mut self) -> Option<Self::Item> {
         unsafe {
             let (ptr, len) = self.raw.next()?;
-            let slice = slice::from_raw_parts(ptr as *const mem::MaybeUninit<u8>, len);
-            Some(slice)
+            Some(NonNull::slice_from_raw_parts(ptr.cast::<mem::MaybeUninit<u8>>(), len).as_ref())
         }
     }
 }
@@ -214,9 +213,9 @@ pub struct ChunkRawIter<'a, const MIN_ALIGN: usize = 1> {
 }
 
 impl<const MIN_ALIGN: usize> Iterator for ChunkRawIter<'_, MIN_ALIGN> {
-    type Item = (*mut u8, usize);
+    type Item = (NonNull<u8>, usize);
 
-    fn next(&mut self) -> Option<(*mut u8, usize)> {
+    fn next(&mut self) -> Option<(NonNull<u8>, usize)> {
         unsafe {
             let footer_ptr = self.footer_ptr;
             let footer = footer_ptr.as_ref();
@@ -235,7 +234,7 @@ impl<const MIN_ALIGN: usize> Iterator for ChunkRawIter<'_, MIN_ALIGN> {
             let len = end_ptr.offset_from_unsigned(cursor_ptr);
             self.footer_ptr = footer.previous_chunk_footer_ptr.get();
 
-            Some((cursor_ptr.as_ptr(), len))
+            Some((cursor_ptr, len))
         }
     }
 }
