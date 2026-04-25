@@ -4,12 +4,7 @@
 //! They all ultimately call into `alloc_layout` or `try_alloc_layout`, defined in this module.
 //! (`alloc_layout` and `try_alloc_layout` are also public methods)
 
-use std::{
-    alloc::Layout,
-    cmp::max,
-    iter,
-    ptr::{self, NonNull},
-};
+use std::{alloc::Layout, cmp::max, iter, ptr::NonNull};
 
 use allocator_api2::alloc::{AllocError, Allocator};
 
@@ -20,7 +15,7 @@ use super::{
     bumpalo_alloc::{Alloc as BumpaloAlloc, AllocErr},
     utils::{
         is_pointer_aligned_to, layout_from_size_align, oom, round_down_to, round_mut_ptr_down_to,
-        round_mut_ptr_up_to_unchecked, round_up_to,
+        round_nonnull_ptr_up_to_unchecked, round_up_to,
     },
 };
 
@@ -397,14 +392,12 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         // otherwise they are simply leaked - at least until somebody calls `reset()`
         unsafe {
             if self.is_last_allocation(ptr) {
-                let cursor_ptr = self.cursor_ptr.get().as_ptr().add(layout.size());
-
-                let cursor_ptr = round_mut_ptr_up_to_unchecked(cursor_ptr, MIN_ALIGN);
+                let cursor_ptr = self.cursor_ptr.get().add(layout.size());
+                let cursor_ptr = round_nonnull_ptr_up_to_unchecked(cursor_ptr, MIN_ALIGN);
                 debug_assert!(
-                    is_pointer_aligned_to(cursor_ptr, MIN_ALIGN),
+                    is_pointer_aligned_to(cursor_ptr.as_ptr(), MIN_ALIGN),
                     "bump pointer {cursor_ptr:#p} should be aligned to the minimum alignment of {MIN_ALIGN:#x}"
                 );
-                let cursor_ptr = NonNull::new_unchecked(cursor_ptr);
                 self.cursor_ptr.set(cursor_ptr);
             }
         }
@@ -439,9 +432,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 self.stats.record_reallocation_after_allocation();
 
                 // We know that these regions are nonoverlapping because `new_ptr` is a fresh allocation
-                unsafe {
-                    ptr::copy_nonoverlapping(ptr.as_ptr(), new_ptr.as_ptr(), new_layout.size());
-                }
+                unsafe { new_ptr.copy_from_nonoverlapping(ptr, new_layout.size()) };
 
                 Ok(new_ptr)
             };
@@ -484,7 +475,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         {
             unsafe {
                 // Note: `new_ptr` is aligned, because ptr *has to* be aligned, and we made sure delta is aligned
-                let new_ptr = NonNull::new_unchecked(self.cursor_ptr.get().as_ptr().add(delta));
+                let new_ptr = self.cursor_ptr.get().add(delta);
                 debug_assert!(
                     is_pointer_aligned_to(new_ptr.as_ptr(), MIN_ALIGN),
                     "bump pointer {new_ptr:#p} should be aligned to the minimum alignment of {MIN_ALIGN:#x}"
@@ -492,7 +483,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 self.cursor_ptr.set(new_ptr);
 
                 // Note: We know it is non-overlapping because of the size check in the `if` condition
-                ptr::copy_nonoverlapping(ptr.as_ptr(), new_ptr.as_ptr(), new_size);
+                new_ptr.copy_from_nonoverlapping(ptr, new_size);
 
                 #[cfg(all(
                     feature = "track_allocations",
@@ -528,7 +519,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             if let Some(new_ptr) =
                 self.try_alloc_layout_fast(layout_from_size_align(delta, old_layout.align())?)
             {
-                unsafe { ptr::copy(ptr.as_ptr(), new_ptr.as_ptr(), old_size) };
+                unsafe { new_ptr.copy_from(ptr, old_size) };
 
                 #[cfg(all(
                     feature = "track_allocations",
@@ -542,7 +533,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
 
         // Fallback: Do a fresh allocation and copy the existing data into it
         let new_ptr = self.try_alloc_layout(new_layout)?;
-        unsafe { ptr::copy_nonoverlapping(ptr.as_ptr(), new_ptr.as_ptr(), old_size) };
+        unsafe { new_ptr.copy_from_nonoverlapping(ptr, old_size) };
 
         #[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]
         self.stats.record_reallocation_after_allocation();
@@ -594,9 +585,7 @@ unsafe impl<const MIN_ALIGN: usize> Allocator for &Arena<MIN_ALIGN> {
     #[inline]
     fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
         self.try_alloc_layout(layout)
-            .map(|p| unsafe {
-                NonNull::new_unchecked(ptr::slice_from_raw_parts_mut(p.as_ptr(), layout.size()))
-            })
+            .map(|new_ptr| NonNull::slice_from_raw_parts(new_ptr, layout.size()))
             .map_err(|_| AllocError)
     }
 
@@ -613,9 +602,7 @@ unsafe impl<const MIN_ALIGN: usize> Allocator for &Arena<MIN_ALIGN> {
         new_layout: Layout,
     ) -> Result<NonNull<[u8]>, AllocError> {
         unsafe { Arena::<MIN_ALIGN>::shrink(self, ptr, old_layout, new_layout) }
-            .map(|p| unsafe {
-                NonNull::new_unchecked(ptr::slice_from_raw_parts_mut(p.as_ptr(), new_layout.size()))
-            })
+            .map(|new_ptr| NonNull::slice_from_raw_parts(new_ptr, new_layout.size()))
             .map_err(|_| AllocError)
     }
 
@@ -627,9 +614,7 @@ unsafe impl<const MIN_ALIGN: usize> Allocator for &Arena<MIN_ALIGN> {
         new_layout: Layout,
     ) -> Result<NonNull<[u8]>, AllocError> {
         unsafe { Arena::<MIN_ALIGN>::grow(self, ptr, old_layout, new_layout) }
-            .map(|p| unsafe {
-                NonNull::new_unchecked(ptr::slice_from_raw_parts_mut(p.as_ptr(), new_layout.size()))
-            })
+            .map(|new_ptr| NonNull::slice_from_raw_parts(new_ptr, new_layout.size()))
             .map_err(|_| AllocError)
     }
 
@@ -640,8 +625,8 @@ unsafe impl<const MIN_ALIGN: usize> Allocator for &Arena<MIN_ALIGN> {
         old_layout: Layout,
         new_layout: Layout,
     ) -> Result<NonNull<[u8]>, AllocError> {
-        let mut ptr = unsafe { self.grow(ptr, old_layout, new_layout) }?;
-        (unsafe { ptr.as_mut() })[old_layout.size()..].fill(0);
-        Ok(ptr)
+        let mut new_ptr = unsafe { self.grow(ptr, old_layout, new_layout) }?;
+        (unsafe { new_ptr.as_mut() })[old_layout.size()..].fill(0);
+        Ok(new_ptr)
     }
 }

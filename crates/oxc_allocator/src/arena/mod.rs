@@ -6,11 +6,7 @@
 
 #![expect(clippy::inline_always, clippy::undocumented_unsafe_blocks)]
 
-use std::{
-    alloc::Layout,
-    cell::Cell,
-    ptr::{self, NonNull},
-};
+use std::{alloc::Layout, cell::Cell, ptr::NonNull};
 
 #[cfg(all(feature = "track_allocations", not(feature = "disable_track_allocations")))]
 use crate::tracking::AllocationStats;
@@ -317,6 +313,6 @@ impl EmptyChunkFooter {
 impl ChunkFooter {
     /// Returns `true` if this chunk is the empty chunk (end of the linked list).
     fn is_empty(&self) -> bool {
-        ptr::eq(self, EMPTY_CHUNK_FOOTER.get().as_ptr())
+        NonNull::from_ref(self) == EMPTY_CHUNK_FOOTER.get()
     }
 }

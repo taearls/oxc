@@ -1,6 +1,6 @@
 //! Utility functions for `Arena`.
 
-use std::{alloc::Layout, hint::unreachable_unchecked};
+use std::{alloc::Layout, hint::unreachable_unchecked, ptr::NonNull};
 
 pub use super::bumpalo_alloc::AllocErr;
 
@@ -57,11 +57,12 @@ pub fn round_mut_ptr_down_to(ptr: *mut u8, divisor: usize) -> *mut u8 {
 }
 
 #[inline]
-pub unsafe fn round_mut_ptr_up_to_unchecked(ptr: *mut u8, divisor: usize) -> *mut u8 {
+pub unsafe fn round_nonnull_ptr_up_to_unchecked(ptr: NonNull<u8>, divisor: usize) -> NonNull<u8> {
     debug_assert!(divisor.is_power_of_two());
     unsafe {
-        let aligned = round_up_to_unchecked(ptr.addr(), divisor);
-        let delta = aligned - ptr.addr();
+        let addr = ptr.addr().get();
+        let aligned = round_up_to_unchecked(addr, divisor);
+        let delta = aligned - addr;
         ptr.add(delta)
     }
 }

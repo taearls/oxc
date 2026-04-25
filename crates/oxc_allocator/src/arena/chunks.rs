@@ -1,12 +1,6 @@
 //! Methods to get info about the chunks of memory allocated by an `Arena`, and associated iterator types.
 
-use std::{
-    iter::FusedIterator,
-    marker::PhantomData,
-    mem,
-    ptr::{self, NonNull},
-    slice,
-};
+use std::{iter::FusedIterator, marker::PhantomData, mem, ptr::NonNull, slice};
 
 use super::{Arena, CHUNK_FOOTER_SIZE, ChunkFooter};
 
@@ -224,27 +218,24 @@ impl<const MIN_ALIGN: usize> Iterator for ChunkRawIter<'_, MIN_ALIGN> {
 
     fn next(&mut self) -> Option<(*mut u8, usize)> {
         unsafe {
-            let footer = self.footer_ptr.as_ref();
+            let footer_ptr = self.footer_ptr;
+            let footer = footer_ptr.as_ref();
             if footer.is_empty() {
                 return None;
             }
 
-            let start_ptr = footer.start_ptr.as_ptr();
-            let cursor_ptr = self
-                .current_chunk_cursor_ptr
-                .take()
-                .unwrap_or_else(|| footer.cursor_ptr.get())
-                .as_ptr();
-            let end_ptr = ptr::from_ref(footer).cast::<u8>();
+            let cursor_ptr =
+                self.current_chunk_cursor_ptr.take().unwrap_or_else(|| footer.cursor_ptr.get());
+            let end_ptr = footer_ptr.cast::<u8>();
 
-            debug_assert!(start_ptr <= cursor_ptr);
-            debug_assert!(cursor_ptr.cast_const() <= end_ptr);
+            debug_assert!(footer.start_ptr <= cursor_ptr);
+            debug_assert!(cursor_ptr <= end_ptr);
 
             // SAFETY: `cursor_ptr` is always before or equal to `end_ptr`
-            let len = end_ptr.offset_from_unsigned(cursor_ptr.cast_const());
+            let len = end_ptr.offset_from_unsigned(cursor_ptr);
             self.footer_ptr = footer.previous_chunk_footer_ptr.get();
 
-            Some((cursor_ptr, len))
+            Some((cursor_ptr.as_ptr(), len))
         }
     }
 }

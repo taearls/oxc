@@ -3,7 +3,7 @@
 use std::{
     alloc::{self, Layout},
     cell::Cell,
-    ptr::{self, NonNull},
+    ptr::NonNull,
 };
 
 use super::bumpalo_alloc::AllocErr;
@@ -345,31 +345,23 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             let start_ptr = NonNull::new(start_ptr)?;
 
             // The `ChunkFooter` is at the end of the chunk
-            let footer_ptr = start_ptr.as_ptr().add(new_size_without_footer);
+            let footer_ptr = start_ptr.add(new_size_without_footer).cast::<ChunkFooter>();
             debug_assert!(is_pointer_aligned_to(start_ptr.as_ptr(), align));
-            debug_assert!(is_pointer_aligned_to(footer_ptr, CHUNK_ALIGN));
-            #[expect(
-                clippy::cast_ptr_alignment,
-                reason = "footer_ptr is aligned to CHUNK_ALIGN, which is == align_of::<ChunkFooter>()"
-            )]
-            let footer_ptr = footer_ptr.cast::<ChunkFooter>();
+            debug_assert!(is_pointer_aligned_to(footer_ptr.as_ptr(), CHUNK_ALIGN));
 
             // Initial cursor sits at the footer, which is the end of the allocatable region.
             // The footer is aligned on `CHUNK_ALIGN`, which is `>= MIN_ALIGN`, so this is already aligned to `MIN_ALIGN`.
-            let cursor_ptr = NonNull::new_unchecked(footer_ptr.cast::<u8>());
+            let cursor_ptr = footer_ptr.cast::<u8>();
             debug_assert!(is_pointer_aligned_to(cursor_ptr.as_ptr(), MIN_ALIGN));
 
-            ptr::write(
-                footer_ptr,
-                ChunkFooter {
-                    start_ptr,
-                    layout,
-                    previous_chunk_footer_ptr: Cell::new(previous_chunk_footer_ptr),
-                    cursor_ptr: Cell::new(cursor_ptr),
-                },
-            );
+            footer_ptr.write(ChunkFooter {
+                start_ptr,
+                layout,
+                previous_chunk_footer_ptr: Cell::new(previous_chunk_footer_ptr),
+                cursor_ptr: Cell::new(cursor_ptr),
+            });
 
-            Some(NonNull::new_unchecked(footer_ptr))
+            Some(footer_ptr)
         }
     }
 }
