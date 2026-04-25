@@ -15,7 +15,7 @@ use super::{
     bumpalo_alloc::{Alloc as BumpaloAlloc, AllocErr},
     utils::{
         is_pointer_aligned_to, layout_from_size_align, oom, round_down_to, round_mut_ptr_down_to,
-        round_nonnull_ptr_up_to_unchecked, round_up_to,
+        round_nonnull_ptr_up_to_unchecked, round_up_to_unchecked,
     },
 };
 
@@ -506,7 +506,10 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         let old_size = old_layout.size();
 
         let new_size = new_layout.size();
-        let new_size = round_up_to(new_size, MIN_ALIGN).ok_or(AllocErr)?;
+
+        // SAFETY: `Layout::size()` is always `<= isize::MAX`. `MIN_ALIGN` is a `usize` power of 2.
+        // So rounding up can result in at maximum `isize::MAX + 1` - cannot overflow `usize`.
+        let new_size = unsafe { round_up_to_unchecked(new_size, MIN_ALIGN) };
 
         let align_is_compatible = old_layout.align() >= new_layout.align();
 

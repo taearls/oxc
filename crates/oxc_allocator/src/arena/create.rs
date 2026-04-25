@@ -13,7 +13,9 @@ use crate::tracking::AllocationStats;
 
 use super::{
     Arena, CHUNK_ALIGN, CHUNK_FOOTER_SIZE, ChunkFooter, EMPTY_CHUNK_FOOTER,
-    utils::{is_pointer_aligned_to, layout_from_size_align, oom, round_up_to},
+    utils::{
+        is_pointer_aligned_to, layout_from_size_align, oom, round_up_to, round_up_to_unchecked,
+    },
 };
 
 /// The typical page size these days.
@@ -302,8 +304,9 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         let mut new_size_without_footer =
             new_size_without_footer.unwrap_or(DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER);
 
-        let requested_size =
-            round_up_to(requested_layout.size(), align).unwrap_or_else(allocation_size_overflow);
+        // SAFETY: `Layout::size()` is always `<= isize::MAX`. `align` is a `usize` power of 2.
+        // So rounding up can result in at maximum `isize::MAX + 1` - cannot overflow `usize`.
+        let requested_size = unsafe { round_up_to_unchecked(requested_layout.size(), align) };
         new_size_without_footer = new_size_without_footer.max(requested_size);
 
         // We want our allocations to play nice with the memory allocator, and waste as little memory as possible.
