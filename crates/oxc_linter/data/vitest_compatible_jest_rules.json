@@ -1,5 +1,4 @@
 [
-  "no-commented-out-tests",
   "no-conditional-expect",
   "no-conditional-in-test",
   "no-disabled-tests",

@@ -3,4 +3,5 @@ pub mod expect_expect;
 pub mod max_expects;
 pub mod max_nested_describe;
 pub mod no_alias_methods;
+pub mod no_commented_out_tests;
 pub mod valid_title;
