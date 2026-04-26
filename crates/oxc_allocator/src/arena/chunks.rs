@@ -2,7 +2,7 @@
 
 use std::{iter::FusedIterator, marker::PhantomData, mem, ptr::NonNull};
 
-use super::{Arena, CHUNK_FOOTER_SIZE, ChunkFooter};
+use super::{Arena, CHUNK_FOOTER_SIZE, ChunkFooter, is_empty_footer};
 
 impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// Gets the remaining capacity in the current chunk (in bytes).
@@ -156,7 +156,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         // SAFETY: Walk the chunk list until the empty sentinel chunk.
         // Every non-empty chunk is a live allocation whose `layout.size()` includes the footer.
         unsafe {
-            while !footer_ptr.as_ref().is_empty() {
+            while !is_empty_footer(footer_ptr) {
                 total += footer_ptr.as_ref().layout.size() - CHUNK_FOOTER_SIZE;
                 footer_ptr = footer_ptr.as_ref().previous_chunk_footer_ptr.get();
             }
@@ -176,11 +176,9 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// [`allocated_bytes`]: Self::allocated_bytes
     pub fn used_bytes(&self) -> usize {
         let mut footer_ptr = self.current_chunk_footer_ptr.get();
-        // SAFETY: `self.current_chunk_footer_ptr` always points to a valid `ChunkFooter`
-        let footer = unsafe { footer_ptr.as_ref() };
 
         // If `Arena` owns no memory, return 0
-        if footer.is_empty() {
+        if is_empty_footer(footer_ptr) {
             return 0;
         }
 
@@ -189,11 +187,11 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         // SAFETY: `cursor_ptr` is always before or equal to `end_ptr`
         let mut total = unsafe { end_ptr.offset_from_unsigned(self.cursor_ptr.get()) };
 
-        // Add used bytes from previous chunks, getting pointer from their `ChunkFooter`s
-        footer_ptr = footer.previous_chunk_footer_ptr.get();
+        // Add used bytes from previous chunks, getting pointer from their `ChunkFooter`s.
+        // SAFETY: `self.current_chunk_footer_ptr` always points to a valid `ChunkFooter`.
+        footer_ptr = unsafe { footer_ptr.as_ref() }.previous_chunk_footer_ptr.get();
 
-        // SAFETY: `footer_ptr` always points to a valid `ChunkFooter`
-        while !unsafe { footer_ptr.as_ref() }.is_empty() {
+        while !is_empty_footer(footer_ptr) {
             // SAFETY: `footer_ptr` always points to a valid `ChunkFooter`
             let footer = unsafe { footer_ptr.as_ref() };
 
@@ -263,11 +261,11 @@ impl<const MIN_ALIGN: usize> Iterator for ChunkRawIter<'_, MIN_ALIGN> {
     fn next(&mut self) -> Option<(NonNull<u8>, usize)> {
         unsafe {
             let footer_ptr = self.footer_ptr;
-            let footer = footer_ptr.as_ref();
-            if footer.is_empty() {
+            if is_empty_footer(footer_ptr) {
                 return None;
             }
 
+            let footer = footer_ptr.as_ref();
             let cursor_ptr =
                 self.current_chunk_cursor_ptr.take().unwrap_or_else(|| footer.cursor_ptr.get());
             let end_ptr = footer_ptr.cast::<u8>();

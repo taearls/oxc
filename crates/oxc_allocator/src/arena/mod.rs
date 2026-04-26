@@ -310,9 +310,8 @@ impl EmptyChunkFooter {
     }
 }
 
-impl ChunkFooter {
-    /// Returns `true` if this chunk is the empty chunk (end of the linked list).
-    fn is_empty(&self) -> bool {
-        NonNull::from_ref(self) == EMPTY_CHUNK_FOOTER.get()
-    }
+/// Returns `true` if the given `footer_ptr` points to the canonical empty chunk footer.
+#[inline(always)] // Because it's only 1 instruction
+fn is_empty_footer(footer_ptr: NonNull<ChunkFooter>) -> bool {
+    footer_ptr == EMPTY_CHUNK_FOOTER.get()
 }

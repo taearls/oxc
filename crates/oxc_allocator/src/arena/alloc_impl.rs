@@ -13,6 +13,7 @@ use oxc_data_structures::assert_unchecked;
 use super::{
     Arena, CHUNK_FOOTER_SIZE, DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER,
     bumpalo_alloc::{Alloc as BumpaloAlloc, AllocErr},
+    is_empty_footer,
     utils::{
         is_pointer_aligned_to, layout_from_size_align, oom, round_down_to, round_mut_ptr_down_to,
         round_nonnull_ptr_up_to_unchecked, round_up_to_unchecked,
@@ -365,7 +366,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             // to the empty chunk's footer, which is the existing value of empty chunk footer's `cursor_ptr` anyway.
             // But nonetheless, the empty chunk footer is a `static`, accessible from all threads simultaneously.
             // Updating it from 2 threads simultaneously would be a data race (UB), even though both writes are no-ops.
-            if !current_footer_ptr.as_ref().is_empty() {
+            if !is_empty_footer(current_footer_ptr) {
                 current_footer_ptr.as_ref().cursor_ptr.set(self.cursor_ptr.get());
             }
 
