@@ -64,6 +64,11 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         arena
     }
 
+    /// Get the current cursor pointer for this [`Arena`]'s current chunk.
+    pub fn cursor_ptr(&self) -> NonNull<u8> {
+        self.cursor_ptr.get()
+    }
+
     /// Set cursor pointer for this [`Arena`]'s current chunk.
     ///
     /// This is dangerous, and this method should not ordinarily be used.
