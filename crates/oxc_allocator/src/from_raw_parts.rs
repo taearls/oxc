@@ -48,6 +48,8 @@ impl Allocator {
     }
 
     /// Get the current cursor pointer for this [`Allocator`]'s current chunk.
+    ///
+    /// If the `Allocator` is empty (has no chunks), this returns a dangling pointer.
     pub fn cursor_ptr(&self) -> NonNull<u8> {
         self.arena().cursor_ptr()
     }
@@ -74,11 +76,15 @@ impl Allocator {
 
     /// Get pointer to end of the data region of this [`Allocator`]'s current chunk
     /// i.e to the start of the `ChunkFooter`.
+    ///
+    /// If the `Allocator` is empty (has no chunks), this returns a dangling pointer.
     pub fn data_end_ptr(&self) -> NonNull<u8> {
         self.arena().data_end_ptr()
     }
 
     /// Get pointer to end of this [`Allocator`]'s current chunk (after the `ChunkFooter`).
+    ///
+    /// If the `Allocator` is empty (has no chunks), this returns a dangling pointer.
     pub fn end_ptr(&self) -> NonNull<u8> {
         self.arena().end_ptr()
     }

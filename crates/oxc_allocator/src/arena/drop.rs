@@ -2,9 +2,7 @@
 
 use std::{alloc, ptr::NonNull};
 
-use super::{
-    Arena, ChunkFooter, EMPTY_CHUNK_FOOTER, is_empty_footer, utils::is_pointer_aligned_to,
-};
+use super::{Arena, ChunkFooter, utils::is_pointer_aligned_to};
 
 impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// Reset this arena.
@@ -48,17 +46,13 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         // Takes `&mut self` so `self` must be unique, and there can't be any borrows active
         // that would get invalidated by resetting
         unsafe {
-            let current_footer_ptr = self.current_chunk_footer_ptr.get();
-
-            if is_empty_footer(current_footer_ptr) {
+            let Some(current_footer_ptr) = self.current_chunk_footer_ptr.get() else {
                 return;
-            }
+            };
 
             // Deallocate all chunks except the current one
-            let prev_footer_ptr = current_footer_ptr
-                .as_ref()
-                .previous_chunk_footer_ptr
-                .replace(EMPTY_CHUNK_FOOTER.get());
+            let prev_footer_ptr =
+                current_footer_ptr.as_ref().previous_chunk_footer_ptr.replace(None);
             dealloc_chunk_list(prev_footer_ptr);
 
             // Reset the bump cursor to the end of the chunk.
@@ -70,14 +64,13 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             );
             self.cursor_ptr.set(current_footer_ptr.cast::<u8>());
 
-            let current_chunk_footer = self.current_chunk_footer_ptr.get().as_ref();
             debug_assert!(
-                is_empty_footer(current_chunk_footer.previous_chunk_footer_ptr.get()),
+                current_footer_ptr.as_ref().previous_chunk_footer_ptr.get().is_none(),
                 "We should only have a single chunk"
             );
             debug_assert_eq!(
                 self.cursor_ptr.get(),
-                self.current_chunk_footer_ptr.get().cast::<u8>(),
+                current_footer_ptr.cast::<u8>(),
                 "Our chunk's bump cursor should be reset to the start of its allocation"
             );
         }
@@ -94,10 +87,9 @@ impl<const MIN_ALIGN: usize> Drop for Arena<MIN_ALIGN> {
 }
 
 #[inline]
-unsafe fn dealloc_chunk_list(mut footer_ptr: NonNull<ChunkFooter>) {
+unsafe fn dealloc_chunk_list(mut footer_ptr: Option<NonNull<ChunkFooter>>) {
     unsafe {
-        while !is_empty_footer(footer_ptr) {
-            let current_footer_ptr = footer_ptr;
+        while let Some(current_footer_ptr) = footer_ptr {
             footer_ptr = current_footer_ptr.as_ref().previous_chunk_footer_ptr.get();
             alloc::dealloc(
                 current_footer_ptr.as_ref().start_ptr.as_ptr(),

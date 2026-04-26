@@ -12,7 +12,7 @@ use super::bumpalo_alloc::AllocErr;
 use crate::tracking::AllocationStats;
 
 use super::{
-    Arena, CHUNK_ALIGN, CHUNK_FOOTER_SIZE, ChunkFooter, EMPTY_CHUNK_FOOTER,
+    Arena, CHUNK_ALIGN, CHUNK_FOOTER_SIZE, ChunkFooter, EMPTY_ARENA_DATA_PTR,
     utils::{
         is_pointer_aligned_to, layout_from_size_align, oom, round_up_to, round_up_to_unchecked,
     },
@@ -190,7 +190,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     // for specifying the minimum alignment.
     #[inline] // Because it's very cheap
     pub fn with_min_align() -> Self {
-        Self::new_impl(EMPTY_CHUNK_FOOTER.get())
+        Self::new_impl(EMPTY_ARENA_DATA_PTR, EMPTY_ARENA_DATA_PTR, None)
     }
 
     /// Create a new `Arena` that enforces a minimum alignment, and starts with room for at least `capacity` bytes.
@@ -280,33 +280,43 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 // to avoid `Arena::with_capacity` allocating 16 KiB even when requested `capacity` is much smaller.
                 Self::new_chunk_memory_details(capacity, layout).ok_or(AllocErr)?,
                 layout,
-                EMPTY_CHUNK_FOOTER.get(),
+                None,
             )
             .ok_or(AllocErr)?
         };
 
-        Ok(Self::new_impl(chunk_footer_ptr))
+        // SAFETY: `chunk_footer_ptr` points to a valid `ChunkFooter`
+        let start_ptr = unsafe { chunk_footer_ptr.as_ref().start_ptr };
+        // Initial cursor sits at the footer, which is the end of the allocatable region.
+        // The footer is aligned on `CHUNK_ALIGN`, which is `>= MIN_ALIGN`, so this is already aligned to `MIN_ALIGN`.
+        let cursor_ptr = chunk_footer_ptr.cast::<u8>();
+
+        Ok(Self::new_impl(start_ptr, cursor_ptr, Some(chunk_footer_ptr)))
     }
 
-    /// Create a new `Arena` from a chunk footer pointer.
+    /// Create a new `Arena`.
+    ///
+    /// `chunk_footer_ptr` is `None` if no initial chunk has been allocated (the empty `Arena` case).
     ///
     /// This is a helper function for all code paths which create an `Arena`.
     /// All code paths which create an `Arena` must go through this method in order to validate `MIN_ALIGN`.
     #[inline(always)]
-    pub(super) fn new_impl(chunk_footer_ptr: NonNull<ChunkFooter>) -> Self {
+    pub(super) fn new_impl(
+        start_ptr: NonNull<u8>,
+        cursor_ptr: NonNull<u8>,
+        chunk_footer_ptr: Option<NonNull<ChunkFooter>>,
+    ) -> Self {
         // Const assert that `MIN_ALIGN` is valid.
         // This line must be present - the validation assertions don't run unless the const is referenced
         // in active code paths. This method is called by all other methods which create an `Arena`,
         // so we only need it here to ensure that it's impossible to create an `Arena` with an invalid `MIN_ALIGN`.
         const { Self::MIN_ALIGN };
 
-        // SAFETY: `chunk_footer_ptr` points to a valid `ChunkFooter` (either a freshly allocated chunk,
-        // a caller-provided chunk in `from_raw_parts`, or the canonical empty chunk)
-        let start_ptr = unsafe { chunk_footer_ptr.as_ref().start_ptr };
-
-        // Initial cursor sits at the footer, which is the end of the allocatable region.
-        // The footer is aligned on `CHUNK_ALIGN`, which is `>= MIN_ALIGN`, so this is already aligned to `MIN_ALIGN`.
-        let cursor_ptr = chunk_footer_ptr.cast::<u8>();
+        debug_assert!(is_pointer_aligned_to(cursor_ptr, MIN_ALIGN));
+        debug_assert!(start_ptr <= cursor_ptr);
+        debug_assert!(
+            chunk_footer_ptr.is_none_or(|footer_ptr| cursor_ptr <= footer_ptr.cast::<u8>())
+        );
 
         Self {
             cursor_ptr: Cell::new(cursor_ptr),
@@ -396,10 +406,12 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     }
 
     /// Allocate a new chunk and return its initialized footer.
+    ///
+    /// `previous_chunk_footer_ptr` is `None` when the new chunk will be the first chunk in the arena.
     pub(super) unsafe fn new_chunk(
         new_chunk_memory_details: NewChunkMemoryDetails,
         requested_layout: Layout,
-        previous_chunk_footer_ptr: NonNull<ChunkFooter>,
+        previous_chunk_footer_ptr: Option<NonNull<ChunkFooter>>,
     ) -> Option<NonNull<ChunkFooter>> {
         unsafe {
             let NewChunkMemoryDetails { new_size_without_footer, align, size } =

@@ -11,9 +11,8 @@ use allocator_api2::alloc::{AllocError, Allocator};
 use oxc_data_structures::assert_unchecked;
 
 use super::{
-    Arena, CHUNK_FOOTER_SIZE, DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER,
+    Arena, CHUNK_FOOTER_SIZE, DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER, EMPTY_ARENA_DATA_PTR,
     bumpalo_alloc::{Alloc as BumpaloAlloc, AllocErr},
-    is_empty_footer,
     utils::{
         is_pointer_aligned_to, layout_from_size_align, oom, round_down_to, round_mut_ptr_down_to,
         round_nonnull_ptr_up_to_unchecked, round_up_to_unchecked,
@@ -74,11 +73,16 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             start_ptr <= cursor_ptr,
             "start pointer {start_ptr:#p} should be less than or equal to bump pointer {cursor_ptr:#p}"
         );
-        debug_assert!(
-            cursor_ptr <= self.current_chunk_footer_ptr.get().cast::<u8>().as_ptr(),
-            "bump pointer {cursor_ptr:#p} should be less than or equal to footer pointer {:#p}",
-            self.current_chunk_footer_ptr.get()
-        );
+        if cfg!(debug_assertions) {
+            let end_ptr = self
+                .current_chunk_footer_ptr
+                .get()
+                .map_or(EMPTY_ARENA_DATA_PTR, NonNull::cast::<u8>);
+            assert!(
+                cursor_ptr <= end_ptr.as_ptr(),
+                "bump pointer {cursor_ptr:#p} should be less than or equal to footer pointer {end_ptr:#p}",
+            );
+        }
         #[expect(clippy::checked_conversions)]
         {
             debug_assert!(
@@ -332,8 +336,12 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             // Get a new chunk from the global allocator
             let current_footer_ptr = self.current_chunk_footer_ptr.get();
 
-            let current_layout = current_footer_ptr.as_ref().layout;
-            let current_size_without_footer = current_layout.size() - CHUNK_FOOTER_SIZE;
+            // For an empty arena (no chunks), treat the current chunk's "size without footer" as 0,
+            // so the doubling below still produces a sensible `min_new_chunk_size` floor.
+            let current_size_without_footer = match current_footer_ptr {
+                Some(footer_ptr) => footer_ptr.as_ref().layout.size() - CHUNK_FOOTER_SIZE,
+                None => 0,
+            };
 
             // By default, we want our new chunk to be about twice as big as the previous chunk.
             // If the global allocator refuses it, we try to divide it by half until it works
@@ -359,14 +367,8 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             debug_assert!(is_pointer_aligned_to(new_footer_ptr.as_ref().start_ptr, layout.align()));
 
             // Sync `Arena::cursor_ptr` back to the retiring chunk's footer so iteration over chunks
-            // can read its final cursor position later.
-            //
-            // Do not update `cursor_ptr` of the empty chunk.
-            // That update would be a no-op - when current chunk is the empty chunk, `self.cursor_ptr` always points
-            // to the empty chunk's footer, which is the existing value of empty chunk footer's `cursor_ptr` anyway.
-            // But nonetheless, the empty chunk footer is a `static`, accessible from all threads simultaneously.
-            // Updating it from 2 threads simultaneously would be a data race (UB), even though both writes are no-ops.
-            if !is_empty_footer(current_footer_ptr) {
+            // can read its final cursor position later. Skip this if there was no current chunk.
+            if let Some(current_footer_ptr) = current_footer_ptr {
                 current_footer_ptr.as_ref().cursor_ptr.set(self.cursor_ptr.get());
             }
 
@@ -375,7 +377,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             // The footer is aligned on `CHUNK_ALIGN >= MIN_ALIGN`, so no rounding is needed.
             self.start_ptr.set(new_footer_ptr.as_ref().start_ptr);
             self.cursor_ptr.set(new_footer_ptr.cast::<u8>());
-            self.current_chunk_footer_ptr.set(new_footer_ptr);
+            self.current_chunk_footer_ptr.set(Some(new_footer_ptr));
 
             // And then we can rely on `try_alloc_layout_fast` to allocate space within this chunk
             let ptr = self.try_alloc_layout_fast(layout);
