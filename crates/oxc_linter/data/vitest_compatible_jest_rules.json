@@ -1,5 +1,4 @@
 [
-  "max-expects",
   "max-nested-describe",
   "no-alias-methods",
   "no-commented-out-tests",

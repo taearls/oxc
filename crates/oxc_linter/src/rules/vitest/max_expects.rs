@@ -11,7 +11,7 @@ pub struct MaxExpects(Box<MaxExpectsConfig>);
 
 declare_oxc_lint!(
     MaxExpects,
-    jest,
+    vitest,
     style,
     config = MaxExpectsConfig,
     docs = DOCUMENTATION,
@@ -33,7 +33,7 @@ impl Rule for MaxExpects {
 fn test() {
     use crate::tester::Tester;
 
-    let pass = vec![
+    let mut pass = vec![
         ("test('should pass')", None),
         ("test('should pass', () => {})", None),
         ("test.skip('should pass', () => {})", None),
@@ -270,7 +270,62 @@ fn test() {
         ),
     ];
 
-    let fail = vec![
+    let pass_vitest = vec![
+        (
+            "test('should pass', () => {
+			      expect(true).toBeDefined();
+			      expect(true).toBeDefined();
+			      expect(true).toBeDefined();
+			      expect(true).toBeDefined();
+			      expect(true).toBeDefined();
+			    });",
+            None,
+        ),
+        (
+            "test('should pass', () => {
+			     expect(true).toBeDefined();
+			     expect(true).toBeDefined();
+			     expect(true).toBeDefined();
+			     expect(true).toBeDefined();
+			     expect(true).toBeDefined();
+			      });",
+            None,
+        ),
+        (
+            " test('should pass', async () => {
+			     expect.hasAssertions();
+
+			     expect(true).toBeDefined();
+			     expect(true).toBeDefined();
+			     expect(true).toBeDefined();
+			     expect(true).toBeDefined();
+			     expect(true).toEqual(expect.any(Boolean));
+			      });",
+            None,
+        ),
+        (
+            "import {describe, expect, test} from 'vitest';
+
+                describe('example', () => {
+                  const it = test.extend<{ result: number }>({
+                    result: async ({}, use) => {
+                      await use(42);
+                    },
+                  });
+
+                  it('works', ({ result }) => {
+                    expect(result).toBe(42);
+                  });
+                });
+
+                ",
+            None,
+        ),
+    ];
+
+    pass.extend(pass_vitest);
+
+    let mut fail = vec![
         (
             "
                 test('should not pass', function () {
@@ -383,7 +438,50 @@ fn test() {
         ),
     ];
 
+    let fail_vitest = vec![
+        (
+            "test('should not pass', function () {
+			       expect(true).toBeDefined();
+			       expect(true).toBeDefined();
+			       expect(true).toBeDefined();
+			       expect(true).toBeDefined();
+			       expect(true).toBeDefined();
+			       expect(true).toBeDefined();
+			     });
+			      ",
+            None,
+        ),
+        (
+            "test('should not pass', () => {
+			      expect(true).toBeDefined();
+			      expect(true).toBeDefined();
+			      expect(true).toBeDefined();
+			      expect(true).toBeDefined();
+			      expect(true).toBeDefined();
+			      expect(true).toBeDefined();
+			    });
+			    test('should not pass', () => {
+			      expect(true).toBeDefined();
+			      expect(true).toBeDefined();
+			      expect(true).toBeDefined();
+			      expect(true).toBeDefined();
+			      expect(true).toBeDefined();
+			      expect(true).toBeDefined();
+			    });",
+            None,
+        ),
+        (
+            "test('should not pass', () => {
+			      expect(true).toBeDefined();
+			      expect(true).toBeDefined();
+			       });",
+            Some(serde_json::json!([{ "max": 1 }])),
+        ),
+    ];
+
+    fail.extend(fail_vitest);
+
     Tester::new(MaxExpects::NAME, MaxExpects::PLUGIN, pass, fail)
-        .with_jest_plugin(true)
+        .with_vitest_plugin(true)
         .test_and_snapshot();
 }

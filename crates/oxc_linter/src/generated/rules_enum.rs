@@ -699,6 +699,7 @@ pub use crate::rules::vitest::consistent_test_it::ConsistentTestIt as VitestCons
 pub use crate::rules::vitest::consistent_vitest_vi::ConsistentVitestVi as VitestConsistentVitestVi;
 pub use crate::rules::vitest::expect_expect::ExpectExpect as VitestExpectExpect;
 pub use crate::rules::vitest::hoisted_apis_on_top::HoistedApisOnTop as VitestHoistedApisOnTop;
+pub use crate::rules::vitest::max_expects::MaxExpects as VitestMaxExpects;
 pub use crate::rules::vitest::no_conditional_tests::NoConditionalTests as VitestNoConditionalTests;
 pub use crate::rules::vitest::no_import_node_test::NoImportNodeTest as VitestNoImportNodeTest;
 pub use crate::rules::vitest::no_importing_vitest_globals::NoImportingVitestGlobals as VitestNoImportingVitestGlobals;
@@ -1433,6 +1434,7 @@ pub enum RuleEnum {
     VitestConsistentVitestVi(VitestConsistentVitestVi),
     VitestExpectExpect(VitestExpectExpect),
     VitestHoistedApisOnTop(VitestHoistedApisOnTop),
+    VitestMaxExpects(VitestMaxExpects),
     VitestNoConditionalTests(VitestNoConditionalTests),
     VitestNoImportNodeTest(VitestNoImportNodeTest),
     VitestNoImportingVitestGlobals(VitestNoImportingVitestGlobals),
@@ -2251,7 +2253,8 @@ const VITEST_CONSISTENT_TEST_IT_ID: usize = VITEST_CONSISTENT_TEST_FILENAME_ID +
 const VITEST_CONSISTENT_VITEST_VI_ID: usize = VITEST_CONSISTENT_TEST_IT_ID + 1usize;
 const VITEST_EXPECT_EXPECT_ID: usize = VITEST_CONSISTENT_VITEST_VI_ID + 1usize;
 const VITEST_HOISTED_APIS_ON_TOP_ID: usize = VITEST_EXPECT_EXPECT_ID + 1usize;
-const VITEST_NO_CONDITIONAL_TESTS_ID: usize = VITEST_HOISTED_APIS_ON_TOP_ID + 1usize;
+const VITEST_MAX_EXPECTS_ID: usize = VITEST_HOISTED_APIS_ON_TOP_ID + 1usize;
+const VITEST_NO_CONDITIONAL_TESTS_ID: usize = VITEST_MAX_EXPECTS_ID + 1usize;
 const VITEST_NO_IMPORT_NODE_TEST_ID: usize = VITEST_NO_CONDITIONAL_TESTS_ID + 1usize;
 const VITEST_NO_IMPORTING_VITEST_GLOBALS_ID: usize = VITEST_NO_IMPORT_NODE_TEST_ID + 1usize;
 const VITEST_PREFER_CALLED_EXACTLY_ONCE_WITH_ID: usize =
@@ -3098,6 +3101,7 @@ impl RuleEnum {
             Self::VitestConsistentVitestVi(_) => VITEST_CONSISTENT_VITEST_VI_ID,
             Self::VitestExpectExpect(_) => VITEST_EXPECT_EXPECT_ID,
             Self::VitestHoistedApisOnTop(_) => VITEST_HOISTED_APIS_ON_TOP_ID,
+            Self::VitestMaxExpects(_) => VITEST_MAX_EXPECTS_ID,
             Self::VitestNoConditionalTests(_) => VITEST_NO_CONDITIONAL_TESTS_ID,
             Self::VitestNoImportNodeTest(_) => VITEST_NO_IMPORT_NODE_TEST_ID,
             Self::VitestNoImportingVitestGlobals(_) => VITEST_NO_IMPORTING_VITEST_GLOBALS_ID,
@@ -3933,6 +3937,7 @@ impl RuleEnum {
             Self::VitestConsistentVitestVi(_) => VitestConsistentVitestVi::NAME,
             Self::VitestExpectExpect(_) => VitestExpectExpect::NAME,
             Self::VitestHoistedApisOnTop(_) => VitestHoistedApisOnTop::NAME,
+            Self::VitestMaxExpects(_) => VitestMaxExpects::NAME,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::NAME,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::NAME,
             Self::VitestNoImportingVitestGlobals(_) => VitestNoImportingVitestGlobals::NAME,
@@ -4810,6 +4815,7 @@ impl RuleEnum {
             Self::VitestConsistentVitestVi(_) => VitestConsistentVitestVi::CATEGORY,
             Self::VitestExpectExpect(_) => VitestExpectExpect::CATEGORY,
             Self::VitestHoistedApisOnTop(_) => VitestHoistedApisOnTop::CATEGORY,
+            Self::VitestMaxExpects(_) => VitestMaxExpects::CATEGORY,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::CATEGORY,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::CATEGORY,
             Self::VitestNoImportingVitestGlobals(_) => VitestNoImportingVitestGlobals::CATEGORY,
@@ -5654,6 +5660,7 @@ impl RuleEnum {
             Self::VitestConsistentVitestVi(_) => VitestConsistentVitestVi::FIX,
             Self::VitestExpectExpect(_) => VitestExpectExpect::FIX,
             Self::VitestHoistedApisOnTop(_) => VitestHoistedApisOnTop::FIX,
+            Self::VitestMaxExpects(_) => VitestMaxExpects::FIX,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::FIX,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::FIX,
             Self::VitestNoImportingVitestGlobals(_) => VitestNoImportingVitestGlobals::FIX,
@@ -6690,6 +6697,7 @@ impl RuleEnum {
             Self::VitestConsistentVitestVi(_) => VitestConsistentVitestVi::documentation(),
             Self::VitestExpectExpect(_) => VitestExpectExpect::documentation(),
             Self::VitestHoistedApisOnTop(_) => VitestHoistedApisOnTop::documentation(),
+            Self::VitestMaxExpects(_) => VitestMaxExpects::documentation(),
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::documentation(),
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::documentation(),
             Self::VitestNoImportingVitestGlobals(_) => {
@@ -8714,6 +8722,8 @@ impl RuleEnum {
                 .or_else(|| VitestExpectExpect::schema(generator)),
             Self::VitestHoistedApisOnTop(_) => VitestHoistedApisOnTop::config_schema(generator)
                 .or_else(|| VitestHoistedApisOnTop::schema(generator)),
+            Self::VitestMaxExpects(_) => VitestMaxExpects::config_schema(generator)
+                .or_else(|| VitestMaxExpects::schema(generator)),
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::config_schema(generator)
                 .or_else(|| VitestNoConditionalTests::schema(generator)),
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::config_schema(generator)
@@ -9528,6 +9538,7 @@ impl RuleEnum {
             Self::VitestConsistentVitestVi(_) => "vitest",
             Self::VitestExpectExpect(_) => "vitest",
             Self::VitestHoistedApisOnTop(_) => "vitest",
+            Self::VitestMaxExpects(_) => "vitest",
             Self::VitestNoConditionalTests(_) => "vitest",
             Self::VitestNoImportNodeTest(_) => "vitest",
             Self::VitestNoImportingVitestGlobals(_) => "vitest",
@@ -11780,6 +11791,9 @@ impl RuleEnum {
             Self::VitestHoistedApisOnTop(_) => {
                 Ok(Self::VitestHoistedApisOnTop(VitestHoistedApisOnTop::from_configuration(value)?))
             }
+            Self::VitestMaxExpects(_) => {
+                Ok(Self::VitestMaxExpects(VitestMaxExpects::from_configuration(value)?))
+            }
             Self::VitestNoConditionalTests(_) => Ok(Self::VitestNoConditionalTests(
                 VitestNoConditionalTests::from_configuration(value)?,
             )),
@@ -12615,6 +12629,7 @@ impl RuleEnum {
             Self::VitestConsistentVitestVi(rule) => rule.to_configuration(),
             Self::VitestExpectExpect(rule) => rule.to_configuration(),
             Self::VitestHoistedApisOnTop(rule) => rule.to_configuration(),
+            Self::VitestMaxExpects(rule) => rule.to_configuration(),
             Self::VitestNoConditionalTests(rule) => rule.to_configuration(),
             Self::VitestNoImportNodeTest(rule) => rule.to_configuration(),
             Self::VitestNoImportingVitestGlobals(rule) => rule.to_configuration(),
@@ -13350,6 +13365,7 @@ impl RuleEnum {
             Self::VitestConsistentVitestVi(rule) => rule.run(node, ctx),
             Self::VitestExpectExpect(rule) => rule.run(node, ctx),
             Self::VitestHoistedApisOnTop(rule) => rule.run(node, ctx),
+            Self::VitestMaxExpects(rule) => rule.run(node, ctx),
             Self::VitestNoConditionalTests(rule) => rule.run(node, ctx),
             Self::VitestNoImportNodeTest(rule) => rule.run(node, ctx),
             Self::VitestNoImportingVitestGlobals(rule) => rule.run(node, ctx),
@@ -14083,6 +14099,7 @@ impl RuleEnum {
             Self::VitestConsistentVitestVi(rule) => rule.run_once(ctx),
             Self::VitestExpectExpect(rule) => rule.run_once(ctx),
             Self::VitestHoistedApisOnTop(rule) => rule.run_once(ctx),
+            Self::VitestMaxExpects(rule) => rule.run_once(ctx),
             Self::VitestNoConditionalTests(rule) => rule.run_once(ctx),
             Self::VitestNoImportNodeTest(rule) => rule.run_once(ctx),
             Self::VitestNoImportingVitestGlobals(rule) => rule.run_once(ctx),
@@ -14918,6 +14935,7 @@ impl RuleEnum {
             Self::VitestConsistentVitestVi(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestExpectExpect(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestHoistedApisOnTop(rule) => rule.run_on_jest_node(jest_node, ctx),
+            Self::VitestMaxExpects(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestNoConditionalTests(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestNoImportNodeTest(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestNoImportingVitestGlobals(rule) => rule.run_on_jest_node(jest_node, ctx),
@@ -15653,6 +15671,7 @@ impl RuleEnum {
             Self::VitestConsistentVitestVi(rule) => rule.should_run(ctx),
             Self::VitestExpectExpect(rule) => rule.should_run(ctx),
             Self::VitestHoistedApisOnTop(rule) => rule.should_run(ctx),
+            Self::VitestMaxExpects(rule) => rule.should_run(ctx),
             Self::VitestNoConditionalTests(rule) => rule.should_run(ctx),
             Self::VitestNoImportNodeTest(rule) => rule.should_run(ctx),
             Self::VitestNoImportingVitestGlobals(rule) => rule.should_run(ctx),
@@ -16686,6 +16705,7 @@ impl RuleEnum {
             Self::VitestConsistentVitestVi(_) => VitestConsistentVitestVi::IS_TSGOLINT_RULE,
             Self::VitestExpectExpect(_) => VitestExpectExpect::IS_TSGOLINT_RULE,
             Self::VitestHoistedApisOnTop(_) => VitestHoistedApisOnTop::IS_TSGOLINT_RULE,
+            Self::VitestMaxExpects(_) => VitestMaxExpects::IS_TSGOLINT_RULE,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::IS_TSGOLINT_RULE,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::IS_TSGOLINT_RULE,
             Self::VitestNoImportingVitestGlobals(_) => {
@@ -17583,6 +17603,7 @@ impl RuleEnum {
             Self::VitestConsistentVitestVi(_) => VitestConsistentVitestVi::VERSION,
             Self::VitestExpectExpect(_) => VitestExpectExpect::VERSION,
             Self::VitestHoistedApisOnTop(_) => VitestHoistedApisOnTop::VERSION,
+            Self::VitestMaxExpects(_) => VitestMaxExpects::VERSION,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::VERSION,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::VERSION,
             Self::VitestNoImportingVitestGlobals(_) => VitestNoImportingVitestGlobals::VERSION,
@@ -18497,6 +18518,7 @@ impl RuleEnum {
             Self::VitestConsistentVitestVi(_) => VitestConsistentVitestVi::HAS_CONFIG,
             Self::VitestExpectExpect(_) => VitestExpectExpect::HAS_CONFIG,
             Self::VitestHoistedApisOnTop(_) => VitestHoistedApisOnTop::HAS_CONFIG,
+            Self::VitestMaxExpects(_) => VitestMaxExpects::HAS_CONFIG,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::HAS_CONFIG,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::HAS_CONFIG,
             Self::VitestNoImportingVitestGlobals(_) => VitestNoImportingVitestGlobals::HAS_CONFIG,
@@ -19244,6 +19266,7 @@ impl RuleEnum {
             Self::VitestConsistentVitestVi(rule) => rule.types_info(),
             Self::VitestExpectExpect(rule) => rule.types_info(),
             Self::VitestHoistedApisOnTop(rule) => rule.types_info(),
+            Self::VitestMaxExpects(rule) => rule.types_info(),
             Self::VitestNoConditionalTests(rule) => rule.types_info(),
             Self::VitestNoImportNodeTest(rule) => rule.types_info(),
             Self::VitestNoImportingVitestGlobals(rule) => rule.types_info(),
@@ -19977,6 +20000,7 @@ impl RuleEnum {
             Self::VitestConsistentVitestVi(rule) => rule.run_info(),
             Self::VitestExpectExpect(rule) => rule.run_info(),
             Self::VitestHoistedApisOnTop(rule) => rule.run_info(),
+            Self::VitestMaxExpects(rule) => rule.run_info(),
             Self::VitestNoConditionalTests(rule) => rule.run_info(),
             Self::VitestNoImportNodeTest(rule) => rule.run_info(),
             Self::VitestNoImportingVitestGlobals(rule) => rule.run_info(),
@@ -20830,6 +20854,7 @@ pub static RULES: std::sync::LazyLock<Vec<RuleEnum>> = std::sync::LazyLock::new(
         RuleEnum::VitestConsistentVitestVi(VitestConsistentVitestVi::default()),
         RuleEnum::VitestExpectExpect(VitestExpectExpect::default()),
         RuleEnum::VitestHoistedApisOnTop(VitestHoistedApisOnTop::default()),
+        RuleEnum::VitestMaxExpects(VitestMaxExpects::default()),
         RuleEnum::VitestNoConditionalTests(VitestNoConditionalTests::default()),
         RuleEnum::VitestNoImportNodeTest(VitestNoImportNodeTest::default()),
         RuleEnum::VitestNoImportingVitestGlobals(VitestNoImportingVitestGlobals::default()),
