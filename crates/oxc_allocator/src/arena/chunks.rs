@@ -243,10 +243,12 @@ impl<'a, const MIN_ALIGN: usize> Iterator for ChunkIter<'a, MIN_ALIGN> {
     type Item = &'a [mem::MaybeUninit<u8>];
 
     fn next(&mut self) -> Option<Self::Item> {
-        unsafe {
-            let (ptr, len) = self.raw.next()?;
-            Some(NonNull::slice_from_raw_parts(ptr.cast::<mem::MaybeUninit<u8>>(), len).as_ref())
-        }
+        let (ptr, len) = self.raw.next()?;
+        let slice_ptr = NonNull::slice_from_raw_parts(ptr.cast::<mem::MaybeUninit<u8>>(), len);
+        // SAFETY: The `ptr` & `len` pairs yielded by `ChunkRawIter` describe each chunk's allocation,
+        // each of which is part of a single allocation from the global allocator
+        let slice = unsafe { slice_ptr.as_ref() };
+        Some(slice)
     }
 }
 
@@ -273,23 +275,22 @@ impl<const MIN_ALIGN: usize> Iterator for ChunkRawIter<'_, MIN_ALIGN> {
     type Item = (NonNull<u8>, usize);
 
     fn next(&mut self) -> Option<(NonNull<u8>, usize)> {
-        unsafe {
-            let footer_ptr = self.footer_ptr?;
+        let footer_ptr = self.footer_ptr?;
 
-            let footer = footer_ptr.as_ref();
-            let cursor_ptr =
-                self.current_chunk_cursor_ptr.take().unwrap_or_else(|| footer.cursor_ptr.get());
-            let end_ptr = footer_ptr.cast::<u8>();
+        // SAFETY: `footer_ptr` always points to a valid `ChunkFooter`
+        let footer = unsafe { footer_ptr.as_ref() };
+        let cursor_ptr =
+            self.current_chunk_cursor_ptr.take().unwrap_or_else(|| footer.cursor_ptr.get());
+        let end_ptr = footer_ptr.cast::<u8>();
 
-            debug_assert!(footer.start_ptr <= cursor_ptr);
-            debug_assert!(cursor_ptr <= end_ptr);
+        debug_assert!(footer.start_ptr <= cursor_ptr);
+        debug_assert!(cursor_ptr <= end_ptr);
 
-            // SAFETY: `cursor_ptr` is always before or equal to `end_ptr`
-            let len = end_ptr.offset_from_unsigned(cursor_ptr);
-            self.footer_ptr = footer.previous_chunk_footer_ptr.get();
+        // SAFETY: `cursor_ptr` is always before or equal to `end_ptr`, and both are within the same allocation
+        let len = unsafe { end_ptr.offset_from_unsigned(cursor_ptr) };
+        self.footer_ptr = footer.previous_chunk_footer_ptr.get();
 
-            Some((cursor_ptr, len))
-        }
+        Some((cursor_ptr, len))
     }
 }
 
