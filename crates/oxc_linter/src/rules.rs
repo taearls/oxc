@@ -728,6 +728,7 @@ pub(crate) mod vitest {
     pub mod expect_expect;
     pub mod hoisted_apis_on_top;
     pub mod max_expects;
+    pub mod max_nested_describe;
     pub mod no_conditional_tests;
     pub mod no_import_node_test;
     pub mod no_importing_vitest_globals;
