@@ -86,15 +86,27 @@ impl<const MIN_ALIGN: usize> Drop for Arena<MIN_ALIGN> {
     }
 }
 
+/// Deallocate all chunks in linked list, starting with the chunk whose footer is pointed to by `footer_ptr`.
+///
+/// # SAFETY
+///
+/// `footer_ptr` must point to a valid `ChunkFooter`.
 #[inline]
-unsafe fn dealloc_chunk_list(mut footer_ptr: Option<NonNull<ChunkFooter>>) {
-    unsafe {
-        while let Some(current_footer_ptr) = footer_ptr {
-            footer_ptr = current_footer_ptr.as_ref().previous_chunk_footer_ptr.get();
-            alloc::dealloc(
-                current_footer_ptr.as_ref().start_ptr.as_ptr(),
-                current_footer_ptr.as_ref().layout,
-            );
-        }
+unsafe fn dealloc_chunk_list(footer_ptr: Option<NonNull<ChunkFooter>>) {
+    let mut next_footer_ptr = footer_ptr;
+
+    while let Some(footer_ptr) = next_footer_ptr {
+        // Create `&ChunkFooter` reference to within a block, to ensure the reference is not live
+        // when we deallocate the chunk's memory (which includes the `ChunkFooter`)
+        let (start_ptr, layout) = {
+            // SAFETY: `footer_ptr` always points to a valid `ChunkFooter`
+            let footer = unsafe { footer_ptr.as_ref() };
+            next_footer_ptr = footer.previous_chunk_footer_ptr.get();
+            (footer.start_ptr, footer.layout)
+        };
+
+        // SAFETY: Each `ChunkFooter`'s `start_ptr` and `layout` describe its backing allocation,
+        // which was allocated from the global allocator
+        unsafe { alloc::dealloc(start_ptr.as_ptr(), layout) };
     }
 }
