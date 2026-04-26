@@ -388,9 +388,8 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
 
         debug_assert!(align.is_multiple_of(CHUNK_ALIGN));
         debug_assert!(new_size_without_footer.is_multiple_of(CHUNK_ALIGN));
-        let size = new_size_without_footer
-            .checked_add(CHUNK_FOOTER_SIZE)
-            .unwrap_or_else(allocation_size_overflow);
+        // Cannot overflow because `CHUNK_FOOTER_SIZE < OVERHEAD`, and we just subtracted `OVERHEAD`
+        let size = new_size_without_footer + CHUNK_FOOTER_SIZE;
 
         Some(NewChunkMemoryDetails { new_size_without_footer, align, size })
     }
@@ -439,10 +438,4 @@ impl<const MIN_ALIGN: usize> Default for Arena<MIN_ALIGN> {
     fn default() -> Self {
         Self::with_min_align()
     }
-}
-
-#[cold]
-#[inline(never)]
-fn allocation_size_overflow<T>() -> T {
-    panic!("requested allocation size overflowed")
 }
