@@ -345,7 +345,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 if base_size >= min_new_chunk_size {
                     let size = base_size;
                     base_size /= 2;
-                    Self::new_chunk_memory_details(Some(size), layout)
+                    Self::new_chunk_memory_details(size, layout)
                 } else {
                     None
                 }

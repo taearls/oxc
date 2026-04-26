@@ -271,10 +271,14 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
 
         let chunk_footer_ptr = unsafe {
             Self::new_chunk(
-                // `new_size_without_footer` here was `None` in original `bumpalo` code.
-                // Changed to `Some(capacity)` when we increased `FIRST_ALLOCATION_GOAL` to 16 KiB,
+                // In original `bumpalo` code, `new_chunk_memory_details` took `Option<usize>`
+                // as `new_size_without_footer`, and converted `None` to `DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER`.
+                // Here it called `new_chunk_memory_details` with `None`, so chunk size was always increased
+                // to `DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER` at minimum.
+                //
+                // We changed this behavior when we increased `FIRST_ALLOCATION_GOAL` to 16 KiB,
                 // to avoid `Arena::with_capacity` allocating 16 KiB even when requested `capacity` is much smaller.
-                Self::new_chunk_memory_details(Some(capacity), layout).ok_or(AllocErr)?,
+                Self::new_chunk_memory_details(capacity, layout).ok_or(AllocErr)?,
                 layout,
                 EMPTY_CHUNK_FOOTER.get(),
             )
@@ -317,7 +321,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// Determine the memory details including final size, alignment, and final size without footer
     /// for a new chunk that would be allocated to fulfill an allocation request.
     pub(super) fn new_chunk_memory_details(
-        new_size_without_footer: Option<usize>,
+        new_size_without_footer: usize,
         requested_layout: Layout,
     ) -> Option<NewChunkMemoryDetails> {
         // We must have `CHUNK_ALIGN` or better alignment...
@@ -327,13 +331,10 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             // and make sure we satisfy the requested allocation's alignment
             .max(requested_layout.align());
 
-        let mut new_size_without_footer =
-            new_size_without_footer.unwrap_or(DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER);
-
         // SAFETY: `Layout::size()` is always `<= isize::MAX`. `align` is a `usize` power of 2.
         // So rounding up can result in at maximum `isize::MAX + 1` - cannot overflow `usize`.
         let requested_size = unsafe { round_up_to_unchecked(requested_layout.size(), align) };
-        new_size_without_footer = new_size_without_footer.max(requested_size);
+        let new_size_without_footer = new_size_without_footer.max(requested_size);
 
         // We want our allocations to play nice with the memory allocator, and waste as little memory as possible.
         // For small allocations, this means that the entire allocation including the chunk footer and `malloc`'s
