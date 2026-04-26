@@ -333,22 +333,25 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 return None;
             }
 
-            // Get a new chunk from the global allocator
             let current_footer_ptr = self.current_chunk_footer_ptr.get();
 
-            // For an empty arena (no chunks), treat the current chunk's "size without footer" as 0,
-            // so the doubling below still produces a sensible `min_new_chunk_size` floor.
-            let current_size_without_footer = match current_footer_ptr {
-                Some(footer_ptr) => footer_ptr.as_ref().layout.size() - CHUNK_FOOTER_SIZE,
-                None => 0,
-            };
-
+            // Get a new chunk from the global allocator.
             // By default, we want our new chunk to be about twice as big as the previous chunk.
-            // If the global allocator refuses it, we try to divide it by half until it works
-            // or the requested size is smaller than the default footer size.
+            // If the global allocator refuses it, we try to divide it by half until it works for `layout`
+            // or the requested size is smaller than the default chunk size.
             let min_new_chunk_size = layout.size().max(DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER);
-            // `current_size_without_footer * 2` cannot overflow because `Layout::size()` is always `<= isize::MAX`
-            let mut base_size = (current_size_without_footer * 2).max(min_new_chunk_size);
+
+            let mut base_size = match current_footer_ptr {
+                // Double the size of the current chunk, but not less than `min_new_chunk_size`
+                Some(footer_ptr) => {
+                    let current_size_without_footer =
+                        footer_ptr.as_ref().layout.size() - CHUNK_FOOTER_SIZE;
+                    // `current_size_without_footer * 2` cannot overflow because `Layout::size()` is always `<= isize::MAX`
+                    max(current_size_without_footer * 2, min_new_chunk_size)
+                }
+                // No existing chunks, so just use `min_new_chunk_size`
+                None => min_new_chunk_size,
+            };
 
             let mut chunk_memory_details = iter::from_fn(|| {
                 if base_size >= min_new_chunk_size {
