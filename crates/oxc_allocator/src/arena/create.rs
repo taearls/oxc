@@ -18,12 +18,22 @@ use super::{
     },
 };
 
+// IMPORTANT:
+// The const assertions here are relied on by `Arena::new_chunk_memory_details`.
+// If we change any constants, and these assertions fail, we'd need to alter the logic
+// in `Arena::new_chunk_memory_details` as well as the assertions, to account for the change.
+
 /// The typical page size these days.
 ///
 /// Note that we don't need to exactly match page size for correctness, and it is okay if this is smaller than
 /// the real page size in practice. It isn't worth the portability concerns and lack of const propagation that
 /// dynamically looking up the actual page size implies.
 const TYPICAL_PAGE_SIZE: usize = 0x1000;
+
+const _: () = {
+    assert!(TYPICAL_PAGE_SIZE.is_power_of_two());
+    assert!(TYPICAL_PAGE_SIZE <= (usize::MAX / 8) + 1);
+};
 
 // Check the hard-coded value in `ast_tools` raw transfer generator is accurate.
 // We can only do this check if we're on a 64-bit little-endian platform with the `fixed_size` feature enabled,
@@ -38,6 +48,11 @@ const _: () = {
 /// Maximum typical overhead per allocation imposed by allocators.
 const MALLOC_OVERHEAD: usize = 16;
 
+const _: () = {
+    assert!(MALLOC_OVERHEAD == CHUNK_ALIGN);
+    assert!(MALLOC_OVERHEAD < TYPICAL_PAGE_SIZE);
+};
+
 /// The overhead from malloc, footer and alignment.
 ///
 /// For instance, if we want to request a chunk of memory that has at least X bytes usable for allocations
@@ -49,11 +64,22 @@ const OVERHEAD: usize = match round_up_to(MALLOC_OVERHEAD + CHUNK_FOOTER_SIZE, C
     None => panic!(),
 };
 
+const _: () = {
+    assert!(OVERHEAD > CHUNK_FOOTER_SIZE);
+    assert!(OVERHEAD < TYPICAL_PAGE_SIZE); // Implies `OVERHEAD < (usize::MAX / 8) + 1`
+};
+
 /// The target size of our first allocation, including our overhead.
 ///
 /// The available capacity will be slightly smaller.
 /// 16 KiB covers the majority of real-world JS/TS files.
 const FIRST_ALLOCATION_GOAL: usize = 16 * 1024;
+
+const _: () = {
+    assert!(FIRST_ALLOCATION_GOAL.is_power_of_two());
+    assert!(FIRST_ALLOCATION_GOAL <= (usize::MAX / 8) + 1);
+    assert!(FIRST_ALLOCATION_GOAL > OVERHEAD);
+};
 
 /// Default chunk size for a new `Arena`, minus the size of the footer.
 ///
@@ -313,13 +339,52 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         // For small allocations, this means that the entire allocation including the chunk footer and `malloc`'s
         // internal overhead is as close to a power of two as we can go without going over.
         // For larger allocations, we only need to get close to a page boundary without going over.
-        if new_size_without_footer < TYPICAL_PAGE_SIZE {
-            new_size_without_footer =
-                (new_size_without_footer + OVERHEAD).next_power_of_two() - OVERHEAD;
+        let new_size_with_overhead = if new_size_without_footer < TYPICAL_PAGE_SIZE {
+            // `TYPICAL_PAGE_SIZE` and `OVERHEAD` are both `<= (usize::MAX / 8) + 1`.
+            // `new_size_without_footer < TYPICAL_PAGE_SIZE`, so:
+            // * `new_size_without_footer + OVERHEAD` is `<= usize::MAX / 4`, so cannot overflow `usize`.
+            // * `.next_power_of_two()` result is `<= (usize::MAX / 4) + 1`, so also cannot overflow `usize`.
+            (new_size_without_footer + OVERHEAD).next_power_of_two()
+
+            // `new_size_with_overhead`:
+            // * is always `>= OVERHEAD`.
+            // * is always `< isize::MAX`.
+            //
+            // `size` (`new_size_with_overhead - OVERHEAD + CHUNK_FOOTER_SIZE`):
+            // * is always a valid size for `Layout` for any value of `align` except `isize::MAX + 1`.
+            // * will *not* be a valid size for `Layout` with alignment `align` if `align == isize::MAX + 1`.
         } else {
-            new_size_without_footer =
-                round_up_to(new_size_without_footer + OVERHEAD, TYPICAL_PAGE_SIZE)? - OVERHEAD;
-        }
+            // There is no guarantee of max value of `new_size_without_footer`, so we need to check it here,
+            // to prevent overflow below.
+            //
+            // `MAX_SIZE_WITHOUT_FOOTER` is the maximum size without footer which can end up with a `size` value
+            // which is a valid `Layout` with `align == CHUNK_ALIGN` (the minimum).
+            // It does *not* guarantee that `size` can form a valid `Layout` for *any* value of `align`,
+            // but it does rule out definitely invalid sizes, without ruling out any possibly valid sizes.
+            // We could make this check looser, but we might as well rule out sizes that definitely won't work,
+            // and will fail later anyway.
+            const MAX_SIZE_WITHOUT_FOOTER: usize = isize::MAX as usize + 1 - OVERHEAD;
+            if new_size_without_footer > MAX_SIZE_WITHOUT_FOOTER {
+                return None;
+            }
+
+            // SAFETY: The check above guarantees that `new_size_without_footer + OVERHEAD` cannot overflow `usize`,
+            // and rounding up to `TYPICAL_PAGE_SIZE` also cannot overflow `usize`.
+            unsafe { round_up_to_unchecked(new_size_without_footer + OVERHEAD, TYPICAL_PAGE_SIZE) }
+
+            // `new_size_with_overhead`:
+            // * is always `>= OVERHEAD`.
+            // * is always `<= isize::MAX + 1`.
+            //
+            // `size` (`new_size_with_overhead - OVERHEAD + CHUNK_FOOTER_SIZE`):
+            // * is always a valid size for `Layout` with `align == CHUNK_ALIGN` (the minimum).
+            // * may *not* be a valid size for `Layout` with alignment `align` if `align > CHUNK_ALIGN`.
+        };
+
+        debug_assert!(new_size_with_overhead <= isize::MAX as usize + 1);
+
+        // Cannot underflow as `new_size_with_overhead` is `>= OVERHEAD`
+        let new_size_without_footer = new_size_with_overhead - OVERHEAD;
 
         debug_assert!(align.is_multiple_of(CHUNK_ALIGN));
         debug_assert!(new_size_without_footer.is_multiple_of(CHUNK_ALIGN));
