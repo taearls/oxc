@@ -7,4 +7,5 @@ pub mod no_commented_out_tests;
 pub mod no_conditional_expect;
 pub mod no_conditional_in_test;
 pub mod no_disabled_tests;
+pub mod no_duplicate_hooks;
 pub mod valid_title;

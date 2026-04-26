@@ -9,7 +9,7 @@ use crate::{
 #[derive(Debug, Default, Clone)]
 pub struct NoDuplicateHooks;
 
-declare_oxc_lint!(NoDuplicateHooks, jest, style, docs = DOCUMENTATION, version = "0.4.0",);
+declare_oxc_lint!(NoDuplicateHooks, vitest, style, docs = DOCUMENTATION, version = "0.4.0",);
 
 impl Rule for NoDuplicateHooks {
     fn run_once(&self, ctx: &LintContext) {
@@ -571,6 +571,6 @@ fn test() {
     fail.extend(fail_vitest);
 
     Tester::new(NoDuplicateHooks::NAME, NoDuplicateHooks::PLUGIN, pass, fail)
-        .with_jest_plugin(true)
+        .with_vitest_plugin(true)
         .test_and_snapshot();
 }

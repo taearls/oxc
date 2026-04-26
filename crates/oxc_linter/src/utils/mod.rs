@@ -37,8 +37,7 @@ pub use self::{
 // the crates/oxc_linter/data/vitest_compatible_jest_rules.json
 // file is also updated. The JSON file is used by the oxlint-migrate
 // and eslint-plugin-oxlint repos to keep everything synced.
-const VITEST_COMPATIBLE_JEST_RULES: [&str; 37] = [
-    "no-duplicate-hooks",
+const VITEST_COMPATIBLE_JEST_RULES: [&str; 36] = [
     "no-focused-tests",
     "no-hooks",
     "no-identical-title",

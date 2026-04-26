@@ -735,6 +735,7 @@ pub(crate) mod vitest {
     pub mod no_conditional_in_test;
     pub mod no_conditional_tests;
     pub mod no_disabled_tests;
+    pub mod no_duplicate_hooks;
     pub mod no_import_node_test;
     pub mod no_importing_vitest_globals;
     pub mod prefer_called_exactly_once_with;
