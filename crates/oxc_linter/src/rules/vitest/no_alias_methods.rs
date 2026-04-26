@@ -10,7 +10,7 @@ use crate::{
 #[derive(Debug, Default, Clone)]
 pub struct NoAliasMethods;
 
-declare_oxc_lint!(NoAliasMethods, jest, style, fix, docs = DOCUMENTATION, version = "0.0.12",);
+declare_oxc_lint!(NoAliasMethods, vitest, style, fix, docs = DOCUMENTATION, version = "0.0.12",);
 
 impl Rule for NoAliasMethods {
     fn run_on_jest_node<'a, 'c>(
@@ -26,7 +26,7 @@ impl Rule for NoAliasMethods {
 fn test() {
     use crate::tester::Tester;
 
-    let pass = vec![
+    let mut pass = vec![
         ("expect(a).toHaveBeenCalled()", None),
         ("expect(a).toHaveBeenCalledTimes()", None),
         ("expect(a).toHaveBeenCalledWith()", None),
@@ -42,7 +42,7 @@ fn test() {
         ("expect(a);", None),
     ];
 
-    let fail = vec![
+    let mut fail = vec![
         ("expect(a).toBeCalled()", None),
         ("expect(a).toBeCalledTimes()", None),
         ("expect(a).toBeCalledWith()", None),
@@ -60,14 +60,46 @@ fn test() {
         ("expect(a).not['toThrowError']()", None),
     ];
 
-    let fix = vec![
+    let mut fix = vec![
         ("expect(a).toBeCalled()", "expect(a).toHaveBeenCalled()", None),
         ("expect(a).not['toThrowError']()", "expect(a).not['toThrow']()", None),
         ("expect(a).not[`toThrowError`]()", "expect(a).not[`toThrow`]()", None),
     ];
 
+    let pass_vitest = vec![
+        "expect(a).toHaveBeenCalled()",
+        "expect(a).toHaveBeenCalledTimes()",
+        "expect(a).toHaveBeenCalledWith()",
+        "expect(a).toHaveBeenLastCalledWith()",
+        "expect(a).toHaveBeenNthCalledWith()",
+        "expect(a).toHaveReturned()",
+        "expect(a).toHaveReturnedTimes()",
+        "expect(a).toHaveReturnedWith()",
+        "expect(a).toHaveLastReturnedWith()",
+        "expect(a).toHaveNthReturnedWith()",
+        "expect(a).toThrow()",
+        "expect(a).rejects;",
+        "expect(a);",
+    ];
+
+    let fail_vitest = vec![
+        "expect(a).toBeCalled()",
+        "expect(a).toBeCalledTimes()",
+        r#"expect(a).not["toThrowError"]()"#,
+    ];
+
+    let fix_vitest = vec![
+        ("expect(a).toBeCalled()", "expect(a).toHaveBeenCalled()", None),
+        ("expect(a).toBeCalledTimes()", "expect(a).toHaveBeenCalledTimes()", None),
+        ("expect(a).not['toThrowError']()", "expect(a).not['toThrow']()", None),
+    ];
+
+    pass.extend(pass_vitest.into_iter().map(|x| (x, None)));
+    fail.extend(fail_vitest.into_iter().map(|x| (x, None)));
+    fix.extend(fix_vitest);
+
     Tester::new(NoAliasMethods::NAME, NoAliasMethods::PLUGIN, pass, fail)
-        .with_jest_plugin(true)
+        .with_vitest_plugin(true)
         .expect_fix(fix)
         .test_and_snapshot();
 }

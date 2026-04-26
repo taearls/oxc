@@ -701,6 +701,7 @@ pub use crate::rules::vitest::expect_expect::ExpectExpect as VitestExpectExpect;
 pub use crate::rules::vitest::hoisted_apis_on_top::HoistedApisOnTop as VitestHoistedApisOnTop;
 pub use crate::rules::vitest::max_expects::MaxExpects as VitestMaxExpects;
 pub use crate::rules::vitest::max_nested_describe::MaxNestedDescribe as VitestMaxNestedDescribe;
+pub use crate::rules::vitest::no_alias_methods::NoAliasMethods as VitestNoAliasMethods;
 pub use crate::rules::vitest::no_conditional_tests::NoConditionalTests as VitestNoConditionalTests;
 pub use crate::rules::vitest::no_import_node_test::NoImportNodeTest as VitestNoImportNodeTest;
 pub use crate::rules::vitest::no_importing_vitest_globals::NoImportingVitestGlobals as VitestNoImportingVitestGlobals;
@@ -1437,6 +1438,7 @@ pub enum RuleEnum {
     VitestHoistedApisOnTop(VitestHoistedApisOnTop),
     VitestMaxExpects(VitestMaxExpects),
     VitestMaxNestedDescribe(VitestMaxNestedDescribe),
+    VitestNoAliasMethods(VitestNoAliasMethods),
     VitestNoConditionalTests(VitestNoConditionalTests),
     VitestNoImportNodeTest(VitestNoImportNodeTest),
     VitestNoImportingVitestGlobals(VitestNoImportingVitestGlobals),
@@ -2257,7 +2259,8 @@ const VITEST_EXPECT_EXPECT_ID: usize = VITEST_CONSISTENT_VITEST_VI_ID + 1usize;
 const VITEST_HOISTED_APIS_ON_TOP_ID: usize = VITEST_EXPECT_EXPECT_ID + 1usize;
 const VITEST_MAX_EXPECTS_ID: usize = VITEST_HOISTED_APIS_ON_TOP_ID + 1usize;
 const VITEST_MAX_NESTED_DESCRIBE_ID: usize = VITEST_MAX_EXPECTS_ID + 1usize;
-const VITEST_NO_CONDITIONAL_TESTS_ID: usize = VITEST_MAX_NESTED_DESCRIBE_ID + 1usize;
+const VITEST_NO_ALIAS_METHODS_ID: usize = VITEST_MAX_NESTED_DESCRIBE_ID + 1usize;
+const VITEST_NO_CONDITIONAL_TESTS_ID: usize = VITEST_NO_ALIAS_METHODS_ID + 1usize;
 const VITEST_NO_IMPORT_NODE_TEST_ID: usize = VITEST_NO_CONDITIONAL_TESTS_ID + 1usize;
 const VITEST_NO_IMPORTING_VITEST_GLOBALS_ID: usize = VITEST_NO_IMPORT_NODE_TEST_ID + 1usize;
 const VITEST_PREFER_CALLED_EXACTLY_ONCE_WITH_ID: usize =
@@ -3106,6 +3109,7 @@ impl RuleEnum {
             Self::VitestHoistedApisOnTop(_) => VITEST_HOISTED_APIS_ON_TOP_ID,
             Self::VitestMaxExpects(_) => VITEST_MAX_EXPECTS_ID,
             Self::VitestMaxNestedDescribe(_) => VITEST_MAX_NESTED_DESCRIBE_ID,
+            Self::VitestNoAliasMethods(_) => VITEST_NO_ALIAS_METHODS_ID,
             Self::VitestNoConditionalTests(_) => VITEST_NO_CONDITIONAL_TESTS_ID,
             Self::VitestNoImportNodeTest(_) => VITEST_NO_IMPORT_NODE_TEST_ID,
             Self::VitestNoImportingVitestGlobals(_) => VITEST_NO_IMPORTING_VITEST_GLOBALS_ID,
@@ -3943,6 +3947,7 @@ impl RuleEnum {
             Self::VitestHoistedApisOnTop(_) => VitestHoistedApisOnTop::NAME,
             Self::VitestMaxExpects(_) => VitestMaxExpects::NAME,
             Self::VitestMaxNestedDescribe(_) => VitestMaxNestedDescribe::NAME,
+            Self::VitestNoAliasMethods(_) => VitestNoAliasMethods::NAME,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::NAME,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::NAME,
             Self::VitestNoImportingVitestGlobals(_) => VitestNoImportingVitestGlobals::NAME,
@@ -4822,6 +4827,7 @@ impl RuleEnum {
             Self::VitestHoistedApisOnTop(_) => VitestHoistedApisOnTop::CATEGORY,
             Self::VitestMaxExpects(_) => VitestMaxExpects::CATEGORY,
             Self::VitestMaxNestedDescribe(_) => VitestMaxNestedDescribe::CATEGORY,
+            Self::VitestNoAliasMethods(_) => VitestNoAliasMethods::CATEGORY,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::CATEGORY,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::CATEGORY,
             Self::VitestNoImportingVitestGlobals(_) => VitestNoImportingVitestGlobals::CATEGORY,
@@ -5668,6 +5674,7 @@ impl RuleEnum {
             Self::VitestHoistedApisOnTop(_) => VitestHoistedApisOnTop::FIX,
             Self::VitestMaxExpects(_) => VitestMaxExpects::FIX,
             Self::VitestMaxNestedDescribe(_) => VitestMaxNestedDescribe::FIX,
+            Self::VitestNoAliasMethods(_) => VitestNoAliasMethods::FIX,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::FIX,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::FIX,
             Self::VitestNoImportingVitestGlobals(_) => VitestNoImportingVitestGlobals::FIX,
@@ -6706,6 +6713,7 @@ impl RuleEnum {
             Self::VitestHoistedApisOnTop(_) => VitestHoistedApisOnTop::documentation(),
             Self::VitestMaxExpects(_) => VitestMaxExpects::documentation(),
             Self::VitestMaxNestedDescribe(_) => VitestMaxNestedDescribe::documentation(),
+            Self::VitestNoAliasMethods(_) => VitestNoAliasMethods::documentation(),
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::documentation(),
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::documentation(),
             Self::VitestNoImportingVitestGlobals(_) => {
@@ -8734,6 +8742,8 @@ impl RuleEnum {
                 .or_else(|| VitestMaxExpects::schema(generator)),
             Self::VitestMaxNestedDescribe(_) => VitestMaxNestedDescribe::config_schema(generator)
                 .or_else(|| VitestMaxNestedDescribe::schema(generator)),
+            Self::VitestNoAliasMethods(_) => VitestNoAliasMethods::config_schema(generator)
+                .or_else(|| VitestNoAliasMethods::schema(generator)),
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::config_schema(generator)
                 .or_else(|| VitestNoConditionalTests::schema(generator)),
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::config_schema(generator)
@@ -9550,6 +9560,7 @@ impl RuleEnum {
             Self::VitestHoistedApisOnTop(_) => "vitest",
             Self::VitestMaxExpects(_) => "vitest",
             Self::VitestMaxNestedDescribe(_) => "vitest",
+            Self::VitestNoAliasMethods(_) => "vitest",
             Self::VitestNoConditionalTests(_) => "vitest",
             Self::VitestNoImportNodeTest(_) => "vitest",
             Self::VitestNoImportingVitestGlobals(_) => "vitest",
@@ -11808,6 +11819,9 @@ impl RuleEnum {
             Self::VitestMaxNestedDescribe(_) => Ok(Self::VitestMaxNestedDescribe(
                 VitestMaxNestedDescribe::from_configuration(value)?,
             )),
+            Self::VitestNoAliasMethods(_) => {
+                Ok(Self::VitestNoAliasMethods(VitestNoAliasMethods::from_configuration(value)?))
+            }
             Self::VitestNoConditionalTests(_) => Ok(Self::VitestNoConditionalTests(
                 VitestNoConditionalTests::from_configuration(value)?,
             )),
@@ -12645,6 +12659,7 @@ impl RuleEnum {
             Self::VitestHoistedApisOnTop(rule) => rule.to_configuration(),
             Self::VitestMaxExpects(rule) => rule.to_configuration(),
             Self::VitestMaxNestedDescribe(rule) => rule.to_configuration(),
+            Self::VitestNoAliasMethods(rule) => rule.to_configuration(),
             Self::VitestNoConditionalTests(rule) => rule.to_configuration(),
             Self::VitestNoImportNodeTest(rule) => rule.to_configuration(),
             Self::VitestNoImportingVitestGlobals(rule) => rule.to_configuration(),
@@ -13382,6 +13397,7 @@ impl RuleEnum {
             Self::VitestHoistedApisOnTop(rule) => rule.run(node, ctx),
             Self::VitestMaxExpects(rule) => rule.run(node, ctx),
             Self::VitestMaxNestedDescribe(rule) => rule.run(node, ctx),
+            Self::VitestNoAliasMethods(rule) => rule.run(node, ctx),
             Self::VitestNoConditionalTests(rule) => rule.run(node, ctx),
             Self::VitestNoImportNodeTest(rule) => rule.run(node, ctx),
             Self::VitestNoImportingVitestGlobals(rule) => rule.run(node, ctx),
@@ -14117,6 +14133,7 @@ impl RuleEnum {
             Self::VitestHoistedApisOnTop(rule) => rule.run_once(ctx),
             Self::VitestMaxExpects(rule) => rule.run_once(ctx),
             Self::VitestMaxNestedDescribe(rule) => rule.run_once(ctx),
+            Self::VitestNoAliasMethods(rule) => rule.run_once(ctx),
             Self::VitestNoConditionalTests(rule) => rule.run_once(ctx),
             Self::VitestNoImportNodeTest(rule) => rule.run_once(ctx),
             Self::VitestNoImportingVitestGlobals(rule) => rule.run_once(ctx),
@@ -14954,6 +14971,7 @@ impl RuleEnum {
             Self::VitestHoistedApisOnTop(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestMaxExpects(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestMaxNestedDescribe(rule) => rule.run_on_jest_node(jest_node, ctx),
+            Self::VitestNoAliasMethods(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestNoConditionalTests(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestNoImportNodeTest(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestNoImportingVitestGlobals(rule) => rule.run_on_jest_node(jest_node, ctx),
@@ -15691,6 +15709,7 @@ impl RuleEnum {
             Self::VitestHoistedApisOnTop(rule) => rule.should_run(ctx),
             Self::VitestMaxExpects(rule) => rule.should_run(ctx),
             Self::VitestMaxNestedDescribe(rule) => rule.should_run(ctx),
+            Self::VitestNoAliasMethods(rule) => rule.should_run(ctx),
             Self::VitestNoConditionalTests(rule) => rule.should_run(ctx),
             Self::VitestNoImportNodeTest(rule) => rule.should_run(ctx),
             Self::VitestNoImportingVitestGlobals(rule) => rule.should_run(ctx),
@@ -16726,6 +16745,7 @@ impl RuleEnum {
             Self::VitestHoistedApisOnTop(_) => VitestHoistedApisOnTop::IS_TSGOLINT_RULE,
             Self::VitestMaxExpects(_) => VitestMaxExpects::IS_TSGOLINT_RULE,
             Self::VitestMaxNestedDescribe(_) => VitestMaxNestedDescribe::IS_TSGOLINT_RULE,
+            Self::VitestNoAliasMethods(_) => VitestNoAliasMethods::IS_TSGOLINT_RULE,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::IS_TSGOLINT_RULE,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::IS_TSGOLINT_RULE,
             Self::VitestNoImportingVitestGlobals(_) => {
@@ -17625,6 +17645,7 @@ impl RuleEnum {
             Self::VitestHoistedApisOnTop(_) => VitestHoistedApisOnTop::VERSION,
             Self::VitestMaxExpects(_) => VitestMaxExpects::VERSION,
             Self::VitestMaxNestedDescribe(_) => VitestMaxNestedDescribe::VERSION,
+            Self::VitestNoAliasMethods(_) => VitestNoAliasMethods::VERSION,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::VERSION,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::VERSION,
             Self::VitestNoImportingVitestGlobals(_) => VitestNoImportingVitestGlobals::VERSION,
@@ -18541,6 +18562,7 @@ impl RuleEnum {
             Self::VitestHoistedApisOnTop(_) => VitestHoistedApisOnTop::HAS_CONFIG,
             Self::VitestMaxExpects(_) => VitestMaxExpects::HAS_CONFIG,
             Self::VitestMaxNestedDescribe(_) => VitestMaxNestedDescribe::HAS_CONFIG,
+            Self::VitestNoAliasMethods(_) => VitestNoAliasMethods::HAS_CONFIG,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::HAS_CONFIG,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::HAS_CONFIG,
             Self::VitestNoImportingVitestGlobals(_) => VitestNoImportingVitestGlobals::HAS_CONFIG,
@@ -19290,6 +19312,7 @@ impl RuleEnum {
             Self::VitestHoistedApisOnTop(rule) => rule.types_info(),
             Self::VitestMaxExpects(rule) => rule.types_info(),
             Self::VitestMaxNestedDescribe(rule) => rule.types_info(),
+            Self::VitestNoAliasMethods(rule) => rule.types_info(),
             Self::VitestNoConditionalTests(rule) => rule.types_info(),
             Self::VitestNoImportNodeTest(rule) => rule.types_info(),
             Self::VitestNoImportingVitestGlobals(rule) => rule.types_info(),
@@ -20025,6 +20048,7 @@ impl RuleEnum {
             Self::VitestHoistedApisOnTop(rule) => rule.run_info(),
             Self::VitestMaxExpects(rule) => rule.run_info(),
             Self::VitestMaxNestedDescribe(rule) => rule.run_info(),
+            Self::VitestNoAliasMethods(rule) => rule.run_info(),
             Self::VitestNoConditionalTests(rule) => rule.run_info(),
             Self::VitestNoImportNodeTest(rule) => rule.run_info(),
             Self::VitestNoImportingVitestGlobals(rule) => rule.run_info(),
@@ -20880,6 +20904,7 @@ pub static RULES: std::sync::LazyLock<Vec<RuleEnum>> = std::sync::LazyLock::new(
         RuleEnum::VitestHoistedApisOnTop(VitestHoistedApisOnTop::default()),
         RuleEnum::VitestMaxExpects(VitestMaxExpects::default()),
         RuleEnum::VitestMaxNestedDescribe(VitestMaxNestedDescribe::default()),
+        RuleEnum::VitestNoAliasMethods(VitestNoAliasMethods::default()),
         RuleEnum::VitestNoConditionalTests(VitestNoConditionalTests::default()),
         RuleEnum::VitestNoImportNodeTest(VitestNoImportNodeTest::default()),
         RuleEnum::VitestNoImportingVitestGlobals(VitestNoImportingVitestGlobals::default()),
