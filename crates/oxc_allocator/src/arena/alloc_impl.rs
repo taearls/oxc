@@ -4,7 +4,7 @@
 //! They all ultimately call into `alloc_layout` or `try_alloc_layout`, defined in this module.
 //! (`alloc_layout` and `try_alloc_layout` are also public methods)
 
-use std::{alloc::Layout, cmp::max, iter, ptr::NonNull};
+use std::{alloc::Layout, cmp::max, ptr::NonNull};
 
 use allocator_api2::alloc::{AllocError, Allocator};
 
@@ -341,7 +341,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             // or the requested size is smaller than the default chunk size.
             let min_new_chunk_size = layout.size().max(DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER);
 
-            let mut base_size = match current_footer_ptr {
+            let mut size = match current_footer_ptr {
                 // Double the size of the current chunk, but not less than `min_new_chunk_size`
                 Some(footer_ptr) => {
                     let current_size_without_footer =
@@ -353,19 +353,25 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 None => min_new_chunk_size,
             };
 
-            let mut chunk_memory_details = iter::from_fn(|| {
-                if base_size >= min_new_chunk_size {
-                    let size = base_size;
-                    base_size /= 2;
-                    Self::new_chunk_memory_details(size, layout)
-                } else {
-                    None
+            let new_footer_ptr = loop {
+                // Try to allocate a chunk of `size` bytes (plus footer and rounding)
+                let chunk_memory_details = Self::new_chunk_memory_details(size, layout);
+                if let Some(chunk_memory_details) = chunk_memory_details {
+                    let new_footer_ptr =
+                        Self::new_chunk(chunk_memory_details, layout, current_footer_ptr);
+                    if let Some(new_footer_ptr) = new_footer_ptr {
+                        break new_footer_ptr;
+                    }
                 }
-            });
 
-            let new_footer_ptr = chunk_memory_details.find_map(|new_chunk_memory_details| {
-                Self::new_chunk(new_chunk_memory_details, layout, current_footer_ptr)
-            })?;
+                // Failed. Halve size and try again.
+                // TODO: Before admitting defeat, try one last time with minimum size required to service the request.
+                // This can be a value somewhere between `size` and `size / 2`.
+                size /= 2;
+                if size < min_new_chunk_size {
+                    return None;
+                }
+            };
 
             debug_assert!(is_pointer_aligned_to(new_footer_ptr.as_ref().start_ptr, layout.align()));
 
