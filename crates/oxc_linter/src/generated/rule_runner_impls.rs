@@ -4603,6 +4603,14 @@ impl RuleRunner for crate::rules::vue::no_arrow_functions_in_watch::NoArrowFunct
 }
 
 impl RuleRunner
+    for crate::rules::vue::no_deprecated_data_object_declaration::NoDeprecatedDataObjectDeclaration
+{
+    const NODE_TYPES: Option<&AstTypesBitset> =
+        Some(&AstTypesBitset::from_types(&[AstType::ObjectProperty]));
+    const RUN_FUNCTIONS: RuleRunFunctionsImplemented = RuleRunFunctionsImplemented::Run;
+}
+
+impl RuleRunner
     for crate::rules::vue::no_deprecated_destroyed_lifecycle::NoDeprecatedDestroyedLifecycle
 {
     const NODE_TYPES: Option<&AstTypesBitset> =

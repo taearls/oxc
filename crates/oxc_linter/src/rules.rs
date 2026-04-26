@@ -770,6 +770,7 @@ pub(crate) mod vue {
     pub mod define_props_destructuring;
     pub mod max_props;
     pub mod no_arrow_functions_in_watch;
+    pub mod no_deprecated_data_object_declaration;
     pub mod no_deprecated_destroyed_lifecycle;
     pub mod no_deprecated_vue_config_keycodes;
     pub mod no_export_in_script_setup;
