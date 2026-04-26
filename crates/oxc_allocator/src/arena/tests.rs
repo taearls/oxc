@@ -31,7 +31,7 @@ fn allocated_and_used_bytes() {
 
     // Each new chunk is sized to twice the previous chunk's allocatable space, rounded up to a page
     // boundary (after accounting for `OVERHEAD` = 16-byte malloc overhead + footer).
-    // Mirrors the formula in `Arena::new_chunk_memory_details`.
+    // Mirrors the formula in `Arena::new_chunk`.
     const fn next_chunk_size(prev: usize) -> usize {
         let raw = 2 * prev + OVERHEAD;
         let aligned = (raw + TYPICAL_PAGE_SIZE - 1) & !(TYPICAL_PAGE_SIZE - 1);

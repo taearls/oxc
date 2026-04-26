@@ -19,9 +19,9 @@ use super::{
 };
 
 // IMPORTANT:
-// The const assertions here are relied on by `Arena::new_chunk_memory_details`.
+// The const assertions here are relied on by `Arena::new_chunk`.
 // If we change any constants, and these assertions fail, we'd need to alter the logic
-// in `Arena::new_chunk_memory_details` as well as the assertions, to account for the change.
+// in `Arena::new_chunk` as well as the assertions, to account for the change.
 
 /// The typical page size these days.
 ///
@@ -88,14 +88,6 @@ const _: () = {
 /// We're trying to avoid this kind of situation:
 /// <https://blog.mozilla.org/nnethercote/2011/08/05/clownshoes-available-in-sizes-2101-and-up/>
 pub const DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER: usize = FIRST_ALLOCATION_GOAL - OVERHEAD;
-
-/// The memory size and alignment details for a potential new chunk allocation.
-#[derive(Debug, Clone, Copy)]
-pub struct NewChunkMemoryDetails {
-    new_size_without_footer: usize,
-    align: usize,
-    size: usize,
-}
 
 // Note: We don't have constructors as methods on `impl<N> Arena<N>` that return `Self` because then `rustc`
 // can't infer the `N` if it isn't explicitly provided, even though it has a default value.
@@ -269,21 +261,16 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
 
         let layout = layout_from_size_align(capacity, MIN_ALIGN)?;
 
-        let chunk_footer_ptr = unsafe {
-            Self::new_chunk(
-                // In original `bumpalo` code, `new_chunk_memory_details` took `Option<usize>`
-                // as `new_size_without_footer`, and converted `None` to `DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER`.
-                // Here it called `new_chunk_memory_details` with `None`, so chunk size was always increased
-                // to `DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER` at minimum.
-                //
-                // We changed this behavior when we increased `FIRST_ALLOCATION_GOAL` to 16 KiB,
-                // to avoid `Arena::with_capacity` allocating 16 KiB even when requested `capacity` is much smaller.
-                Self::new_chunk_memory_details(capacity, layout).ok_or(AllocErr)?,
-                layout,
-                None,
-            )
-            .ok_or(AllocErr)?
-        };
+        // In original `bumpalo` code, `new_chunk` took `Option<usize>` as `new_size_without_footer`,
+        // and converted `None` to `DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER`. Here it was always called with
+        // `None`, so chunk size was always increased to `DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER` at minimum.
+        //
+        // We changed this behavior when we increased `FIRST_ALLOCATION_GOAL` to 16 KiB, to avoid
+        // `Arena::with_capacity` allocating 16 KiB even when requested `capacity` is much smaller.
+        //
+        // SAFETY: We pass `None` as `previous_chunk_footer_ptr` (because we're creating the first chunk).
+        let chunk_footer_ptr = unsafe { Self::new_chunk(capacity, layout, None) };
+        let chunk_footer_ptr = chunk_footer_ptr.ok_or(AllocErr)?;
 
         // SAFETY: `chunk_footer_ptr` points to a valid `ChunkFooter`
         let start_ptr = unsafe { chunk_footer_ptr.as_ref().start_ptr };
@@ -328,12 +315,27 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         }
     }
 
-    /// Determine the memory details including final size, alignment, and final size without footer
-    /// for a new chunk that would be allocated to fulfill an allocation request.
-    pub(super) fn new_chunk_memory_details(
+    /// Allocate a new chunk and return its initialized footer.
+    ///
+    /// The actual chunk size is derived from `new_size_without_footer` and `requested_layout`,
+    /// rounded up to play nicely with the global allocator
+    /// (power of two for small chunks, or a page boundary for larger ones).
+    ///
+    /// `previous_chunk_footer_ptr` is `None` when the new chunk will be the first chunk in the arena.
+    ///
+    /// Returns `None` if either:
+    /// * The requested size/layout is too large for the global allocator to service.
+    /// * The global allocator fails to allocate the requested size.
+    ///
+    /// # SAFETY
+    ///
+    /// `previous_chunk_footer_ptr` must point to the current `ChunkFooter` for this `Arena`,
+    /// or `None` if this will be the first chunk in the arena.
+    pub(super) unsafe fn new_chunk(
         new_size_without_footer: usize,
         requested_layout: Layout,
-    ) -> Option<NewChunkMemoryDetails> {
+        previous_chunk_footer_ptr: Option<NonNull<ChunkFooter>>,
+    ) -> Option<NonNull<ChunkFooter>> {
         // We must have `CHUNK_ALIGN` or better alignment...
         let align = CHUNK_ALIGN
             // and we have to have at least our configured minimum alignment...
@@ -402,25 +404,11 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         // Cannot overflow because `CHUNK_FOOTER_SIZE < OVERHEAD`, and we just subtracted `OVERHEAD`
         let size = new_size_without_footer + CHUNK_FOOTER_SIZE;
 
-        Some(NewChunkMemoryDetails { new_size_without_footer, align, size })
-    }
+        let layout = layout_from_size_align(size, align).ok()?;
 
-    /// Allocate a new chunk and return its initialized footer.
-    ///
-    /// `previous_chunk_footer_ptr` is `None` when the new chunk will be the first chunk in the arena.
-    pub(super) unsafe fn new_chunk(
-        new_chunk_memory_details: NewChunkMemoryDetails,
-        requested_layout: Layout,
-        previous_chunk_footer_ptr: Option<NonNull<ChunkFooter>>,
-    ) -> Option<NonNull<ChunkFooter>> {
+        debug_assert!(size >= requested_layout.size());
+
         unsafe {
-            let NewChunkMemoryDetails { new_size_without_footer, align, size } =
-                new_chunk_memory_details;
-
-            let layout = layout_from_size_align(size, align).ok()?;
-
-            debug_assert!(size >= requested_layout.size());
-
             let start_ptr = alloc::alloc(layout);
             let start_ptr = NonNull::new(start_ptr)?;
 

@@ -354,14 +354,11 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             };
 
             let new_footer_ptr = loop {
-                // Try to allocate a chunk of `size` bytes (plus footer and rounding)
-                let chunk_memory_details = Self::new_chunk_memory_details(size, layout);
-                if let Some(chunk_memory_details) = chunk_memory_details {
-                    let new_footer_ptr =
-                        Self::new_chunk(chunk_memory_details, layout, current_footer_ptr);
-                    if let Some(new_footer_ptr) = new_footer_ptr {
-                        break new_footer_ptr;
-                    }
+                // Try to allocate a chunk of `size` bytes (plus footer and rounding).
+                // SAFETY: `current_footer_ptr` points to a valid `ChunkFooter` for a chunk in this `Arena`,
+                // or it's `None`.
+                if let Some(new_footer_ptr) = Self::new_chunk(size, layout, current_footer_ptr) {
+                    break new_footer_ptr;
                 }
 
                 // Failed. Halve size and try again.
