@@ -10,7 +10,13 @@ use crate::{
 #[derive(Debug, Default, Clone)]
 pub struct NoConditionalExpect;
 
-declare_oxc_lint!(NoConditionalExpect, jest, correctness, docs = DOCUMENTATION, version = "0.0.12",);
+declare_oxc_lint!(
+    NoConditionalExpect,
+    vitest,
+    correctness,
+    docs = DOCUMENTATION,
+    version = "0.0.12",
+);
 
 impl Rule for NoConditionalExpect {
     fn run_on_jest_node<'a, 'c>(
@@ -26,7 +32,7 @@ impl Rule for NoConditionalExpect {
 fn test() {
     use crate::tester::Tester;
 
-    let pass = vec![
+    let mut pass = vec![
         (
             "
                 it('foo', () => {
@@ -300,7 +306,7 @@ fn test() {
         ),
     ];
 
-    let fail = vec![
+    let mut fail = vec![
         (
             "
                 it('foo', () => {
@@ -755,7 +761,108 @@ fn test() {
         ),
     ];
 
+    let pass_vitest = vec![
+        "
+            it('foo', () => {
+                process.env.FAIL && setNum(1);
+
+                expect(num).toBe(2);
+            });
+        ",
+        "
+            function getValue() {
+                let num = 2;
+
+                process.env.FAIL && setNum(1);
+
+                return num;
+            }
+
+            it('foo', () => {
+                expect(getValue()).toBe(2);
+            });
+        ",
+        "
+            function getValue() {
+                let num = 2;
+
+                process.env.FAIL || setNum(1);
+
+                return num;
+            }
+
+            it('foo', () => {
+                expect(getValue()).toBe(2);
+            });
+        ",
+        "
+            it('foo', () => {
+                const num = process.env.FAIL ? 1 : 2;
+
+                expect(num).toBe(2);
+            });
+        ",
+        "
+            function getValue() {
+                return process.env.FAIL ? 1 : 2
+            }
+
+            it('foo', () => {
+                expect(getValue()).toBe(2);
+            });
+        ",
+    ];
+
+    let fail_vitest = vec![
+        "
+            it('foo', () => {
+                something && expect(something).toHaveBeenCalled();
+            })
+        ",
+        "
+            it('foo', () => {
+                a || (b && expect(something).toHaveBeenCalled());
+            })
+        ",
+        "
+            it.each``('foo', () => {
+                something || expect(something).toHaveBeenCalled();
+            });
+        ",
+        "
+            it.each()('foo', () => {
+                something || expect(something).toHaveBeenCalled();
+            })
+        ",
+        "
+            function getValue() {
+                something || expect(something).toHaveBeenCalled();
+            }
+            it('foo', getValue);
+        ",
+        "
+            it('foo', () => {
+                something ? expect(something).toHaveBeenCalled() : noop();
+            })
+        ",
+        "
+            function getValue() {
+                something ? expect(something).toHaveBeenCalled() : noop();
+            }
+
+            it('foo', getValue);
+        ",
+        "
+            it('foo', () => {
+                something ? noop() : expect(something).toHaveBeenCalled();
+            })
+        ",
+    ];
+
+    pass.extend(pass_vitest.into_iter().map(|x| (x, None)));
+    fail.extend(fail_vitest.into_iter().map(|x| (x, None)));
+
     Tester::new(NoConditionalExpect::NAME, NoConditionalExpect::PLUGIN, pass, fail)
-        .with_jest_plugin(true)
+        .with_vitest_plugin(true)
         .test_and_snapshot();
 }
