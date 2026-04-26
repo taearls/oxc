@@ -3,6 +3,7 @@
 use std::{
     alloc::{self, Layout},
     cell::Cell,
+    cmp::max,
     ptr::NonNull,
 };
 
@@ -336,17 +337,14 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         requested_layout: Layout,
         previous_chunk_footer_ptr: Option<NonNull<ChunkFooter>>,
     ) -> Option<NonNull<ChunkFooter>> {
-        // We must have `CHUNK_ALIGN` or better alignment...
-        let align = CHUNK_ALIGN
-            // and we have to have at least our configured minimum alignment...
-            .max(MIN_ALIGN)
-            // and make sure we satisfy the requested allocation's alignment
-            .max(requested_layout.align());
+        // Chunks must be aligned to at least `CHUNK_ALIGN` and `MIN_ALIGN`.
+        // `MIN_ALIGN` is always `<= CHUNK_ALIGN`, so aligning to `CHUNK_ALIGN` satisfies both.
+        let align = max(requested_layout.align(), CHUNK_ALIGN);
 
         // SAFETY: `Layout::size()` is always `<= isize::MAX`. `align` is a `usize` power of 2.
         // So rounding up can result in at maximum `isize::MAX + 1` - cannot overflow `usize`.
         let requested_size = unsafe { round_up_to_unchecked(requested_layout.size(), align) };
-        let new_size_without_footer = new_size_without_footer.max(requested_size);
+        let new_size_without_footer = max(new_size_without_footer, requested_size);
 
         // We want our allocations to play nice with the memory allocator, and waste as little memory as possible.
         // For small allocations, this means that the entire allocation including the chunk footer and `malloc`'s

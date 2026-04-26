@@ -339,7 +339,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             // By default, we want our new chunk to be about twice as big as the previous chunk.
             // If the global allocator refuses it, we try to divide it by half until it works for `layout`
             // or the requested size is smaller than the default chunk size.
-            let min_new_chunk_size = layout.size().max(DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER);
+            let min_new_chunk_size = max(layout.size(), DEFAULT_CHUNK_SIZE_WITHOUT_FOOTER);
 
             let mut size = match current_footer_ptr {
                 // Double the size of the current chunk, but not less than `min_new_chunk_size`
@@ -450,7 +450,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         let new_size = new_layout.size();
 
         // This is how much space we would *actually* reclaim while satisfying the requested alignment
-        let delta = round_down_to(old_size - new_size, new_layout.align().max(MIN_ALIGN));
+        let delta = round_down_to(old_size - new_size, max(new_layout.align(), MIN_ALIGN));
 
         if self.is_last_allocation(ptr)
                 // Only reclaim the excess space (which requires a copy) if it is worth it:
