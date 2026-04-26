@@ -28,7 +28,7 @@ use super::{
 /// Note that we don't need to exactly match page size for correctness, and it is okay if this is smaller than
 /// the real page size in practice. It isn't worth the portability concerns and lack of const propagation that
 /// dynamically looking up the actual page size implies.
-const TYPICAL_PAGE_SIZE: usize = 0x1000;
+pub const TYPICAL_PAGE_SIZE: usize = 0x1000;
 
 const _: () = {
     assert!(TYPICAL_PAGE_SIZE.is_power_of_two());
@@ -59,7 +59,7 @@ const _: () = {
 /// (where X is aligned to `CHUNK_ALIGN`), then we expect that after adding a footer, `malloc` overhead,
 /// and alignment, the chunk of memory the allocator actually sets aside for us is `X + OVERHEAD`,
 /// rounded up to the nearest suitable size boundary.
-const OVERHEAD: usize = match round_up_to(MALLOC_OVERHEAD + CHUNK_FOOTER_SIZE, CHUNK_ALIGN) {
+pub const OVERHEAD: usize = match round_up_to(MALLOC_OVERHEAD + CHUNK_FOOTER_SIZE, CHUNK_ALIGN) {
     Some(x) => x,
     None => panic!(),
 };
