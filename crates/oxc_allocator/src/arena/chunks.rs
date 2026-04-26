@@ -163,6 +163,51 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         }
         total
     }
+
+    /// Calculate the total size of data used in this [`Arena`], in bytes.
+    ///
+    /// This is the total amount of memory that has been *used* in the `Arena`, NOT the amount of
+    /// memory the `Arena` owns. If you want the latter, use [`allocated_bytes`] instead.
+    ///
+    /// The result includes:
+    /// * Padding bytes within objects allocated in the arena.
+    /// * Padding bytes to preserve alignment of types between objects which have been allocated.
+    ///
+    /// [`allocated_bytes`]: Self::allocated_bytes
+    pub fn used_bytes(&self) -> usize {
+        let mut footer_ptr = self.current_chunk_footer_ptr.get();
+        // SAFETY: `self.current_chunk_footer_ptr` always points to a valid `ChunkFooter`
+        let footer = unsafe { footer_ptr.as_ref() };
+
+        // If `Arena` owns no memory, return 0
+        if footer.is_empty() {
+            return 0;
+        }
+
+        // Get current chunk's used bytes from pointers in `self`, not from the `ChunkFooter`
+        let end_ptr = footer_ptr.cast::<u8>();
+        // SAFETY: `cursor_ptr` is always before or equal to `end_ptr`
+        let mut total = unsafe { end_ptr.offset_from_unsigned(self.cursor_ptr.get()) };
+
+        // Add used bytes from previous chunks, getting pointer from their `ChunkFooter`s
+        footer_ptr = footer.previous_chunk_footer_ptr.get();
+
+        // SAFETY: `footer_ptr` always points to a valid `ChunkFooter`
+        while !unsafe { footer_ptr.as_ref() }.is_empty() {
+            // SAFETY: `footer_ptr` always points to a valid `ChunkFooter`
+            let footer = unsafe { footer_ptr.as_ref() };
+
+            let cursor_ptr = footer.cursor_ptr.get();
+            let end_ptr = footer_ptr.cast::<u8>();
+            debug_assert!(cursor_ptr <= end_ptr);
+            // SAFETY: `cursor_ptr` is always before or equal to `end_ptr`, and both are within the same allocation
+            total += unsafe { end_ptr.offset_from_unsigned(cursor_ptr) };
+
+            footer_ptr = footer.previous_chunk_footer_ptr.get();
+        }
+
+        total
+    }
 }
 
 /// An iterator over each chunk of allocated memory that an arena has allocated into.

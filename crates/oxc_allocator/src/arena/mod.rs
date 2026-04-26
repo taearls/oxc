@@ -270,7 +270,7 @@ struct ChunkFooter {
     /// Bump allocation cursor, valid only for retired (non-current) chunks.
     /// This field is written when a chunk is retired (when a new chunk is created).
     /// Allocation methods use `Arena::cursor_ptr` instead, which is the authoritative pointer for current chunk.
-    /// This field is only used in `ChunkIter` and `ChunkRawIter` iterators.
+    /// This field is only used in `ChunkIter` and `ChunkRawIter` iterators, and `used_bytes` method.
     cursor_ptr: Cell<NonNull<u8>>,
 }
 
