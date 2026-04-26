@@ -704,6 +704,7 @@ pub use crate::rules::vitest::max_nested_describe::MaxNestedDescribe as VitestMa
 pub use crate::rules::vitest::no_alias_methods::NoAliasMethods as VitestNoAliasMethods;
 pub use crate::rules::vitest::no_commented_out_tests::NoCommentedOutTests as VitestNoCommentedOutTests;
 pub use crate::rules::vitest::no_conditional_expect::NoConditionalExpect as VitestNoConditionalExpect;
+pub use crate::rules::vitest::no_conditional_in_test::NoConditionalInTest as VitestNoConditionalInTest;
 pub use crate::rules::vitest::no_conditional_tests::NoConditionalTests as VitestNoConditionalTests;
 pub use crate::rules::vitest::no_import_node_test::NoImportNodeTest as VitestNoImportNodeTest;
 pub use crate::rules::vitest::no_importing_vitest_globals::NoImportingVitestGlobals as VitestNoImportingVitestGlobals;
@@ -1443,6 +1444,7 @@ pub enum RuleEnum {
     VitestNoAliasMethods(VitestNoAliasMethods),
     VitestNoCommentedOutTests(VitestNoCommentedOutTests),
     VitestNoConditionalExpect(VitestNoConditionalExpect),
+    VitestNoConditionalInTest(VitestNoConditionalInTest),
     VitestNoConditionalTests(VitestNoConditionalTests),
     VitestNoImportNodeTest(VitestNoImportNodeTest),
     VitestNoImportingVitestGlobals(VitestNoImportingVitestGlobals),
@@ -2266,7 +2268,8 @@ const VITEST_MAX_NESTED_DESCRIBE_ID: usize = VITEST_MAX_EXPECTS_ID + 1usize;
 const VITEST_NO_ALIAS_METHODS_ID: usize = VITEST_MAX_NESTED_DESCRIBE_ID + 1usize;
 const VITEST_NO_COMMENTED_OUT_TESTS_ID: usize = VITEST_NO_ALIAS_METHODS_ID + 1usize;
 const VITEST_NO_CONDITIONAL_EXPECT_ID: usize = VITEST_NO_COMMENTED_OUT_TESTS_ID + 1usize;
-const VITEST_NO_CONDITIONAL_TESTS_ID: usize = VITEST_NO_CONDITIONAL_EXPECT_ID + 1usize;
+const VITEST_NO_CONDITIONAL_IN_TEST_ID: usize = VITEST_NO_CONDITIONAL_EXPECT_ID + 1usize;
+const VITEST_NO_CONDITIONAL_TESTS_ID: usize = VITEST_NO_CONDITIONAL_IN_TEST_ID + 1usize;
 const VITEST_NO_IMPORT_NODE_TEST_ID: usize = VITEST_NO_CONDITIONAL_TESTS_ID + 1usize;
 const VITEST_NO_IMPORTING_VITEST_GLOBALS_ID: usize = VITEST_NO_IMPORT_NODE_TEST_ID + 1usize;
 const VITEST_PREFER_CALLED_EXACTLY_ONCE_WITH_ID: usize =
@@ -3118,6 +3121,7 @@ impl RuleEnum {
             Self::VitestNoAliasMethods(_) => VITEST_NO_ALIAS_METHODS_ID,
             Self::VitestNoCommentedOutTests(_) => VITEST_NO_COMMENTED_OUT_TESTS_ID,
             Self::VitestNoConditionalExpect(_) => VITEST_NO_CONDITIONAL_EXPECT_ID,
+            Self::VitestNoConditionalInTest(_) => VITEST_NO_CONDITIONAL_IN_TEST_ID,
             Self::VitestNoConditionalTests(_) => VITEST_NO_CONDITIONAL_TESTS_ID,
             Self::VitestNoImportNodeTest(_) => VITEST_NO_IMPORT_NODE_TEST_ID,
             Self::VitestNoImportingVitestGlobals(_) => VITEST_NO_IMPORTING_VITEST_GLOBALS_ID,
@@ -3958,6 +3962,7 @@ impl RuleEnum {
             Self::VitestNoAliasMethods(_) => VitestNoAliasMethods::NAME,
             Self::VitestNoCommentedOutTests(_) => VitestNoCommentedOutTests::NAME,
             Self::VitestNoConditionalExpect(_) => VitestNoConditionalExpect::NAME,
+            Self::VitestNoConditionalInTest(_) => VitestNoConditionalInTest::NAME,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::NAME,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::NAME,
             Self::VitestNoImportingVitestGlobals(_) => VitestNoImportingVitestGlobals::NAME,
@@ -4840,6 +4845,7 @@ impl RuleEnum {
             Self::VitestNoAliasMethods(_) => VitestNoAliasMethods::CATEGORY,
             Self::VitestNoCommentedOutTests(_) => VitestNoCommentedOutTests::CATEGORY,
             Self::VitestNoConditionalExpect(_) => VitestNoConditionalExpect::CATEGORY,
+            Self::VitestNoConditionalInTest(_) => VitestNoConditionalInTest::CATEGORY,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::CATEGORY,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::CATEGORY,
             Self::VitestNoImportingVitestGlobals(_) => VitestNoImportingVitestGlobals::CATEGORY,
@@ -5689,6 +5695,7 @@ impl RuleEnum {
             Self::VitestNoAliasMethods(_) => VitestNoAliasMethods::FIX,
             Self::VitestNoCommentedOutTests(_) => VitestNoCommentedOutTests::FIX,
             Self::VitestNoConditionalExpect(_) => VitestNoConditionalExpect::FIX,
+            Self::VitestNoConditionalInTest(_) => VitestNoConditionalInTest::FIX,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::FIX,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::FIX,
             Self::VitestNoImportingVitestGlobals(_) => VitestNoImportingVitestGlobals::FIX,
@@ -6730,6 +6737,7 @@ impl RuleEnum {
             Self::VitestNoAliasMethods(_) => VitestNoAliasMethods::documentation(),
             Self::VitestNoCommentedOutTests(_) => VitestNoCommentedOutTests::documentation(),
             Self::VitestNoConditionalExpect(_) => VitestNoConditionalExpect::documentation(),
+            Self::VitestNoConditionalInTest(_) => VitestNoConditionalInTest::documentation(),
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::documentation(),
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::documentation(),
             Self::VitestNoImportingVitestGlobals(_) => {
@@ -8768,6 +8776,10 @@ impl RuleEnum {
                 VitestNoConditionalExpect::config_schema(generator)
                     .or_else(|| VitestNoConditionalExpect::schema(generator))
             }
+            Self::VitestNoConditionalInTest(_) => {
+                VitestNoConditionalInTest::config_schema(generator)
+                    .or_else(|| VitestNoConditionalInTest::schema(generator))
+            }
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::config_schema(generator)
                 .or_else(|| VitestNoConditionalTests::schema(generator)),
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::config_schema(generator)
@@ -9587,6 +9599,7 @@ impl RuleEnum {
             Self::VitestNoAliasMethods(_) => "vitest",
             Self::VitestNoCommentedOutTests(_) => "vitest",
             Self::VitestNoConditionalExpect(_) => "vitest",
+            Self::VitestNoConditionalInTest(_) => "vitest",
             Self::VitestNoConditionalTests(_) => "vitest",
             Self::VitestNoImportNodeTest(_) => "vitest",
             Self::VitestNoImportingVitestGlobals(_) => "vitest",
@@ -11854,6 +11867,9 @@ impl RuleEnum {
             Self::VitestNoConditionalExpect(_) => Ok(Self::VitestNoConditionalExpect(
                 VitestNoConditionalExpect::from_configuration(value)?,
             )),
+            Self::VitestNoConditionalInTest(_) => Ok(Self::VitestNoConditionalInTest(
+                VitestNoConditionalInTest::from_configuration(value)?,
+            )),
             Self::VitestNoConditionalTests(_) => Ok(Self::VitestNoConditionalTests(
                 VitestNoConditionalTests::from_configuration(value)?,
             )),
@@ -12694,6 +12710,7 @@ impl RuleEnum {
             Self::VitestNoAliasMethods(rule) => rule.to_configuration(),
             Self::VitestNoCommentedOutTests(rule) => rule.to_configuration(),
             Self::VitestNoConditionalExpect(rule) => rule.to_configuration(),
+            Self::VitestNoConditionalInTest(rule) => rule.to_configuration(),
             Self::VitestNoConditionalTests(rule) => rule.to_configuration(),
             Self::VitestNoImportNodeTest(rule) => rule.to_configuration(),
             Self::VitestNoImportingVitestGlobals(rule) => rule.to_configuration(),
@@ -13434,6 +13451,7 @@ impl RuleEnum {
             Self::VitestNoAliasMethods(rule) => rule.run(node, ctx),
             Self::VitestNoCommentedOutTests(rule) => rule.run(node, ctx),
             Self::VitestNoConditionalExpect(rule) => rule.run(node, ctx),
+            Self::VitestNoConditionalInTest(rule) => rule.run(node, ctx),
             Self::VitestNoConditionalTests(rule) => rule.run(node, ctx),
             Self::VitestNoImportNodeTest(rule) => rule.run(node, ctx),
             Self::VitestNoImportingVitestGlobals(rule) => rule.run(node, ctx),
@@ -14172,6 +14190,7 @@ impl RuleEnum {
             Self::VitestNoAliasMethods(rule) => rule.run_once(ctx),
             Self::VitestNoCommentedOutTests(rule) => rule.run_once(ctx),
             Self::VitestNoConditionalExpect(rule) => rule.run_once(ctx),
+            Self::VitestNoConditionalInTest(rule) => rule.run_once(ctx),
             Self::VitestNoConditionalTests(rule) => rule.run_once(ctx),
             Self::VitestNoImportNodeTest(rule) => rule.run_once(ctx),
             Self::VitestNoImportingVitestGlobals(rule) => rule.run_once(ctx),
@@ -15012,6 +15031,7 @@ impl RuleEnum {
             Self::VitestNoAliasMethods(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestNoCommentedOutTests(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestNoConditionalExpect(rule) => rule.run_on_jest_node(jest_node, ctx),
+            Self::VitestNoConditionalInTest(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestNoConditionalTests(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestNoImportNodeTest(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestNoImportingVitestGlobals(rule) => rule.run_on_jest_node(jest_node, ctx),
@@ -15752,6 +15772,7 @@ impl RuleEnum {
             Self::VitestNoAliasMethods(rule) => rule.should_run(ctx),
             Self::VitestNoCommentedOutTests(rule) => rule.should_run(ctx),
             Self::VitestNoConditionalExpect(rule) => rule.should_run(ctx),
+            Self::VitestNoConditionalInTest(rule) => rule.should_run(ctx),
             Self::VitestNoConditionalTests(rule) => rule.should_run(ctx),
             Self::VitestNoImportNodeTest(rule) => rule.should_run(ctx),
             Self::VitestNoImportingVitestGlobals(rule) => rule.should_run(ctx),
@@ -16790,6 +16811,7 @@ impl RuleEnum {
             Self::VitestNoAliasMethods(_) => VitestNoAliasMethods::IS_TSGOLINT_RULE,
             Self::VitestNoCommentedOutTests(_) => VitestNoCommentedOutTests::IS_TSGOLINT_RULE,
             Self::VitestNoConditionalExpect(_) => VitestNoConditionalExpect::IS_TSGOLINT_RULE,
+            Self::VitestNoConditionalInTest(_) => VitestNoConditionalInTest::IS_TSGOLINT_RULE,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::IS_TSGOLINT_RULE,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::IS_TSGOLINT_RULE,
             Self::VitestNoImportingVitestGlobals(_) => {
@@ -17692,6 +17714,7 @@ impl RuleEnum {
             Self::VitestNoAliasMethods(_) => VitestNoAliasMethods::VERSION,
             Self::VitestNoCommentedOutTests(_) => VitestNoCommentedOutTests::VERSION,
             Self::VitestNoConditionalExpect(_) => VitestNoConditionalExpect::VERSION,
+            Self::VitestNoConditionalInTest(_) => VitestNoConditionalInTest::VERSION,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::VERSION,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::VERSION,
             Self::VitestNoImportingVitestGlobals(_) => VitestNoImportingVitestGlobals::VERSION,
@@ -18611,6 +18634,7 @@ impl RuleEnum {
             Self::VitestNoAliasMethods(_) => VitestNoAliasMethods::HAS_CONFIG,
             Self::VitestNoCommentedOutTests(_) => VitestNoCommentedOutTests::HAS_CONFIG,
             Self::VitestNoConditionalExpect(_) => VitestNoConditionalExpect::HAS_CONFIG,
+            Self::VitestNoConditionalInTest(_) => VitestNoConditionalInTest::HAS_CONFIG,
             Self::VitestNoConditionalTests(_) => VitestNoConditionalTests::HAS_CONFIG,
             Self::VitestNoImportNodeTest(_) => VitestNoImportNodeTest::HAS_CONFIG,
             Self::VitestNoImportingVitestGlobals(_) => VitestNoImportingVitestGlobals::HAS_CONFIG,
@@ -19363,6 +19387,7 @@ impl RuleEnum {
             Self::VitestNoAliasMethods(rule) => rule.types_info(),
             Self::VitestNoCommentedOutTests(rule) => rule.types_info(),
             Self::VitestNoConditionalExpect(rule) => rule.types_info(),
+            Self::VitestNoConditionalInTest(rule) => rule.types_info(),
             Self::VitestNoConditionalTests(rule) => rule.types_info(),
             Self::VitestNoImportNodeTest(rule) => rule.types_info(),
             Self::VitestNoImportingVitestGlobals(rule) => rule.types_info(),
@@ -20101,6 +20126,7 @@ impl RuleEnum {
             Self::VitestNoAliasMethods(rule) => rule.run_info(),
             Self::VitestNoCommentedOutTests(rule) => rule.run_info(),
             Self::VitestNoConditionalExpect(rule) => rule.run_info(),
+            Self::VitestNoConditionalInTest(rule) => rule.run_info(),
             Self::VitestNoConditionalTests(rule) => rule.run_info(),
             Self::VitestNoImportNodeTest(rule) => rule.run_info(),
             Self::VitestNoImportingVitestGlobals(rule) => rule.run_info(),
@@ -20959,6 +20985,7 @@ pub static RULES: std::sync::LazyLock<Vec<RuleEnum>> = std::sync::LazyLock::new(
         RuleEnum::VitestNoAliasMethods(VitestNoAliasMethods::default()),
         RuleEnum::VitestNoCommentedOutTests(VitestNoCommentedOutTests::default()),
         RuleEnum::VitestNoConditionalExpect(VitestNoConditionalExpect::default()),
+        RuleEnum::VitestNoConditionalInTest(VitestNoConditionalInTest::default()),
         RuleEnum::VitestNoConditionalTests(VitestNoConditionalTests::default()),
         RuleEnum::VitestNoImportNodeTest(VitestNoImportNodeTest::default()),
         RuleEnum::VitestNoImportingVitestGlobals(VitestNoImportingVitestGlobals::default()),

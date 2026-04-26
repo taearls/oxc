@@ -10,7 +10,7 @@ use crate::{
 #[derive(Debug, Default, Clone)]
 pub struct NoConditionalInTest;
 
-declare_oxc_lint!(NoConditionalInTest, jest, pedantic, docs = DOCUMENTATION, version = "0.8.0",);
+declare_oxc_lint!(NoConditionalInTest, vitest, pedantic, docs = DOCUMENTATION, version = "0.8.0",);
 
 impl Rule for NoConditionalInTest {
     fn run<'a>(&self, node: &oxc_semantic::AstNode<'a>, ctx: &LintContext<'a>) {
@@ -30,7 +30,7 @@ impl Rule for NoConditionalInTest {
 fn test() {
     use crate::tester::Tester;
 
-    let pass = vec![
+    let mut pass = vec![
         "const x = y ? 1 : 0",
         "
                   const foo = function (bar) {
@@ -236,7 +236,22 @@ fn test() {
                 ",
     ];
 
-    let fail = vec![
+    pass.extend([
+        r#"
+                  import { describe } from "vitest";
+                  describe('foo', () => {
+                    if ('bar') {}
+                  })
+                "#,
+        r#"
+                  import { bench } from "vitest";
+                  bench('foo', () => {
+                    if ('bar') {}
+                  })
+                "#,
+    ]);
+
+    let mut fail = vec![
         "
                     it('foo', () => {
                       expect(bar ? foo : baz).toBe(boo);
@@ -538,7 +553,22 @@ fn test() {
                   "#,
     ];
 
+    fail.extend([
+        r#"
+                    import { it } from "vitest";
+                    it('foo', () => {
+                      if ('bar') {}
+                    })
+                  "#,
+        r#"
+                    import { test } from "vitest";
+                    test('foo', () => {
+                      switch('bar') {}
+                    })
+                  "#,
+    ]);
+
     Tester::new(NoConditionalInTest::NAME, NoConditionalInTest::PLUGIN, pass, fail)
-        .with_jest_plugin(true)
+        .with_vitest_plugin(true)
         .test_and_snapshot();
 }

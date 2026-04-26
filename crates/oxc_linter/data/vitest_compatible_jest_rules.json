@@ -1,5 +1,4 @@
 [
-  "no-conditional-in-test",
   "no-disabled-tests",
   "no-duplicate-hooks",
   "no-focused-tests",

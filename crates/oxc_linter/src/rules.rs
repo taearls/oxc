@@ -732,6 +732,7 @@ pub(crate) mod vitest {
     pub mod no_alias_methods;
     pub mod no_commented_out_tests;
     pub mod no_conditional_expect;
+    pub mod no_conditional_in_test;
     pub mod no_conditional_tests;
     pub mod no_import_node_test;
     pub mod no_importing_vitest_globals;
