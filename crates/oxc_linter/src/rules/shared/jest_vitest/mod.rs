@@ -9,4 +9,5 @@ pub mod no_conditional_in_test;
 pub mod no_disabled_tests;
 pub mod no_duplicate_hooks;
 pub mod no_focused_tests;
+pub mod no_hooks;
 pub mod valid_title;

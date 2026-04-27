@@ -12,7 +12,7 @@ pub struct NoHooks(Box<NoHooksConfig>);
 
 declare_oxc_lint!(
     NoHooks,
-    jest,
+    vitest,
     style,
     config = NoHooksConfig,
     docs = DOCUMENTATION,
@@ -38,7 +38,7 @@ impl Rule for NoHooks {
 fn test() {
     use crate::tester::Tester;
 
-    let pass = vec![
+    let mut pass = vec![
         ("test(\"foo\")", None),
         ("describe(\"foo\", () => { it(\"bar\") })", None),
         ("test(\"foo\", () => { expect(subject.beforeEach()).toBe(true) })", None),
@@ -48,7 +48,7 @@ fn test() {
         ),
     ];
 
-    let fail = vec![
+    let mut fail = vec![
         ("beforeAll(() => {})", None),
         ("beforeEach(() => {})", None),
         ("afterAll(() => {})", None),
@@ -68,18 +68,50 @@ fn test() {
         ),
     ];
 
+    let pass_vitest = vec![
+        (r#"test("foo")"#, None),
+        (r#"describe("foo", () => { it("bar") })"#, None),
+        (r#"test("foo", () => { expect(subject.beforeEach()).toBe(true) })"#, None),
+        (
+            "afterEach(() => {}); afterAll(() => {});",
+            Some(serde_json::json!([{ "allow": ["afterEach", "afterAll"] }])),
+        ),
+    ];
+
+    let fail_vitest = vec![
+        ("beforeAll(() => {})", None),
+        ("beforeEach(() => {})", None),
+        ("afterAll(() => {})", None),
+        ("afterEach(() => {})", None),
+        ("afterEach(() => {})", Some(serde_json::json!([]))),
+        ("afterEach(() => {})", Some(serde_json::json!([{ "allow": [] }]))),
+        (
+            "beforeEach(() => {}); afterEach(() => { vi.resetModules() });",
+            Some(serde_json::json!([{ "allow": ["afterEach"] }])),
+        ),
+        (
+            "
+                import { beforeEach as afterEach, afterEach as beforeEach, vi } from 'vitest';
+                afterEach(() => {});
+                beforeEach(() => { vi.resetModules() });
+            ",
+            Some(serde_json::json!([{ "allow": ["afterEach"] }])),
+        ), // { "parserOptions": { "sourceType": "module" } }
+    ];
+
+    pass.extend(pass_vitest);
+    fail.extend(fail_vitest);
+
     Tester::new(NoHooks::NAME, NoHooks::PLUGIN, pass, fail)
-        .with_jest_plugin(true)
+        .with_vitest_plugin(true)
         .test_and_snapshot();
 }
 
 #[test]
 fn invalid_configs_error_in_from_configuration() {
-    // An array with an object that has unknown keys should produce an error
     let invalid = serde_json::json!([{ "foo": "bar" }]);
     assert!(NoHooks::from_configuration(invalid).is_err());
 
-    // Configs containing `null` or the string "undefined" should be rejected under strict validation
     let undefined_allow = serde_json::json!([{ "allow": "undefined" }]);
     assert!(NoHooks::from_configuration(undefined_allow).is_err());
 
