@@ -14,4 +14,5 @@ pub mod no_identical_title;
 pub mod no_interpolation_in_snapshots;
 pub mod no_large_snapshots;
 pub mod no_mocks_import;
+pub mod prefer_todo;
 pub mod valid_title;

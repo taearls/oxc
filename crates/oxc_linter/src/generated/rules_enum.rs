@@ -727,6 +727,7 @@ pub use crate::rules::vitest::prefer_strict_boolean_matchers::PreferStrictBoolea
 pub use crate::rules::vitest::prefer_to_be_falsy::PreferToBeFalsy as VitestPreferToBeFalsy;
 pub use crate::rules::vitest::prefer_to_be_object::PreferToBeObject as VitestPreferToBeObject;
 pub use crate::rules::vitest::prefer_to_be_truthy::PreferToBeTruthy as VitestPreferToBeTruthy;
+pub use crate::rules::vitest::prefer_todo::PreferTodo as VitestPreferTodo;
 pub use crate::rules::vitest::require_awaited_expect_poll::RequireAwaitedExpectPoll as VitestRequireAwaitedExpectPoll;
 pub use crate::rules::vitest::require_local_test_context_for_concurrent_snapshots::RequireLocalTestContextForConcurrentSnapshots as VitestRequireLocalTestContextForConcurrentSnapshots;
 pub use crate::rules::vitest::require_mock_type_parameters::RequireMockTypeParameters as VitestRequireMockTypeParameters;
@@ -1476,6 +1477,7 @@ pub enum RuleEnum {
     VitestPreferToBeFalsy(VitestPreferToBeFalsy),
     VitestPreferToBeObject(VitestPreferToBeObject),
     VitestPreferToBeTruthy(VitestPreferToBeTruthy),
+    VitestPreferTodo(VitestPreferTodo),
     VitestRequireAwaitedExpectPoll(VitestRequireAwaitedExpectPoll),
     VitestRequireLocalTestContextForConcurrentSnapshots(
         VitestRequireLocalTestContextForConcurrentSnapshots,
@@ -2311,7 +2313,8 @@ const VITEST_PREFER_STRICT_BOOLEAN_MATCHERS_ID: usize =
 const VITEST_PREFER_TO_BE_FALSY_ID: usize = VITEST_PREFER_STRICT_BOOLEAN_MATCHERS_ID + 1usize;
 const VITEST_PREFER_TO_BE_OBJECT_ID: usize = VITEST_PREFER_TO_BE_FALSY_ID + 1usize;
 const VITEST_PREFER_TO_BE_TRUTHY_ID: usize = VITEST_PREFER_TO_BE_OBJECT_ID + 1usize;
-const VITEST_REQUIRE_AWAITED_EXPECT_POLL_ID: usize = VITEST_PREFER_TO_BE_TRUTHY_ID + 1usize;
+const VITEST_PREFER_TODO_ID: usize = VITEST_PREFER_TO_BE_TRUTHY_ID + 1usize;
+const VITEST_REQUIRE_AWAITED_EXPECT_POLL_ID: usize = VITEST_PREFER_TODO_ID + 1usize;
 const VITEST_REQUIRE_LOCAL_TEST_CONTEXT_FOR_CONCURRENT_SNAPSHOTS_ID: usize =
     VITEST_REQUIRE_AWAITED_EXPECT_POLL_ID + 1usize;
 const VITEST_REQUIRE_MOCK_TYPE_PARAMETERS_ID: usize =
@@ -3175,6 +3178,7 @@ impl RuleEnum {
             Self::VitestPreferToBeFalsy(_) => VITEST_PREFER_TO_BE_FALSY_ID,
             Self::VitestPreferToBeObject(_) => VITEST_PREFER_TO_BE_OBJECT_ID,
             Self::VitestPreferToBeTruthy(_) => VITEST_PREFER_TO_BE_TRUTHY_ID,
+            Self::VitestPreferTodo(_) => VITEST_PREFER_TODO_ID,
             Self::VitestRequireAwaitedExpectPoll(_) => VITEST_REQUIRE_AWAITED_EXPECT_POLL_ID,
             Self::VitestRequireLocalTestContextForConcurrentSnapshots(_) => {
                 VITEST_REQUIRE_LOCAL_TEST_CONTEXT_FOR_CONCURRENT_SNAPSHOTS_ID
@@ -4025,6 +4029,7 @@ impl RuleEnum {
             Self::VitestPreferToBeFalsy(_) => VitestPreferToBeFalsy::NAME,
             Self::VitestPreferToBeObject(_) => VitestPreferToBeObject::NAME,
             Self::VitestPreferToBeTruthy(_) => VitestPreferToBeTruthy::NAME,
+            Self::VitestPreferTodo(_) => VitestPreferTodo::NAME,
             Self::VitestRequireAwaitedExpectPoll(_) => VitestRequireAwaitedExpectPoll::NAME,
             Self::VitestRequireLocalTestContextForConcurrentSnapshots(_) => {
                 VitestRequireLocalTestContextForConcurrentSnapshots::NAME
@@ -4927,6 +4932,7 @@ impl RuleEnum {
             Self::VitestPreferToBeFalsy(_) => VitestPreferToBeFalsy::CATEGORY,
             Self::VitestPreferToBeObject(_) => VitestPreferToBeObject::CATEGORY,
             Self::VitestPreferToBeTruthy(_) => VitestPreferToBeTruthy::CATEGORY,
+            Self::VitestPreferTodo(_) => VitestPreferTodo::CATEGORY,
             Self::VitestRequireAwaitedExpectPoll(_) => VitestRequireAwaitedExpectPoll::CATEGORY,
             Self::VitestRequireLocalTestContextForConcurrentSnapshots(_) => {
                 VitestRequireLocalTestContextForConcurrentSnapshots::CATEGORY
@@ -5780,6 +5786,7 @@ impl RuleEnum {
             Self::VitestPreferToBeFalsy(_) => VitestPreferToBeFalsy::FIX,
             Self::VitestPreferToBeObject(_) => VitestPreferToBeObject::FIX,
             Self::VitestPreferToBeTruthy(_) => VitestPreferToBeTruthy::FIX,
+            Self::VitestPreferTodo(_) => VitestPreferTodo::FIX,
             Self::VitestRequireAwaitedExpectPoll(_) => VitestRequireAwaitedExpectPoll::FIX,
             Self::VitestRequireLocalTestContextForConcurrentSnapshots(_) => {
                 VitestRequireLocalTestContextForConcurrentSnapshots::FIX
@@ -6845,6 +6852,7 @@ impl RuleEnum {
             Self::VitestPreferToBeFalsy(_) => VitestPreferToBeFalsy::documentation(),
             Self::VitestPreferToBeObject(_) => VitestPreferToBeObject::documentation(),
             Self::VitestPreferToBeTruthy(_) => VitestPreferToBeTruthy::documentation(),
+            Self::VitestPreferTodo(_) => VitestPreferTodo::documentation(),
             Self::VitestRequireAwaitedExpectPoll(_) => {
                 VitestRequireAwaitedExpectPoll::documentation()
             }
@@ -8923,6 +8931,8 @@ impl RuleEnum {
                 .or_else(|| VitestPreferToBeObject::schema(generator)),
             Self::VitestPreferToBeTruthy(_) => VitestPreferToBeTruthy::config_schema(generator)
                 .or_else(|| VitestPreferToBeTruthy::schema(generator)),
+            Self::VitestPreferTodo(_) => VitestPreferTodo::config_schema(generator)
+                .or_else(|| VitestPreferTodo::schema(generator)),
             Self::VitestRequireAwaitedExpectPoll(_) => {
                 VitestRequireAwaitedExpectPoll::config_schema(generator)
                     .or_else(|| VitestRequireAwaitedExpectPoll::schema(generator))
@@ -9731,6 +9741,7 @@ impl RuleEnum {
             Self::VitestPreferToBeFalsy(_) => "vitest",
             Self::VitestPreferToBeObject(_) => "vitest",
             Self::VitestPreferToBeTruthy(_) => "vitest",
+            Self::VitestPreferTodo(_) => "vitest",
             Self::VitestRequireAwaitedExpectPoll(_) => "vitest",
             Self::VitestRequireLocalTestContextForConcurrentSnapshots(_) => "vitest",
             Self::VitestRequireMockTypeParameters(_) => "vitest",
@@ -12064,6 +12075,9 @@ impl RuleEnum {
             Self::VitestPreferToBeTruthy(_) => {
                 Ok(Self::VitestPreferToBeTruthy(VitestPreferToBeTruthy::from_configuration(value)?))
             }
+            Self::VitestPreferTodo(_) => {
+                Ok(Self::VitestPreferTodo(VitestPreferTodo::from_configuration(value)?))
+            }
             Self::VitestRequireAwaitedExpectPoll(_) => Ok(Self::VitestRequireAwaitedExpectPoll(
                 VitestRequireAwaitedExpectPoll::from_configuration(value)?,
             )),
@@ -12882,6 +12896,7 @@ impl RuleEnum {
             Self::VitestPreferToBeFalsy(rule) => rule.to_configuration(),
             Self::VitestPreferToBeObject(rule) => rule.to_configuration(),
             Self::VitestPreferToBeTruthy(rule) => rule.to_configuration(),
+            Self::VitestPreferTodo(rule) => rule.to_configuration(),
             Self::VitestRequireAwaitedExpectPoll(rule) => rule.to_configuration(),
             Self::VitestRequireLocalTestContextForConcurrentSnapshots(rule) => {
                 rule.to_configuration()
@@ -13632,6 +13647,7 @@ impl RuleEnum {
             Self::VitestPreferToBeFalsy(rule) => rule.run(node, ctx),
             Self::VitestPreferToBeObject(rule) => rule.run(node, ctx),
             Self::VitestPreferToBeTruthy(rule) => rule.run(node, ctx),
+            Self::VitestPreferTodo(rule) => rule.run(node, ctx),
             Self::VitestRequireAwaitedExpectPoll(rule) => rule.run(node, ctx),
             Self::VitestRequireLocalTestContextForConcurrentSnapshots(rule) => rule.run(node, ctx),
             Self::VitestRequireMockTypeParameters(rule) => rule.run(node, ctx),
@@ -14380,6 +14396,7 @@ impl RuleEnum {
             Self::VitestPreferToBeFalsy(rule) => rule.run_once(ctx),
             Self::VitestPreferToBeObject(rule) => rule.run_once(ctx),
             Self::VitestPreferToBeTruthy(rule) => rule.run_once(ctx),
+            Self::VitestPreferTodo(rule) => rule.run_once(ctx),
             Self::VitestRequireAwaitedExpectPoll(rule) => rule.run_once(ctx),
             Self::VitestRequireLocalTestContextForConcurrentSnapshots(rule) => rule.run_once(ctx),
             Self::VitestRequireMockTypeParameters(rule) => rule.run_once(ctx),
@@ -15230,6 +15247,7 @@ impl RuleEnum {
             Self::VitestPreferToBeFalsy(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferToBeObject(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferToBeTruthy(rule) => rule.run_on_jest_node(jest_node, ctx),
+            Self::VitestPreferTodo(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestRequireAwaitedExpectPoll(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestRequireLocalTestContextForConcurrentSnapshots(rule) => {
                 rule.run_on_jest_node(jest_node, ctx)
@@ -15982,6 +16000,7 @@ impl RuleEnum {
             Self::VitestPreferToBeFalsy(rule) => rule.should_run(ctx),
             Self::VitestPreferToBeObject(rule) => rule.should_run(ctx),
             Self::VitestPreferToBeTruthy(rule) => rule.should_run(ctx),
+            Self::VitestPreferTodo(rule) => rule.should_run(ctx),
             Self::VitestRequireAwaitedExpectPoll(rule) => rule.should_run(ctx),
             Self::VitestRequireLocalTestContextForConcurrentSnapshots(rule) => rule.should_run(ctx),
             Self::VitestRequireMockTypeParameters(rule) => rule.should_run(ctx),
@@ -17042,6 +17061,7 @@ impl RuleEnum {
             Self::VitestPreferToBeFalsy(_) => VitestPreferToBeFalsy::IS_TSGOLINT_RULE,
             Self::VitestPreferToBeObject(_) => VitestPreferToBeObject::IS_TSGOLINT_RULE,
             Self::VitestPreferToBeTruthy(_) => VitestPreferToBeTruthy::IS_TSGOLINT_RULE,
+            Self::VitestPreferTodo(_) => VitestPreferTodo::IS_TSGOLINT_RULE,
             Self::VitestRequireAwaitedExpectPoll(_) => {
                 VitestRequireAwaitedExpectPoll::IS_TSGOLINT_RULE
             }
@@ -17954,6 +17974,7 @@ impl RuleEnum {
             Self::VitestPreferToBeFalsy(_) => VitestPreferToBeFalsy::VERSION,
             Self::VitestPreferToBeObject(_) => VitestPreferToBeObject::VERSION,
             Self::VitestPreferToBeTruthy(_) => VitestPreferToBeTruthy::VERSION,
+            Self::VitestPreferTodo(_) => VitestPreferTodo::VERSION,
             Self::VitestRequireAwaitedExpectPoll(_) => VitestRequireAwaitedExpectPoll::VERSION,
             Self::VitestRequireLocalTestContextForConcurrentSnapshots(_) => {
                 VitestRequireLocalTestContextForConcurrentSnapshots::VERSION
@@ -18887,6 +18908,7 @@ impl RuleEnum {
             Self::VitestPreferToBeFalsy(_) => VitestPreferToBeFalsy::HAS_CONFIG,
             Self::VitestPreferToBeObject(_) => VitestPreferToBeObject::HAS_CONFIG,
             Self::VitestPreferToBeTruthy(_) => VitestPreferToBeTruthy::HAS_CONFIG,
+            Self::VitestPreferTodo(_) => VitestPreferTodo::HAS_CONFIG,
             Self::VitestRequireAwaitedExpectPoll(_) => VitestRequireAwaitedExpectPoll::HAS_CONFIG,
             Self::VitestRequireLocalTestContextForConcurrentSnapshots(_) => {
                 VitestRequireLocalTestContextForConcurrentSnapshots::HAS_CONFIG
@@ -19643,6 +19665,7 @@ impl RuleEnum {
             Self::VitestPreferToBeFalsy(rule) => rule.types_info(),
             Self::VitestPreferToBeObject(rule) => rule.types_info(),
             Self::VitestPreferToBeTruthy(rule) => rule.types_info(),
+            Self::VitestPreferTodo(rule) => rule.types_info(),
             Self::VitestRequireAwaitedExpectPoll(rule) => rule.types_info(),
             Self::VitestRequireLocalTestContextForConcurrentSnapshots(rule) => rule.types_info(),
             Self::VitestRequireMockTypeParameters(rule) => rule.types_info(),
@@ -20391,6 +20414,7 @@ impl RuleEnum {
             Self::VitestPreferToBeFalsy(rule) => rule.run_info(),
             Self::VitestPreferToBeObject(rule) => rule.run_info(),
             Self::VitestPreferToBeTruthy(rule) => rule.run_info(),
+            Self::VitestPreferTodo(rule) => rule.run_info(),
             Self::VitestRequireAwaitedExpectPoll(rule) => rule.run_info(),
             Self::VitestRequireLocalTestContextForConcurrentSnapshots(rule) => rule.run_info(),
             Self::VitestRequireMockTypeParameters(rule) => rule.run_info(),
@@ -21259,6 +21283,7 @@ pub static RULES: std::sync::LazyLock<Vec<RuleEnum>> = std::sync::LazyLock::new(
         RuleEnum::VitestPreferToBeFalsy(VitestPreferToBeFalsy::default()),
         RuleEnum::VitestPreferToBeObject(VitestPreferToBeObject::default()),
         RuleEnum::VitestPreferToBeTruthy(VitestPreferToBeTruthy::default()),
+        RuleEnum::VitestPreferTodo(VitestPreferTodo::default()),
         RuleEnum::VitestRequireAwaitedExpectPoll(VitestRequireAwaitedExpectPoll::default()),
         RuleEnum::VitestRequireLocalTestContextForConcurrentSnapshots(
             VitestRequireLocalTestContextForConcurrentSnapshots::default(),

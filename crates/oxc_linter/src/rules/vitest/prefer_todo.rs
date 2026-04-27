@@ -10,7 +10,7 @@ use crate::{
 #[derive(Debug, Default, Clone)]
 pub struct PreferTodo;
 
-declare_oxc_lint!(PreferTodo, jest, style, fix, docs = DOCUMENTATION, version = "0.0.16",);
+declare_oxc_lint!(PreferTodo, vitest, style, fix, docs = DOCUMENTATION, version = "0.0.16",);
 
 impl Rule for PreferTodo {
     fn run_on_jest_node<'a, 'c>(
@@ -100,7 +100,7 @@ fn tests() {
     ];
 
     Tester::new(PreferTodo::NAME, PreferTodo::PLUGIN, pass, fail)
-        .with_jest_plugin(true)
+        .with_vitest_plugin(true)
         .expect_fix(fix)
         .test_and_snapshot();
 }
