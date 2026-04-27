@@ -1,5 +1,4 @@
 [
-  "no-focused-tests",
   "no-hooks",
   "no-identical-title",
   "no-interpolation-in-snapshots",
