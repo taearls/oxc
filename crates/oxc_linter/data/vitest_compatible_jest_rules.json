@@ -1,5 +1,4 @@
 [
-  "no-interpolation-in-snapshots",
   "no-large-snapshots",
   "no-mocks-import",
   "no-restricted-jest-methods",

@@ -12,7 +12,7 @@ pub struct NoInterpolationInSnapshots;
 
 declare_oxc_lint!(
     NoInterpolationInSnapshots,
-    jest,
+    vitest,
     style,
     docs = DOCUMENTATION,
     version = "0.0.13",
@@ -31,8 +31,6 @@ impl Rule for NoInterpolationInSnapshots {
 #[test]
 fn test() {
     use crate::tester::Tester;
-
-    // Note: Both Jest and Vitest share the same unit tests
 
     let pass = vec![
         ("expect('something').toEqual('else');", None),
@@ -60,6 +58,6 @@ fn test() {
     ];
 
     Tester::new(NoInterpolationInSnapshots::NAME, NoInterpolationInSnapshots::PLUGIN, pass, fail)
-        .with_jest_plugin(true)
+        .with_vitest_plugin(true)
         .test_and_snapshot();
 }
