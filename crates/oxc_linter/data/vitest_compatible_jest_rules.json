@@ -24,7 +24,6 @@
   "prefer-to-have-length",
   "require-hook",
   "require-to-throw-message",
-  "require-top-level-describe",
   "valid-describe-callback",
   "valid-expect",
   "valid-expect-in-promise"

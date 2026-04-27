@@ -760,6 +760,7 @@ pub(crate) mod vitest {
     pub mod require_local_test_context_for_concurrent_snapshots;
     pub mod require_mock_type_parameters;
     pub mod require_test_timeout;
+    pub mod require_top_level_describe;
     pub mod valid_title;
     pub mod warn_todo;
 }

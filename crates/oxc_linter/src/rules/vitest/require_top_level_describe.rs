@@ -11,7 +11,7 @@ pub struct RequireTopLevelDescribe(Box<RequireTopLevelDescribeConfig>);
 
 declare_oxc_lint!(
     RequireTopLevelDescribe,
-    jest,
+    vitest,
     style,
     config = RequireTopLevelDescribeConfig,
     docs = DOCUMENTATION,
@@ -99,13 +99,13 @@ fn test() {
         ),
         (
             "
-                import { jest } from '@jest/globals';
+                import { vi } from 'vitest';
 
-                jest.doMock('my-module');
+                vi.doMock('my-module');
             ",
             None,
         ),
-        ("jest.doMock(\"my-module\")", None),
+        ("vi.doMock(\"my-module\")", None),
         ("describe(\"test suite\", () => { test(\"my test\") });", None),
         ("foo()", None),
         (
@@ -158,7 +158,7 @@ fn test() {
         ),
         (
             "
-                import { describe, afterAll as onceEverythingIsDone } from '@jest/globals';
+                import { describe, afterAll as onceEverythingIsDone } from 'vitest';
 
                 describe(\"test suite\", () => {});
                 onceEverythingIsDone(\"my test\", () => {})
@@ -203,7 +203,7 @@ fn test() {
                     describe as describe1,
                     describe as describe2,
                     describe as describe3,
-                } from '@jest/globals';
+                } from 'vitest';
 
                 describe1('one', () => {
                     describe('one (nested)', () => {});
@@ -233,6 +233,6 @@ fn test() {
     ];
 
     Tester::new(RequireTopLevelDescribe::NAME, RequireTopLevelDescribe::PLUGIN, pass, fail)
-        .with_jest_plugin(true)
+        .with_vitest_plugin(true)
         .test_and_snapshot();
 }
