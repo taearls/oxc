@@ -742,6 +742,7 @@ pub(crate) mod vitest {
     pub mod no_import_node_test;
     pub mod no_importing_vitest_globals;
     pub mod no_interpolation_in_snapshots;
+    pub mod no_large_snapshots;
     pub mod prefer_called_exactly_once_with;
     pub mod prefer_called_once;
     pub mod prefer_called_times;

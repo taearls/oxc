@@ -12,4 +12,5 @@ pub mod no_focused_tests;
 pub mod no_hooks;
 pub mod no_identical_title;
 pub mod no_interpolation_in_snapshots;
+pub mod no_large_snapshots;
 pub mod valid_title;

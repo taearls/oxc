@@ -11,7 +11,7 @@ pub struct NoLargeSnapshots(Box<NoLargeSnapshotsConfig>);
 
 declare_oxc_lint!(
     NoLargeSnapshots,
-    jest,
+    vitest,
     style,
     config = NoLargeSnapshotsConfig,
     docs = DOCUMENTATION,
@@ -86,7 +86,7 @@ fn test() {
     // let twenty_exports_snapshot = generate_exports_snapshot_string(20, None);
     // let fifty_eight_exports_snapshot = generate_exports_snapshot_string(58, None);
 
-    let pass = vec![
+    let mut pass = vec![
         ("expect(something)", None, None, None),
         ("expect(something).toBe(1)", None, None, None),
         ("expect(something).toMatchInlineSnapshot", None, None, None),
@@ -141,7 +141,7 @@ fn test() {
     // ]
     // .join("\n\n");
 
-    let fail = vec![
+    let mut fail = vec![
         (fifty_match_inline_cases.as_str(), None, None, None),
         (fifty_throw_error_match_cases.as_str(), None, None, None),
         (
@@ -214,7 +214,49 @@ fn test() {
         // ),
     ];
 
+    let vitest_pass = vec![
+        ("expect(something)", None, None, None),
+        ("expect(something).toBe(1)", None, None, None),
+        ("expect(something).toMatchInlineSnapshot", None, None, None),
+        ("expect(something).toMatchInlineSnapshot()", None, None, None),
+        (two_match_inline_cases.as_str(), None, None, None),
+        (two_throw_error_match_cases.as_str(), None, None, None),
+        (
+            twenty_match_inline_cases.as_str(),
+            Some(serde_json::json!([{ "maxSize": 19, "inlineMaxSize": 21 }])),
+            None,
+            None,
+        ),
+        (
+            sixty_match_inline_cases.as_str(),
+            Some(serde_json::json!([{ "maxSize": 61 }])),
+            None,
+            None,
+        ),
+        (sixty_cases.as_str(), Some(serde_json::json!([{ "maxSize": 61 }])), None, None),
+    ];
+
+    let vitest_fail = vec![
+        (fifty_match_inline_cases.as_str(), None, None, None),
+        (fifty_throw_error_match_cases.as_str(), None, None, None),
+        (
+            fifty_throw_error_match_cases.as_str(),
+            Some(serde_json::json!([{ "maxSize": 51, "inlineMaxSize": 50 }])),
+            None,
+            None,
+        ),
+        (
+            fifty_throw_error_match_cases.as_str(),
+            Some(serde_json::json!([{ "maxSize": 0 }])),
+            None,
+            None,
+        ),
+    ];
+
+    pass.extend(vitest_pass);
+    fail.extend(vitest_fail);
+
     Tester::new(NoLargeSnapshots::NAME, NoLargeSnapshots::PLUGIN, pass, fail)
-        .with_jest_plugin(true)
+        .with_vitest_plugin(true)
         .test_and_snapshot();
 }

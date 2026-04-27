@@ -1,5 +1,4 @@
 [
-  "no-large-snapshots",
   "no-mocks-import",
   "no-restricted-jest-methods",
   "no-restricted-matchers",
