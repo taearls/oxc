@@ -48,7 +48,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         // The footer is aligned on `CHUNK_ALIGN`, which is `>= MIN_ALIGN`, so this is already aligned to `MIN_ALIGN`.
         let cursor_ptr = chunk_footer_ptr.cast::<u8>();
         let chunk_footer = ChunkFooter {
-            start_ptr,
+            backing_alloc_ptr: start_ptr,
             layout,
             previous_chunk_footer_ptr: Cell::new(None),
             cursor_ptr: Cell::new(cursor_ptr),

@@ -431,7 +431,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         // and `footer_ptr` is aligned for `ChunkFooter`
         unsafe {
             footer_ptr.write(ChunkFooter {
-                start_ptr,
+                backing_alloc_ptr: start_ptr,
                 layout,
                 previous_chunk_footer_ptr: Cell::new(previous_chunk_footer_ptr),
                 cursor_ptr: Cell::new(cursor_ptr),

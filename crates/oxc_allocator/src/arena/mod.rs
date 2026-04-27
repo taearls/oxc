@@ -268,11 +268,10 @@ unsafe impl<const MIN_ALIGN: usize> Send for Arena<MIN_ALIGN> {}
 #[repr(C, align(16))]
 #[derive(Debug)]
 struct ChunkFooter {
-    /// Pointer to the start of this chunk's memory.
+    /// Pointer to the start of the allocation backing this chunk.
     ///
-    /// This field is only used when deallocating chunks.
-    /// Allocation methods use `Arena::start_ptr` instead, which is the authoritative pointer for current chunk.
-    start_ptr: NonNull<u8>,
+    /// This pointer is passed to `alloc::dealloc` when deallocating the chunk.
+    backing_alloc_ptr: NonNull<u8>,
 
     /// The layout of this chunk's backing allocation.
     layout: Layout,

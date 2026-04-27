@@ -98,15 +98,15 @@ unsafe fn dealloc_chunk_list(footer_ptr: Option<NonNull<ChunkFooter>>) {
     while let Some(footer_ptr) = next_footer_ptr {
         // Create `&ChunkFooter` reference to within a block, to ensure the reference is not live
         // when we deallocate the chunk's memory (which includes the `ChunkFooter`)
-        let (start_ptr, layout) = {
+        let (backing_alloc_ptr, layout) = {
             // SAFETY: `footer_ptr` always points to a valid `ChunkFooter`
             let footer = unsafe { footer_ptr.as_ref() };
             next_footer_ptr = footer.previous_chunk_footer_ptr.get();
-            (footer.start_ptr, footer.layout)
+            (footer.backing_alloc_ptr, footer.layout)
         };
 
         // SAFETY: Each `ChunkFooter`'s `start_ptr` and `layout` describe its backing allocation,
         // which was allocated from the global allocator
-        unsafe { alloc::dealloc(start_ptr.as_ptr(), layout) };
+        unsafe { alloc::dealloc(backing_alloc_ptr.as_ptr(), layout) };
     }
 }
