@@ -9,10 +9,17 @@ use super::{
 };
 
 impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
-    /// Construct a static-sized [`Arena`] from an existing memory allocation.
+    /// Construct a static-sized [`Arena`] from a region within an existing memory allocation.
     ///
-    /// The [`Arena`] which is returned takes ownership of the memory allocation,
-    /// and the allocation will be freed if the `Arena` is dropped.
+    /// `start_ptr` and `size` describe the region the `Arena` will use as its single chunk.
+    ///
+    /// `backing_alloc_ptr` and `layout` describe the underlying allocation that owns this region.
+    /// They are stored in the `ChunkFooter` and used by the `Arena`'s [`Drop`] implementation to free the allocation.
+    /// The chunk region (`start_ptr..start_ptr + size`) must lie entirely within the allocation described by
+    /// `backing_alloc_ptr` and `layout`.
+    ///
+    /// The [`Arena`] which is returned takes ownership of the backing allocation, and it will be freed
+    /// via the global allocator (using `backing_alloc_ptr` and `layout`) when the `Arena` is dropped.
     /// If caller wishes to prevent that happening, they must wrap the `Arena` in `ManuallyDrop`.
     ///
     /// The [`Arena`] returned by this function cannot grow.
@@ -22,40 +29,50 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// * `start_ptr` must be aligned on [`CHUNK_ALIGN`].
     /// * `size` must be a multiple of [`CHUNK_ALIGN`].
     /// * `size` must be at least [`CHUNK_FOOTER_SIZE`].
-    /// * The memory region starting at `start_ptr` and encompassing `size` bytes must be within a single allocation.
-    /// * The memory region starting at `start_ptr` and encompassing `size` bytes must have been allocated
-    ///   from system allocator with alignment of [`CHUNK_ALIGN`] (or caller must wrap the `Arena` in `ManuallyDrop`
+    /// * The memory region starting at `start_ptr` and encompassing `size` bytes must be entirely within
+    ///   the allocation described by `backing_alloc_ptr` and `layout`
+    ///   (i.e. `start_ptr >= backing_alloc_ptr` and `start_ptr + size <= backing_alloc_ptr + layout.size()`).
+    /// * The allocation described by `backing_alloc_ptr` and `layout` must have been allocated from
+    ///   the global allocator with that same `layout` (or caller must wrap the `Arena` in `ManuallyDrop`
     ///   and ensure the backing memory is freed correctly themselves).
-    /// * `start_ptr` must have permission for writes.
-    pub unsafe fn from_raw_parts(start_ptr: NonNull<u8>, size: usize) -> Self {
+    /// * `start_ptr` and `backing_alloc_ptr` must have permission for writes.
+    pub unsafe fn from_raw_parts(
+        start_ptr: NonNull<u8>,
+        size: usize,
+        backing_alloc_ptr: NonNull<u8>,
+        layout: Layout,
+    ) -> Self {
         // Debug assert that `start_ptr` and `size` fulfill size and alignment requirements
         debug_assert!(is_pointer_aligned_to(start_ptr, CHUNK_ALIGN));
         debug_assert!(size.is_multiple_of(CHUNK_ALIGN));
         debug_assert!(size >= CHUNK_FOOTER_SIZE);
+        debug_assert!(start_ptr.addr().get().checked_add(size).is_some());
+
+        // Debug assert that the chunk region lies within the backing allocation
+        debug_assert!(start_ptr >= backing_alloc_ptr);
+        debug_assert!(backing_alloc_ptr.addr().get().checked_add(layout.size()).is_some());
+        debug_assert!(
+            start_ptr.addr().get() + size <= backing_alloc_ptr.addr().get() + layout.size()
+        );
 
         let size_without_footer = size - CHUNK_FOOTER_SIZE;
 
-        // Construct `ChunkFooter` and write into end of allocation.
+        // Construct `ChunkFooter` and write into end of chunk region.
         // SAFETY: Caller guarantees:
-        // * `start_ptr` is the start of an allocation of `size` bytes.
+        // * `start_ptr` is the start of a region of `size` bytes within the backing allocation.
         // * `size` is `>= CHUNK_FOOTER_SIZE` - so `size - CHUNK_FOOTER_SIZE` cannot wrap around.
         let chunk_footer_ptr = unsafe { start_ptr.add(size_without_footer) }.cast::<ChunkFooter>();
-        // SAFETY: Caller guarantees `size` is a multiple of `CHUNK_ALIGN`.
-        // Caller guarantees region from `start_ptr` to `start_ptr + size` forms a single allocation,
-        // so it must be a valid layout.
-        let layout = unsafe { Layout::from_size_align_unchecked(size, CHUNK_ALIGN) };
         // Initial cursor sits at the footer, which is the end of the allocatable region.
         // The footer is aligned on `CHUNK_ALIGN`, which is `>= MIN_ALIGN`, so this is already aligned to `MIN_ALIGN`.
         let cursor_ptr = chunk_footer_ptr.cast::<u8>();
         let chunk_footer = ChunkFooter {
-            backing_alloc_ptr: start_ptr,
+            backing_alloc_ptr,
             layout,
             previous_chunk_footer_ptr: Cell::new(None),
             cursor_ptr: Cell::new(cursor_ptr),
         };
-
         // SAFETY: If caller has upheld safety requirements, `chunk_footer_ptr` is `CHUNK_FOOTER_SIZE` bytes
-        // from the end of the allocation, and aligned on `CHUNK_ALIGN`.
+        // from the end of the chunk region, and aligned on `CHUNK_ALIGN`.
         // Therefore `chunk_footer_ptr` is valid for writing a `ChunkFooter`.
         unsafe { chunk_footer_ptr.write(chunk_footer) };
 

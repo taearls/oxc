@@ -1,4 +1,5 @@
 use std::{
+    alloc::Layout,
     mem::{self, ManuallyDrop},
     ptr::{self, NonNull},
     str,
@@ -40,6 +41,12 @@ use crate::{
 //    which is cheaper than `>>>`, and does not risk offsets being interpreted as negative.
 
 const ARENA_ALIGN: usize = Allocator::RAW_MIN_ALIGN;
+
+/// Layout describing the JS-owned buffer (`BUFFER_SIZE` bytes, aligned on `BUFFER_ALIGN`).
+const BUFFER_LAYOUT: Layout = match Layout::from_size_align(BUFFER_SIZE, BUFFER_ALIGN) {
+    Ok(layout) => layout,
+    Err(_) => unreachable!(),
+};
 
 /// Get offset within a `Uint8Array` which is aligned on `BUFFER_ALIGN`.
 ///
@@ -198,6 +205,10 @@ unsafe fn parse_raw_impl(
 
     // Create `Allocator`.
     // Wrap in `ManuallyDrop` so the allocation doesn't get freed at end of function, or if panic.
+    // The buffer is owned by JS, so Rust must not free it - hence `ManuallyDrop`. The
+    // `backing_alloc_ptr` and `layout` we pass to `from_raw_parts` are never used (the `Allocator`
+    // is never dropped), but the safety contract requires the chunk region to lie within them,
+    // so we describe the buffer itself.
     // SAFETY: `data_offset` is less than `buffer.len()`, so `.add(data_offset)` cannot wrap
     // or be out of bounds.
     let data_ptr = unsafe { buffer_ptr.add(data_offset) };
@@ -206,8 +217,15 @@ unsafe fn parse_raw_impl(
     // SAFETY: `data_ptr` and `data_size` outline a section of the memory in `buffer`.
     // `data_ptr` and `data_size` are multiples of `ARENA_ALIGN`.
     // `data_size` is greater than `Allocator::RAW_MIN_SIZE`.
-    let allocator =
-        unsafe { Allocator::from_raw_parts(NonNull::new_unchecked(data_ptr), data_size) };
+    // The chunk region (`data_ptr..data_ptr + data_size`) lies entirely within the buffer.
+    let allocator = unsafe {
+        Allocator::from_raw_parts(
+            NonNull::new_unchecked(data_ptr),
+            data_size,
+            NonNull::new_unchecked(buffer_ptr),
+            BUFFER_LAYOUT,
+        )
+    };
     let allocator = ManuallyDrop::new(allocator);
 
     // Parse source.

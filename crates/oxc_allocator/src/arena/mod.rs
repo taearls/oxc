@@ -267,7 +267,7 @@ unsafe impl<const MIN_ALIGN: usize> Send for Arena<MIN_ALIGN> {}
 /// An empty `Arena`, which does not own any memory, has `Arena::current_chunk_footer_ptr` set to `None`.
 #[repr(C, align(16))]
 #[derive(Debug)]
-struct ChunkFooter {
+pub(crate) struct ChunkFooter {
     /// Pointer to the start of the allocation backing this chunk.
     ///
     /// This pointer is passed to `alloc::dealloc` when deallocating the chunk.
@@ -286,6 +286,18 @@ struct ChunkFooter {
     /// Allocation methods use `Arena::cursor_ptr` instead, which is the authoritative pointer for current chunk.
     /// This field is only used in `ChunkIter` and `ChunkRawIter` iterators, and `used_bytes` method.
     cursor_ptr: Cell<NonNull<u8>>,
+}
+
+#[cfg(feature = "fixed_size")]
+impl ChunkFooter {
+    /// Get the backing allocation pointer and layout for this chunk.
+    ///
+    /// Together these identify the underlying allocation owned by the chunk.
+    /// Used by callers which manage their own deallocation (e.g. `FixedSizeAllocator`).
+    #[inline]
+    pub(crate) fn backing_alloc_info(&self) -> (NonNull<u8>, Layout) {
+        (self.backing_alloc_ptr, self.layout)
+    }
 }
 
 /// We only support alignments of up to 16 bytes for `iter_allocated_chunks`.

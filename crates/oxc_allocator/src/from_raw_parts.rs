@@ -6,7 +6,7 @@
 //! * [`Allocator::data_end_ptr`]
 //! * [`Allocator::end_ptr`]
 
-use std::ptr::NonNull;
+use std::{alloc::Layout, ptr::NonNull};
 
 use crate::{
     Allocator,
@@ -20,30 +20,44 @@ impl Allocator {
     /// Minimum alignment for memory chunk passed to [`Allocator::from_raw_parts`].
     pub const RAW_MIN_ALIGN: usize = CHUNK_ALIGN;
 
-    /// Construct a static-sized [`Allocator`] from an existing memory allocation.
+    /// Construct a static-sized [`Allocator`] from a region within an existing memory allocation.
     ///
-    /// The [`Allocator`] which is returned takes ownership of the memory allocation,
-    /// and the allocation will be freed if the `Allocator` is dropped.
+    /// `start_ptr` and `size` describe the region the `Allocator` will use as its single chunk.
+    ///
+    /// `backing_alloc_ptr` and `layout` describe the underlying allocation that owns this region.
+    /// They are stored in the `ChunkFooter` and used by the `Allocator`'s [`Drop`] implementation to free the allocation.
+    /// The chunk region (`start_ptr..start_ptr + size`) must lie entirely within the allocation described by
+    /// `backing_alloc_ptr` and `layout`.
+    ///
+    /// The [`Allocator`] which is returned takes ownership of the backing allocation, and it will be freed
+    /// via the global allocator (using `backing_alloc_ptr` and `layout`) when the `Allocator` is dropped.
     /// If caller wishes to prevent that happening, they must wrap the `Allocator` in `ManuallyDrop`.
     ///
     /// The [`Allocator`] returned by this function cannot grow.
     ///
     /// # SAFETY
     ///
-    /// * `ptr` must be aligned on [`RAW_MIN_ALIGN`].
+    /// * `start_ptr` must be aligned on [`RAW_MIN_ALIGN`].
     /// * `size` must be a multiple of [`RAW_MIN_ALIGN`].
     /// * `size` must be at least [`RAW_MIN_SIZE`].
-    /// * The memory region starting at `ptr` and encompassing `size` bytes must be within a single allocation.
-    /// * The memory region starting at `ptr` and encompassing `size` bytes must have been allocated from system
-    ///   allocator with alignment of [`RAW_MIN_ALIGN`] (or caller must wrap the `Allocator` in `ManuallyDrop`
+    /// * The memory region starting at `start_ptr` and encompassing `size` bytes must be entirely within
+    ///   the allocation described by `backing_alloc_ptr` and `layout`
+    ///   (i.e. `start_ptr >= backing_alloc_ptr` and `start_ptr + size <= backing_alloc_ptr + layout.size()`).
+    /// * The allocation described by `backing_alloc_ptr` and `layout` must have been allocated from
+    ///   the global allocator with that same `layout` (or caller must wrap the `Allocator` in `ManuallyDrop`
     ///   and ensure the backing memory is freed correctly themselves).
-    /// * `ptr` must have permission for writes.
+    /// * `start_ptr` and `backing_alloc_ptr` must have permission for writes.
     ///
     /// [`RAW_MIN_ALIGN`]: Self::RAW_MIN_ALIGN
     /// [`RAW_MIN_SIZE`]: Self::RAW_MIN_SIZE
-    pub unsafe fn from_raw_parts(ptr: NonNull<u8>, size: usize) -> Self {
+    pub unsafe fn from_raw_parts(
+        start_ptr: NonNull<u8>,
+        size: usize,
+        backing_alloc_ptr: NonNull<u8>,
+        layout: Layout,
+    ) -> Self {
         // SAFETY: Safety requirements of `Arena::from_raw_parts` are the same as for this method
-        let arena = unsafe { Arena::from_raw_parts(ptr, size) };
+        let arena = unsafe { Arena::from_raw_parts(start_ptr, size, backing_alloc_ptr, layout) };
         Self::from_arena(arena)
     }
 

@@ -1,4 +1,5 @@
 use std::{
+    alloc::Layout,
     mem::ManuallyDrop,
     ptr::{self, NonNull},
 };
@@ -18,6 +19,12 @@ use oxc_semantic::SemanticBuilder;
 use crate::generated::raw_transfer_constants::{BLOCK_ALIGN as BUFFER_ALIGN, BUFFER_SIZE};
 
 const ARENA_ALIGN: usize = Allocator::RAW_MIN_ALIGN;
+
+/// Layout describing the JS-owned buffer (`BUFFER_SIZE` bytes, aligned on `BUFFER_ALIGN`).
+const BUFFER_LAYOUT: Layout = match Layout::from_size_align(BUFFER_SIZE, BUFFER_ALIGN) {
+    Ok(layout) => layout,
+    Err(_) => unreachable!(),
+};
 
 /// Sentinel value for program offset to indicate parsing failed.
 ///
@@ -138,11 +145,19 @@ unsafe fn parse_raw_impl(
     };
 
     // Create `Allocator`.
+    //
     // Wrap in `ManuallyDrop` so the allocation doesn't get freed at end of function, or if panic.
+    // The buffer is owned by JS, so Rust must not free it - hence `ManuallyDrop`.
+    // The `backing_alloc_ptr` and `layout` we pass to `from_raw_parts` aren't used (the `Allocator` is never dropped),
+    // but the safety contract requires the chunk region to lie within them, so we describe the buffer itself.
+    //
     // SAFETY: `buffer_ptr` and `RAW_METADATA_OFFSET` outline a section of the memory in `buffer`.
     // `buffer_ptr` and `RAW_METADATA_OFFSET` are multiples of `ARENA_ALIGN`.
     // `RAW_METADATA_OFFSET` is `>= Allocator::RAW_MIN_SIZE`.
-    let allocator = unsafe { Allocator::from_raw_parts(buffer_ptr, RAW_METADATA_OFFSET) };
+    // The chunk region lies entirely within the buffer.
+    let allocator = unsafe {
+        Allocator::from_raw_parts(buffer_ptr, RAW_METADATA_OFFSET, buffer_ptr, BUFFER_LAYOUT)
+    };
     let allocator = ManuallyDrop::new(allocator);
 
     // Set cursor to before start of source text. AST will be written into the buffer before the source text.
