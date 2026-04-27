@@ -250,6 +250,7 @@ pub use crate::rules::jest::prefer_comparison_matcher::PreferComparisonMatcher a
 pub use crate::rules::jest::prefer_each::PreferEach as JestPreferEach;
 pub use crate::rules::jest::prefer_ending_with_an_expect::PreferEndingWithAnExpect as JestPreferEndingWithAnExpect;
 pub use crate::rules::jest::prefer_equality_matcher::PreferEqualityMatcher as JestPreferEqualityMatcher;
+pub use crate::rules::jest::prefer_expect_assertions::PreferExpectAssertions as JestPreferExpectAssertions;
 pub use crate::rules::jest::prefer_expect_resolves::PreferExpectResolves as JestPreferExpectResolves;
 pub use crate::rules::jest::prefer_hooks_in_order::PreferHooksInOrder as JestPreferHooksInOrder;
 pub use crate::rules::jest::prefer_hooks_on_top::PreferHooksOnTop as JestPreferHooksOnTop;
@@ -720,6 +721,7 @@ pub use crate::rules::vitest::prefer_called_exactly_once_with::PreferCalledExact
 pub use crate::rules::vitest::prefer_called_once::PreferCalledOnce as VitestPreferCalledOnce;
 pub use crate::rules::vitest::prefer_called_times::PreferCalledTimes as VitestPreferCalledTimes;
 pub use crate::rules::vitest::prefer_describe_function_title::PreferDescribeFunctionTitle as VitestPreferDescribeFunctionTitle;
+pub use crate::rules::vitest::prefer_expect_assertions::PreferExpectAssertions as VitestPreferExpectAssertions;
 pub use crate::rules::vitest::prefer_expect_type_of::PreferExpectTypeOf as VitestPreferExpectTypeOf;
 pub use crate::rules::vitest::prefer_import_in_mock::PreferImportInMock as VitestPreferImportInMock;
 pub use crate::rules::vitest::prefer_importing_vitest_globals::PreferImportingVitestGlobals as VitestPreferImportingVitestGlobals;
@@ -1120,6 +1122,7 @@ pub enum RuleEnum {
     JestPreferEach(JestPreferEach),
     JestPreferEndingWithAnExpect(JestPreferEndingWithAnExpect),
     JestPreferEqualityMatcher(JestPreferEqualityMatcher),
+    JestPreferExpectAssertions(JestPreferExpectAssertions),
     JestPreferExpectResolves(JestPreferExpectResolves),
     JestPreferHooksInOrder(JestPreferHooksInOrder),
     JestPreferHooksOnTop(JestPreferHooksOnTop),
@@ -1475,6 +1478,7 @@ pub enum RuleEnum {
     VitestPreferCalledOnce(VitestPreferCalledOnce),
     VitestPreferCalledTimes(VitestPreferCalledTimes),
     VitestPreferDescribeFunctionTitle(VitestPreferDescribeFunctionTitle),
+    VitestPreferExpectAssertions(VitestPreferExpectAssertions),
     VitestPreferExpectTypeOf(VitestPreferExpectTypeOf),
     VitestPreferImportInMock(VitestPreferImportInMock),
     VitestPreferImportingVitestGlobals(VitestPreferImportingVitestGlobals),
@@ -1919,7 +1923,8 @@ const JEST_PREFER_COMPARISON_MATCHER_ID: usize = JEST_PREFER_CALLED_WITH_ID + 1u
 const JEST_PREFER_EACH_ID: usize = JEST_PREFER_COMPARISON_MATCHER_ID + 1usize;
 const JEST_PREFER_ENDING_WITH_AN_EXPECT_ID: usize = JEST_PREFER_EACH_ID + 1usize;
 const JEST_PREFER_EQUALITY_MATCHER_ID: usize = JEST_PREFER_ENDING_WITH_AN_EXPECT_ID + 1usize;
-const JEST_PREFER_EXPECT_RESOLVES_ID: usize = JEST_PREFER_EQUALITY_MATCHER_ID + 1usize;
+const JEST_PREFER_EXPECT_ASSERTIONS_ID: usize = JEST_PREFER_EQUALITY_MATCHER_ID + 1usize;
+const JEST_PREFER_EXPECT_RESOLVES_ID: usize = JEST_PREFER_EXPECT_ASSERTIONS_ID + 1usize;
 const JEST_PREFER_HOOKS_IN_ORDER_ID: usize = JEST_PREFER_EXPECT_RESOLVES_ID + 1usize;
 const JEST_PREFER_HOOKS_ON_TOP_ID: usize = JEST_PREFER_HOOKS_IN_ORDER_ID + 1usize;
 const JEST_PREFER_IMPORTING_JEST_GLOBALS_ID: usize = JEST_PREFER_HOOKS_ON_TOP_ID + 1usize;
@@ -2315,7 +2320,8 @@ const VITEST_PREFER_CALLED_EXACTLY_ONCE_WITH_ID: usize = VITEST_NO_MOCKS_IMPORT_
 const VITEST_PREFER_CALLED_ONCE_ID: usize = VITEST_PREFER_CALLED_EXACTLY_ONCE_WITH_ID + 1usize;
 const VITEST_PREFER_CALLED_TIMES_ID: usize = VITEST_PREFER_CALLED_ONCE_ID + 1usize;
 const VITEST_PREFER_DESCRIBE_FUNCTION_TITLE_ID: usize = VITEST_PREFER_CALLED_TIMES_ID + 1usize;
-const VITEST_PREFER_EXPECT_TYPE_OF_ID: usize = VITEST_PREFER_DESCRIBE_FUNCTION_TITLE_ID + 1usize;
+const VITEST_PREFER_EXPECT_ASSERTIONS_ID: usize = VITEST_PREFER_DESCRIBE_FUNCTION_TITLE_ID + 1usize;
+const VITEST_PREFER_EXPECT_TYPE_OF_ID: usize = VITEST_PREFER_EXPECT_ASSERTIONS_ID + 1usize;
 const VITEST_PREFER_IMPORT_IN_MOCK_ID: usize = VITEST_PREFER_EXPECT_TYPE_OF_ID + 1usize;
 const VITEST_PREFER_IMPORTING_VITEST_GLOBALS_ID: usize = VITEST_PREFER_IMPORT_IN_MOCK_ID + 1usize;
 const VITEST_PREFER_STRICT_BOOLEAN_MATCHERS_ID: usize =
@@ -2788,6 +2794,7 @@ impl RuleEnum {
             Self::JestPreferEach(_) => JEST_PREFER_EACH_ID,
             Self::JestPreferEndingWithAnExpect(_) => JEST_PREFER_ENDING_WITH_AN_EXPECT_ID,
             Self::JestPreferEqualityMatcher(_) => JEST_PREFER_EQUALITY_MATCHER_ID,
+            Self::JestPreferExpectAssertions(_) => JEST_PREFER_EXPECT_ASSERTIONS_ID,
             Self::JestPreferExpectResolves(_) => JEST_PREFER_EXPECT_RESOLVES_ID,
             Self::JestPreferHooksInOrder(_) => JEST_PREFER_HOOKS_IN_ORDER_ID,
             Self::JestPreferHooksOnTop(_) => JEST_PREFER_HOOKS_ON_TOP_ID,
@@ -3183,6 +3190,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(_) => VITEST_PREFER_CALLED_ONCE_ID,
             Self::VitestPreferCalledTimes(_) => VITEST_PREFER_CALLED_TIMES_ID,
             Self::VitestPreferDescribeFunctionTitle(_) => VITEST_PREFER_DESCRIBE_FUNCTION_TITLE_ID,
+            Self::VitestPreferExpectAssertions(_) => VITEST_PREFER_EXPECT_ASSERTIONS_ID,
             Self::VitestPreferExpectTypeOf(_) => VITEST_PREFER_EXPECT_TYPE_OF_ID,
             Self::VitestPreferImportInMock(_) => VITEST_PREFER_IMPORT_IN_MOCK_ID,
             Self::VitestPreferImportingVitestGlobals(_) => {
@@ -3654,6 +3662,7 @@ impl RuleEnum {
             Self::JestPreferEach(_) => JestPreferEach::NAME,
             Self::JestPreferEndingWithAnExpect(_) => JestPreferEndingWithAnExpect::NAME,
             Self::JestPreferEqualityMatcher(_) => JestPreferEqualityMatcher::NAME,
+            Self::JestPreferExpectAssertions(_) => JestPreferExpectAssertions::NAME,
             Self::JestPreferExpectResolves(_) => JestPreferExpectResolves::NAME,
             Self::JestPreferHooksInOrder(_) => JestPreferHooksInOrder::NAME,
             Self::JestPreferHooksOnTop(_) => JestPreferHooksOnTop::NAME,
@@ -4041,6 +4050,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(_) => VitestPreferCalledOnce::NAME,
             Self::VitestPreferCalledTimes(_) => VitestPreferCalledTimes::NAME,
             Self::VitestPreferDescribeFunctionTitle(_) => VitestPreferDescribeFunctionTitle::NAME,
+            Self::VitestPreferExpectAssertions(_) => VitestPreferExpectAssertions::NAME,
             Self::VitestPreferExpectTypeOf(_) => VitestPreferExpectTypeOf::NAME,
             Self::VitestPreferImportInMock(_) => VitestPreferImportInMock::NAME,
             Self::VitestPreferImportingVitestGlobals(_) => VitestPreferImportingVitestGlobals::NAME,
@@ -4534,6 +4544,7 @@ impl RuleEnum {
             Self::JestPreferEach(_) => JestPreferEach::CATEGORY,
             Self::JestPreferEndingWithAnExpect(_) => JestPreferEndingWithAnExpect::CATEGORY,
             Self::JestPreferEqualityMatcher(_) => JestPreferEqualityMatcher::CATEGORY,
+            Self::JestPreferExpectAssertions(_) => JestPreferExpectAssertions::CATEGORY,
             Self::JestPreferExpectResolves(_) => JestPreferExpectResolves::CATEGORY,
             Self::JestPreferHooksInOrder(_) => JestPreferHooksInOrder::CATEGORY,
             Self::JestPreferHooksOnTop(_) => JestPreferHooksOnTop::CATEGORY,
@@ -4945,6 +4956,7 @@ impl RuleEnum {
             Self::VitestPreferDescribeFunctionTitle(_) => {
                 VitestPreferDescribeFunctionTitle::CATEGORY
             }
+            Self::VitestPreferExpectAssertions(_) => VitestPreferExpectAssertions::CATEGORY,
             Self::VitestPreferExpectTypeOf(_) => VitestPreferExpectTypeOf::CATEGORY,
             Self::VitestPreferImportInMock(_) => VitestPreferImportInMock::CATEGORY,
             Self::VitestPreferImportingVitestGlobals(_) => {
@@ -5421,6 +5433,7 @@ impl RuleEnum {
             Self::JestPreferEach(_) => JestPreferEach::FIX,
             Self::JestPreferEndingWithAnExpect(_) => JestPreferEndingWithAnExpect::FIX,
             Self::JestPreferEqualityMatcher(_) => JestPreferEqualityMatcher::FIX,
+            Self::JestPreferExpectAssertions(_) => JestPreferExpectAssertions::FIX,
             Self::JestPreferExpectResolves(_) => JestPreferExpectResolves::FIX,
             Self::JestPreferHooksInOrder(_) => JestPreferHooksInOrder::FIX,
             Self::JestPreferHooksOnTop(_) => JestPreferHooksOnTop::FIX,
@@ -5808,6 +5821,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(_) => VitestPreferCalledOnce::FIX,
             Self::VitestPreferCalledTimes(_) => VitestPreferCalledTimes::FIX,
             Self::VitestPreferDescribeFunctionTitle(_) => VitestPreferDescribeFunctionTitle::FIX,
+            Self::VitestPreferExpectAssertions(_) => VitestPreferExpectAssertions::FIX,
             Self::VitestPreferExpectTypeOf(_) => VitestPreferExpectTypeOf::FIX,
             Self::VitestPreferImportInMock(_) => VitestPreferImportInMock::FIX,
             Self::VitestPreferImportingVitestGlobals(_) => VitestPreferImportingVitestGlobals::FIX,
@@ -6370,6 +6384,7 @@ impl RuleEnum {
             Self::JestPreferEach(_) => JestPreferEach::documentation(),
             Self::JestPreferEndingWithAnExpect(_) => JestPreferEndingWithAnExpect::documentation(),
             Self::JestPreferEqualityMatcher(_) => JestPreferEqualityMatcher::documentation(),
+            Self::JestPreferExpectAssertions(_) => JestPreferExpectAssertions::documentation(),
             Self::JestPreferExpectResolves(_) => JestPreferExpectResolves::documentation(),
             Self::JestPreferHooksInOrder(_) => JestPreferHooksInOrder::documentation(),
             Self::JestPreferHooksOnTop(_) => JestPreferHooksOnTop::documentation(),
@@ -6875,6 +6890,7 @@ impl RuleEnum {
             Self::VitestPreferDescribeFunctionTitle(_) => {
                 VitestPreferDescribeFunctionTitle::documentation()
             }
+            Self::VitestPreferExpectAssertions(_) => VitestPreferExpectAssertions::documentation(),
             Self::VitestPreferExpectTypeOf(_) => VitestPreferExpectTypeOf::documentation(),
             Self::VitestPreferImportInMock(_) => VitestPreferImportInMock::documentation(),
             Self::VitestPreferImportingVitestGlobals(_) => {
@@ -7943,6 +7959,10 @@ impl RuleEnum {
                 JestPreferEqualityMatcher::config_schema(generator)
                     .or_else(|| JestPreferEqualityMatcher::schema(generator))
             }
+            Self::JestPreferExpectAssertions(_) => {
+                JestPreferExpectAssertions::config_schema(generator)
+                    .or_else(|| JestPreferExpectAssertions::schema(generator))
+            }
             Self::JestPreferExpectResolves(_) => JestPreferExpectResolves::config_schema(generator)
                 .or_else(|| JestPreferExpectResolves::schema(generator)),
             Self::JestPreferHooksInOrder(_) => JestPreferHooksInOrder::config_schema(generator)
@@ -8954,6 +8974,10 @@ impl RuleEnum {
                 VitestPreferDescribeFunctionTitle::config_schema(generator)
                     .or_else(|| VitestPreferDescribeFunctionTitle::schema(generator))
             }
+            Self::VitestPreferExpectAssertions(_) => {
+                VitestPreferExpectAssertions::config_schema(generator)
+                    .or_else(|| VitestPreferExpectAssertions::schema(generator))
+            }
             Self::VitestPreferExpectTypeOf(_) => VitestPreferExpectTypeOf::config_schema(generator)
                 .or_else(|| VitestPreferExpectTypeOf::schema(generator)),
             Self::VitestPreferImportInMock(_) => VitestPreferImportInMock::config_schema(generator)
@@ -9432,6 +9456,7 @@ impl RuleEnum {
             Self::JestPreferEach(_) => "jest",
             Self::JestPreferEndingWithAnExpect(_) => "jest",
             Self::JestPreferEqualityMatcher(_) => "jest",
+            Self::JestPreferExpectAssertions(_) => "jest",
             Self::JestPreferExpectResolves(_) => "jest",
             Self::JestPreferHooksInOrder(_) => "jest",
             Self::JestPreferHooksOnTop(_) => "jest",
@@ -9787,6 +9812,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(_) => "vitest",
             Self::VitestPreferCalledTimes(_) => "vitest",
             Self::VitestPreferDescribeFunctionTitle(_) => "vitest",
+            Self::VitestPreferExpectAssertions(_) => "vitest",
             Self::VitestPreferExpectTypeOf(_) => "vitest",
             Self::VitestPreferImportInMock(_) => "vitest",
             Self::VitestPreferImportingVitestGlobals(_) => "vitest",
@@ -10977,6 +11003,9 @@ impl RuleEnum {
             Self::JestPreferEqualityMatcher(_) => Ok(Self::JestPreferEqualityMatcher(
                 JestPreferEqualityMatcher::from_configuration(value)?,
             )),
+            Self::JestPreferExpectAssertions(_) => Ok(Self::JestPreferExpectAssertions(
+                JestPreferExpectAssertions::from_configuration(value)?,
+            )),
             Self::JestPreferExpectResolves(_) => Ok(Self::JestPreferExpectResolves(
                 JestPreferExpectResolves::from_configuration(value)?,
             )),
@@ -12108,6 +12137,9 @@ impl RuleEnum {
                     VitestPreferDescribeFunctionTitle::from_configuration(value)?,
                 ))
             }
+            Self::VitestPreferExpectAssertions(_) => Ok(Self::VitestPreferExpectAssertions(
+                VitestPreferExpectAssertions::from_configuration(value)?,
+            )),
             Self::VitestPreferExpectTypeOf(_) => Ok(Self::VitestPreferExpectTypeOf(
                 VitestPreferExpectTypeOf::from_configuration(value)?,
             )),
@@ -12607,6 +12639,7 @@ impl RuleEnum {
             Self::JestPreferEach(rule) => rule.to_configuration(),
             Self::JestPreferEndingWithAnExpect(rule) => rule.to_configuration(),
             Self::JestPreferEqualityMatcher(rule) => rule.to_configuration(),
+            Self::JestPreferExpectAssertions(rule) => rule.to_configuration(),
             Self::JestPreferExpectResolves(rule) => rule.to_configuration(),
             Self::JestPreferHooksInOrder(rule) => rule.to_configuration(),
             Self::JestPreferHooksOnTop(rule) => rule.to_configuration(),
@@ -12962,6 +12995,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(rule) => rule.to_configuration(),
             Self::VitestPreferCalledTimes(rule) => rule.to_configuration(),
             Self::VitestPreferDescribeFunctionTitle(rule) => rule.to_configuration(),
+            Self::VitestPreferExpectAssertions(rule) => rule.to_configuration(),
             Self::VitestPreferExpectTypeOf(rule) => rule.to_configuration(),
             Self::VitestPreferImportInMock(rule) => rule.to_configuration(),
             Self::VitestPreferImportingVitestGlobals(rule) => rule.to_configuration(),
@@ -13363,6 +13397,7 @@ impl RuleEnum {
             Self::JestPreferEach(rule) => rule.run(node, ctx),
             Self::JestPreferEndingWithAnExpect(rule) => rule.run(node, ctx),
             Self::JestPreferEqualityMatcher(rule) => rule.run(node, ctx),
+            Self::JestPreferExpectAssertions(rule) => rule.run(node, ctx),
             Self::JestPreferExpectResolves(rule) => rule.run(node, ctx),
             Self::JestPreferHooksInOrder(rule) => rule.run(node, ctx),
             Self::JestPreferHooksOnTop(rule) => rule.run(node, ctx),
@@ -13718,6 +13753,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(rule) => rule.run(node, ctx),
             Self::VitestPreferCalledTimes(rule) => rule.run(node, ctx),
             Self::VitestPreferDescribeFunctionTitle(rule) => rule.run(node, ctx),
+            Self::VitestPreferExpectAssertions(rule) => rule.run(node, ctx),
             Self::VitestPreferExpectTypeOf(rule) => rule.run(node, ctx),
             Self::VitestPreferImportInMock(rule) => rule.run(node, ctx),
             Self::VitestPreferImportingVitestGlobals(rule) => rule.run(node, ctx),
@@ -14117,6 +14153,7 @@ impl RuleEnum {
             Self::JestPreferEach(rule) => rule.run_once(ctx),
             Self::JestPreferEndingWithAnExpect(rule) => rule.run_once(ctx),
             Self::JestPreferEqualityMatcher(rule) => rule.run_once(ctx),
+            Self::JestPreferExpectAssertions(rule) => rule.run_once(ctx),
             Self::JestPreferExpectResolves(rule) => rule.run_once(ctx),
             Self::JestPreferHooksInOrder(rule) => rule.run_once(ctx),
             Self::JestPreferHooksOnTop(rule) => rule.run_once(ctx),
@@ -14472,6 +14509,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(rule) => rule.run_once(ctx),
             Self::VitestPreferCalledTimes(rule) => rule.run_once(ctx),
             Self::VitestPreferDescribeFunctionTitle(rule) => rule.run_once(ctx),
+            Self::VitestPreferExpectAssertions(rule) => rule.run_once(ctx),
             Self::VitestPreferExpectTypeOf(rule) => rule.run_once(ctx),
             Self::VitestPreferImportInMock(rule) => rule.run_once(ctx),
             Self::VitestPreferImportingVitestGlobals(rule) => rule.run_once(ctx),
@@ -14941,6 +14979,7 @@ impl RuleEnum {
             Self::JestPreferEach(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::JestPreferEndingWithAnExpect(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::JestPreferEqualityMatcher(rule) => rule.run_on_jest_node(jest_node, ctx),
+            Self::JestPreferExpectAssertions(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::JestPreferExpectResolves(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::JestPreferHooksInOrder(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::JestPreferHooksOnTop(rule) => rule.run_on_jest_node(jest_node, ctx),
@@ -15328,6 +15367,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferCalledTimes(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferDescribeFunctionTitle(rule) => rule.run_on_jest_node(jest_node, ctx),
+            Self::VitestPreferExpectAssertions(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferExpectTypeOf(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferImportInMock(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferImportingVitestGlobals(rule) => rule.run_on_jest_node(jest_node, ctx),
@@ -15731,6 +15771,7 @@ impl RuleEnum {
             Self::JestPreferEach(rule) => rule.should_run(ctx),
             Self::JestPreferEndingWithAnExpect(rule) => rule.should_run(ctx),
             Self::JestPreferEqualityMatcher(rule) => rule.should_run(ctx),
+            Self::JestPreferExpectAssertions(rule) => rule.should_run(ctx),
             Self::JestPreferExpectResolves(rule) => rule.should_run(ctx),
             Self::JestPreferHooksInOrder(rule) => rule.should_run(ctx),
             Self::JestPreferHooksOnTop(rule) => rule.should_run(ctx),
@@ -16086,6 +16127,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(rule) => rule.should_run(ctx),
             Self::VitestPreferCalledTimes(rule) => rule.should_run(ctx),
             Self::VitestPreferDescribeFunctionTitle(rule) => rule.should_run(ctx),
+            Self::VitestPreferExpectAssertions(rule) => rule.should_run(ctx),
             Self::VitestPreferExpectTypeOf(rule) => rule.should_run(ctx),
             Self::VitestPreferImportInMock(rule) => rule.should_run(ctx),
             Self::VitestPreferImportingVitestGlobals(rule) => rule.should_run(ctx),
@@ -16643,6 +16685,7 @@ impl RuleEnum {
             Self::JestPreferEach(_) => JestPreferEach::IS_TSGOLINT_RULE,
             Self::JestPreferEndingWithAnExpect(_) => JestPreferEndingWithAnExpect::IS_TSGOLINT_RULE,
             Self::JestPreferEqualityMatcher(_) => JestPreferEqualityMatcher::IS_TSGOLINT_RULE,
+            Self::JestPreferExpectAssertions(_) => JestPreferExpectAssertions::IS_TSGOLINT_RULE,
             Self::JestPreferExpectResolves(_) => JestPreferExpectResolves::IS_TSGOLINT_RULE,
             Self::JestPreferHooksInOrder(_) => JestPreferHooksInOrder::IS_TSGOLINT_RULE,
             Self::JestPreferHooksOnTop(_) => JestPreferHooksOnTop::IS_TSGOLINT_RULE,
@@ -17148,6 +17191,7 @@ impl RuleEnum {
             Self::VitestPreferDescribeFunctionTitle(_) => {
                 VitestPreferDescribeFunctionTitle::IS_TSGOLINT_RULE
             }
+            Self::VitestPreferExpectAssertions(_) => VitestPreferExpectAssertions::IS_TSGOLINT_RULE,
             Self::VitestPreferExpectTypeOf(_) => VitestPreferExpectTypeOf::IS_TSGOLINT_RULE,
             Self::VitestPreferImportInMock(_) => VitestPreferImportInMock::IS_TSGOLINT_RULE,
             Self::VitestPreferImportingVitestGlobals(_) => {
@@ -17657,6 +17701,7 @@ impl RuleEnum {
             Self::JestPreferEach(_) => JestPreferEach::VERSION,
             Self::JestPreferEndingWithAnExpect(_) => JestPreferEndingWithAnExpect::VERSION,
             Self::JestPreferEqualityMatcher(_) => JestPreferEqualityMatcher::VERSION,
+            Self::JestPreferExpectAssertions(_) => JestPreferExpectAssertions::VERSION,
             Self::JestPreferExpectResolves(_) => JestPreferExpectResolves::VERSION,
             Self::JestPreferHooksInOrder(_) => JestPreferHooksInOrder::VERSION,
             Self::JestPreferHooksOnTop(_) => JestPreferHooksOnTop::VERSION,
@@ -18068,6 +18113,7 @@ impl RuleEnum {
             Self::VitestPreferDescribeFunctionTitle(_) => {
                 VitestPreferDescribeFunctionTitle::VERSION
             }
+            Self::VitestPreferExpectAssertions(_) => VitestPreferExpectAssertions::VERSION,
             Self::VitestPreferExpectTypeOf(_) => VitestPreferExpectTypeOf::VERSION,
             Self::VitestPreferImportInMock(_) => VitestPreferImportInMock::VERSION,
             Self::VitestPreferImportingVitestGlobals(_) => {
@@ -18582,6 +18628,7 @@ impl RuleEnum {
             Self::JestPreferEach(_) => JestPreferEach::HAS_CONFIG,
             Self::JestPreferEndingWithAnExpect(_) => JestPreferEndingWithAnExpect::HAS_CONFIG,
             Self::JestPreferEqualityMatcher(_) => JestPreferEqualityMatcher::HAS_CONFIG,
+            Self::JestPreferExpectAssertions(_) => JestPreferExpectAssertions::HAS_CONFIG,
             Self::JestPreferExpectResolves(_) => JestPreferExpectResolves::HAS_CONFIG,
             Self::JestPreferHooksInOrder(_) => JestPreferHooksInOrder::HAS_CONFIG,
             Self::JestPreferHooksOnTop(_) => JestPreferHooksOnTop::HAS_CONFIG,
@@ -19007,6 +19054,7 @@ impl RuleEnum {
             Self::VitestPreferDescribeFunctionTitle(_) => {
                 VitestPreferDescribeFunctionTitle::HAS_CONFIG
             }
+            Self::VitestPreferExpectAssertions(_) => VitestPreferExpectAssertions::HAS_CONFIG,
             Self::VitestPreferExpectTypeOf(_) => VitestPreferExpectTypeOf::HAS_CONFIG,
             Self::VitestPreferImportInMock(_) => VitestPreferImportInMock::HAS_CONFIG,
             Self::VitestPreferImportingVitestGlobals(_) => {
@@ -19418,6 +19466,7 @@ impl RuleEnum {
             Self::JestPreferEach(rule) => rule.types_info(),
             Self::JestPreferEndingWithAnExpect(rule) => rule.types_info(),
             Self::JestPreferEqualityMatcher(rule) => rule.types_info(),
+            Self::JestPreferExpectAssertions(rule) => rule.types_info(),
             Self::JestPreferExpectResolves(rule) => rule.types_info(),
             Self::JestPreferHooksInOrder(rule) => rule.types_info(),
             Self::JestPreferHooksOnTop(rule) => rule.types_info(),
@@ -19773,6 +19822,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(rule) => rule.types_info(),
             Self::VitestPreferCalledTimes(rule) => rule.types_info(),
             Self::VitestPreferDescribeFunctionTitle(rule) => rule.types_info(),
+            Self::VitestPreferExpectAssertions(rule) => rule.types_info(),
             Self::VitestPreferExpectTypeOf(rule) => rule.types_info(),
             Self::VitestPreferImportInMock(rule) => rule.types_info(),
             Self::VitestPreferImportingVitestGlobals(rule) => rule.types_info(),
@@ -20172,6 +20222,7 @@ impl RuleEnum {
             Self::JestPreferEach(rule) => rule.run_info(),
             Self::JestPreferEndingWithAnExpect(rule) => rule.run_info(),
             Self::JestPreferEqualityMatcher(rule) => rule.run_info(),
+            Self::JestPreferExpectAssertions(rule) => rule.run_info(),
             Self::JestPreferExpectResolves(rule) => rule.run_info(),
             Self::JestPreferHooksInOrder(rule) => rule.run_info(),
             Self::JestPreferHooksOnTop(rule) => rule.run_info(),
@@ -20527,6 +20578,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(rule) => rule.run_info(),
             Self::VitestPreferCalledTimes(rule) => rule.run_info(),
             Self::VitestPreferDescribeFunctionTitle(rule) => rule.run_info(),
+            Self::VitestPreferExpectAssertions(rule) => rule.run_info(),
             Self::VitestPreferExpectTypeOf(rule) => rule.run_info(),
             Self::VitestPreferImportInMock(rule) => rule.run_info(),
             Self::VitestPreferImportingVitestGlobals(rule) => rule.run_info(),
@@ -21014,6 +21066,7 @@ pub static RULES: std::sync::LazyLock<Vec<RuleEnum>> = std::sync::LazyLock::new(
         RuleEnum::JestPreferEach(JestPreferEach::default()),
         RuleEnum::JestPreferEndingWithAnExpect(JestPreferEndingWithAnExpect::default()),
         RuleEnum::JestPreferEqualityMatcher(JestPreferEqualityMatcher::default()),
+        RuleEnum::JestPreferExpectAssertions(JestPreferExpectAssertions::default()),
         RuleEnum::JestPreferExpectResolves(JestPreferExpectResolves::default()),
         RuleEnum::JestPreferHooksInOrder(JestPreferHooksInOrder::default()),
         RuleEnum::JestPreferHooksOnTop(JestPreferHooksOnTop::default()),
@@ -21401,6 +21454,7 @@ pub static RULES: std::sync::LazyLock<Vec<RuleEnum>> = std::sync::LazyLock::new(
         RuleEnum::VitestPreferCalledOnce(VitestPreferCalledOnce::default()),
         RuleEnum::VitestPreferCalledTimes(VitestPreferCalledTimes::default()),
         RuleEnum::VitestPreferDescribeFunctionTitle(VitestPreferDescribeFunctionTitle::default()),
+        RuleEnum::VitestPreferExpectAssertions(VitestPreferExpectAssertions::default()),
         RuleEnum::VitestPreferExpectTypeOf(VitestPreferExpectTypeOf::default()),
         RuleEnum::VitestPreferImportInMock(VitestPreferImportInMock::default()),
         RuleEnum::VitestPreferImportingVitestGlobals(VitestPreferImportingVitestGlobals::default()),
