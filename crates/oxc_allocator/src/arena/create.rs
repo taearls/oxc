@@ -270,11 +270,9 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         // `Arena::with_capacity` allocating 16 KiB even when requested `capacity` is much smaller.
         //
         // SAFETY: We pass `None` as `previous_chunk_footer_ptr` (because we're creating the first chunk).
-        let chunk_footer_ptr = unsafe { Self::new_chunk(capacity, layout, None) };
-        let chunk_footer_ptr = chunk_footer_ptr.ok_or(AllocErr)?;
+        let (start_ptr, chunk_footer_ptr) =
+            unsafe { Self::new_chunk(capacity, layout, None) }.ok_or(AllocErr)?;
 
-        // SAFETY: `chunk_footer_ptr` points to a valid `ChunkFooter`
-        let start_ptr = unsafe { chunk_footer_ptr.as_ref().start_ptr };
         // Initial cursor sits at the footer, which is the end of the allocatable region.
         // The footer is aligned on `CHUNK_ALIGN`, which is `>= MIN_ALIGN`, so this is already aligned to `MIN_ALIGN`.
         let cursor_ptr = chunk_footer_ptr.cast::<u8>();
@@ -316,7 +314,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         }
     }
 
-    /// Allocate a new chunk and return its initialized footer.
+    /// Allocate a new chunk and return pointers to its start and its initialized footer.
     ///
     /// The actual chunk size is derived from `new_size_without_footer` and `requested_layout`,
     /// rounded up to play nicely with the global allocator
@@ -336,7 +334,12 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         new_size_without_footer: usize,
         requested_layout: Layout,
         previous_chunk_footer_ptr: Option<NonNull<ChunkFooter>>,
-    ) -> Option<NonNull<ChunkFooter>> {
+    ) -> Option<(
+        // Pointer to start of allocatable region of the new chunk
+        NonNull<u8>,
+        // Pointer to the new chunk's footer
+        NonNull<ChunkFooter>,
+    )> {
         // Chunks must be aligned to at least `CHUNK_ALIGN` and `MIN_ALIGN`.
         // `MIN_ALIGN` is always `<= CHUNK_ALIGN`, so aligning to `CHUNK_ALIGN` satisfies both.
         let align = max(requested_layout.align(), CHUNK_ALIGN);
@@ -435,7 +438,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             });
         }
 
-        Some(footer_ptr)
+        Some((start_ptr, footer_ptr))
     }
 }
 

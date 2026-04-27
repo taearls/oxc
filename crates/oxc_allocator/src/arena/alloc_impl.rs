@@ -353,12 +353,12 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 None => min_new_chunk_size,
             };
 
-            let new_footer_ptr = loop {
+            let (new_start_ptr, new_footer_ptr) = loop {
                 // Try to allocate a chunk of `size` bytes (plus footer and rounding).
                 // SAFETY: `current_footer_ptr` points to a valid `ChunkFooter` for a chunk in this `Arena`,
                 // or it's `None`.
-                if let Some(new_footer_ptr) = Self::new_chunk(size, layout, current_footer_ptr) {
-                    break new_footer_ptr;
+                if let Some(new_chunk) = Self::new_chunk(size, layout, current_footer_ptr) {
+                    break new_chunk;
                 }
 
                 // Failed. Halve size and try again.
@@ -370,7 +370,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
                 }
             };
 
-            debug_assert!(is_pointer_aligned_to(new_footer_ptr.as_ref().start_ptr, layout.align()));
+            debug_assert!(is_pointer_aligned_to(new_start_ptr, layout.align()));
 
             // Sync `Arena::cursor_ptr` back to the retiring chunk's footer so iteration over chunks
             // can read its final cursor position later. Skip this if there was no current chunk.
@@ -381,7 +381,7 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
             // Set the new chunk as our new current chunk, and sync `start_ptr` and `cursor_ptr` accordingly.
             // Initial cursor sits at the footer (end of the allocatable region).
             // The footer is aligned on `CHUNK_ALIGN >= MIN_ALIGN`, so no rounding is needed.
-            self.start_ptr.set(new_footer_ptr.as_ref().start_ptr);
+            self.start_ptr.set(new_start_ptr);
             self.cursor_ptr.set(new_footer_ptr.cast::<u8>());
             self.current_chunk_footer_ptr.set(Some(new_footer_ptr));
 
