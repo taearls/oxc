@@ -405,30 +405,37 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
         let layout = layout_from_size_align(size, align).ok()?;
 
         debug_assert!(size >= requested_layout.size());
+        debug_assert!(size > 0);
 
+        // Allocate memory for the chunk.
+        // SAFETY: `layout` has non-zero size.
+        let start_ptr = unsafe { alloc::alloc(layout) };
+        let start_ptr = NonNull::new(start_ptr)?;
+
+        // The `ChunkFooter` is at the end of the chunk.
+        // SAFETY: We allocated `new_size_without_footer + CHUNK_FOOTER_SIZE` bytes, starting at `start_ptr`,
+        // so `start_ptr + new_size_without_footer` is within that allocation.
+        let footer_ptr = unsafe { start_ptr.add(new_size_without_footer) }.cast::<ChunkFooter>();
+        debug_assert!(is_pointer_aligned_to(start_ptr, align));
+        debug_assert!(is_pointer_aligned_to(footer_ptr, CHUNK_ALIGN));
+
+        // Initial cursor sits at the footer, which is the end of the allocatable region.
+        // The footer is aligned on `CHUNK_ALIGN`, which is `>= MIN_ALIGN`, so this is already aligned to `MIN_ALIGN`.
+        let cursor_ptr = footer_ptr.cast::<u8>();
+        debug_assert!(is_pointer_aligned_to(cursor_ptr, MIN_ALIGN));
+
+        // SAFETY: `footer_ptr + size_of::<ChunkFooter>()` is the end of the allocation we just made,
+        // and `footer_ptr` is aligned for `ChunkFooter`
         unsafe {
-            let start_ptr = alloc::alloc(layout);
-            let start_ptr = NonNull::new(start_ptr)?;
-
-            // The `ChunkFooter` is at the end of the chunk
-            let footer_ptr = start_ptr.add(new_size_without_footer).cast::<ChunkFooter>();
-            debug_assert!(is_pointer_aligned_to(start_ptr, align));
-            debug_assert!(is_pointer_aligned_to(footer_ptr, CHUNK_ALIGN));
-
-            // Initial cursor sits at the footer, which is the end of the allocatable region.
-            // The footer is aligned on `CHUNK_ALIGN`, which is `>= MIN_ALIGN`, so this is already aligned to `MIN_ALIGN`.
-            let cursor_ptr = footer_ptr.cast::<u8>();
-            debug_assert!(is_pointer_aligned_to(cursor_ptr, MIN_ALIGN));
-
             footer_ptr.write(ChunkFooter {
                 start_ptr,
                 layout,
                 previous_chunk_footer_ptr: Cell::new(previous_chunk_footer_ptr),
                 cursor_ptr: Cell::new(cursor_ptr),
             });
-
-            Some(footer_ptr)
         }
+
+        Some(footer_ptr)
     }
 }
 
