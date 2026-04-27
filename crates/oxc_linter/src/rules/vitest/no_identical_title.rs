@@ -9,7 +9,7 @@ use crate::{
 #[derive(Debug, Default, Clone)]
 pub struct NoIdenticalTitle;
 
-declare_oxc_lint!(NoIdenticalTitle, jest, style, docs = DOCUMENTATION, version = "0.0.14",);
+declare_oxc_lint!(NoIdenticalTitle, vitest, style, docs = DOCUMENTATION, version = "0.0.14",);
 
 impl Rule for NoIdenticalTitle {
     fn run_once(&self, ctx: &LintContext) {
@@ -21,7 +21,7 @@ impl Rule for NoIdenticalTitle {
 fn test() {
     use crate::tester::Tester;
 
-    let pass = vec![
+    let mut pass = vec![
         ("it(); it();", None),
         ("describe(); describe();", None),
         ("describe('foo', () => {}); it('foo', () => {});", None),
@@ -223,7 +223,7 @@ fn test() {
         ),
     ];
 
-    let fail = vec![
+    let mut fail = vec![
         (
             "
               describe('foo', () => {
@@ -325,7 +325,63 @@ fn test() {
         // ),
     ];
 
+    let pass_vitest = vec![
+        "
+            suite('parent', () => {
+                suite('child 1', () => {
+                    test('grand child 1', () => {})
+                })
+                suite('child 2', () => {
+                    test('grand child 1', () => {})
+                })
+            })
+        ",
+        "it(); it();",
+        r#"test("two", () => {});"#,
+        "
+            fdescribe('a describe', () => {
+                test('a test', () => {
+                    expect(true).toBe(true);
+                });
+            });
+            fdescribe('another describe', () => {
+                test('a test', () => {
+                    expect(true).toBe(true);
+                });
+            });
+        ",
+        "
+            suite('parent', () => {
+                suite('child 1', () => {
+                    test('grand child 1', () => {})
+                })
+                suite('child 2', () => {
+                    test('grand child 1', () => {})
+                })
+            })
+        ",
+    ];
+
+    let fail_vitest = vec![
+        "
+            describe('foo', () => {
+                it('works', () => {});
+                it('works', () => {});
+            });
+        ",
+        "
+            xdescribe('foo', () => {
+                it('works', () => {});
+                it('works', () => {});
+            });
+        ",
+    ];
+
+    pass.extend(pass_vitest.into_iter().map(|x| (x, None)));
+    fail.extend(fail_vitest.into_iter().map(|x| (x, None)));
+
     Tester::new(NoIdenticalTitle::NAME, NoIdenticalTitle::PLUGIN, pass, fail)
         .with_jest_plugin(true)
+        .with_vitest_plugin(true)
         .test_and_snapshot();
 }

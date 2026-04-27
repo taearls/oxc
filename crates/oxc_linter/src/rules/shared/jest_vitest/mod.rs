@@ -10,4 +10,5 @@ pub mod no_disabled_tests;
 pub mod no_duplicate_hooks;
 pub mod no_focused_tests;
 pub mod no_hooks;
+pub mod no_identical_title;
 pub mod valid_title;
