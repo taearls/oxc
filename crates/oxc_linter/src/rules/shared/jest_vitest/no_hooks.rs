@@ -17,7 +17,7 @@ fn unexpected_hook_diagnostic(span: Span) -> OxcDiagnostic {
         .with_label(span)
 }
 
-pub const DOCUMENTATION: &str = r#"### What it does
+pub const DOCUMENTATION: &str = r"### What it does
 
 Disallows Jest setup and teardown hooks, such as `beforeAll`.
 
@@ -65,18 +65,7 @@ describe('foo', () => {
     });
 });
 ```
-
-This rule is compatible with [eslint-plugin-vitest](https://github.com/vitest-dev/eslint-plugin-vitest/blob/main/docs/rules/no-hooks.md),
-to use it, add the following configuration to your `.oxlintrc.json`:
-
-```json
-{
-  "rules": {
-     "vitest/no-hooks": "error"
-  }
-}
-```
-"#;
+";
 
 #[derive(Debug, Default, Clone, JsonSchema, Deserialize)]
 #[serde(rename_all = "camelCase", default, deny_unknown_fields)]

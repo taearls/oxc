@@ -12,9 +12,9 @@ fn no_mocks_import_diagnostic(span: Span) -> OxcDiagnostic {
         .with_label(span)
 }
 
-pub const DOCUMENTATION: &str = r#"### What it does
+pub const DOCUMENTATION: &str = r"### What it does
 
-This rule reports imports from a path containing a __mocks__ component.
+This rule reports imports from a path containing a `__mocks__` component.
 
 ### Why is this bad?
 
@@ -37,18 +37,7 @@ Examples of **correct** code for this rule:
 import thing from 'thing';
 require('thing');
 ```
-
-This rule is compatible with [eslint-plugin-vitest](https://github.com/vitest-dev/eslint-plugin-vitest/blob/main/docs/rules/no-mocks-import.md),
-to use it, add the following configuration to your `.oxlintrc.json`:
-
-```json
-{
-  "rules": {
-     "vitest/no-mocks-import": "error"
-  }
-}
-```
-"#;
+";
 
 pub fn run_once(ctx: &LintContext) {
     let module_records = ctx.module_record();

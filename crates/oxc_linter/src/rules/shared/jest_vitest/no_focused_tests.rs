@@ -16,7 +16,7 @@ fn no_focused_tests_diagnostic(span: Span) -> OxcDiagnostic {
         .with_label(span)
 }
 
-pub const DOCUMENTATION: &str = r#"### What it does
+pub const DOCUMENTATION: &str = r"### What it does
 
 This rule reminds you to remove `.only` from your tests by raising a warning
 whenever you are using the exclusivity feature.
@@ -45,18 +45,7 @@ fit.each`
 table
 `();
 ```
-
-This rule is compatible with [eslint-plugin-vitest](https://github.com/vitest-dev/eslint-plugin-vitest/blob/v1.1.9/docs/rules/no-focused-tests.md),
-to use it, add the following configuration to your `.oxlintrc.json`:
-
-```json
-{
-  "rules": {
-     "vitest/no-focused-tests": "error"
-  }
-}
-```
-"#;
+";
 
 pub fn run<'a>(possible_jest_node: &PossibleJestNode<'a, '_>, ctx: &LintContext<'a>) {
     let node = possible_jest_node.node;

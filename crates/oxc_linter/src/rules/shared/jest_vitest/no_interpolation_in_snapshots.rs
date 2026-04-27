@@ -13,7 +13,7 @@ fn no_interpolation_in_snapshots_diagnostic(span: Span) -> OxcDiagnostic {
         .with_label(span)
 }
 
-pub const DOCUMENTATION: &str = r#"### What it does
+pub const DOCUMENTATION: &str = r"### What it does
 
 Prevents the use of string interpolations in snapshots.
 
@@ -45,18 +45,7 @@ expect(errorThrowingFunction).toThrowErrorMatchingInlineSnapshot(
   `${interpolated}`,
 );
 ```
-
-This rule is compatible with [eslint-plugin-vitest](https://github.com/vitest-dev/eslint-plugin-vitest/blob/main/docs/rules/no-interpolation-in-snapshots.md),
-to use it, add the following configuration to your `.oxlintrc.json`:
-
-```json
-{
-  "rules": {
-     "vitest/no-interpolation-in-snapshots": "error"
-  }
-}
-```
-"#;
+";
 
 pub fn run<'a>(possible_jest_node: &PossibleJestNode<'a, '_>, ctx: &LintContext<'a>) {
     let node = possible_jest_node.node;

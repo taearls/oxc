@@ -28,7 +28,7 @@ fn test_repeat(span: Span) -> OxcDiagnostic {
         .with_label(span)
 }
 
-pub const DOCUMENTATION: &str = r#"### What it does
+pub const DOCUMENTATION: &str = r"### What it does
 
 This rule looks at the title of every test and test suite.
 It will report when two test suites or two test cases at the same level of a test suite have the same title.
@@ -51,18 +51,7 @@ Examples of **incorrect** code for this rule:
    // ...
  });
 ```
-
-This rule is compatible with [eslint-plugin-vitest](https://github.com/vitest-dev/eslint-plugin-vitest/blob/v1.1.9/docs/rules/no-identical-title.md),
-to use it, add the following configuration to your `.oxlintrc.json`:
-
-```json
-{
-  "rules": {
-     "vitest/no-identical-title": "error"
-  }
-}
-```
-"#;
+";
 
 pub fn run_once(ctx: &LintContext) {
     let possible_jest_nodes = collect_possible_jest_call_node(ctx);

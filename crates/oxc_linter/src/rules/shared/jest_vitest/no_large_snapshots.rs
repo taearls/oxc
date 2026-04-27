@@ -31,7 +31,7 @@ fn too_long_snapshot(line_limit: usize, line_count: usize, span: Span) -> OxcDia
         .with_label(span)
 }
 
-pub const DOCUMENTATION: &str = r#"### What it does
+pub const DOCUMENTATION: &str = r"### What it does
 
 Disallow large snapshots.
 
@@ -111,18 +111,7 @@ line 3
 line 4
 `;
 ```
-
-This rule is compatible with [eslint-plugin-vitest](https://github.com/vitest-dev/eslint-plugin-vitest/blob/main/docs/rules/no-large-snapshots.md),
-to use it, add the following configuration to your `.oxlintrc.json`:
-
-```json
-{
-  "rules": {
-     "vitest/no-large-snapshots": "error"
-  }
-}
-```
-"#;
+";
 
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", default)]
