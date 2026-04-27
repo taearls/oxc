@@ -84,9 +84,10 @@ impl<const MIN_ALIGN: usize> Arena<MIN_ALIGN> {
     /// * `Arena` must have at least 1 allocated chunk.
     ///   It is UB to call this method on an `Arena` which has not allocated i.e. fresh from `Arena::new`.
     /// * `cursor_ptr` must point to within the `Arena`'s current chunk.
-    /// * `cursor_ptr` must be equal to or after data pointer for this chunk.
+    /// * `cursor_ptr` must be equal to or after start pointer for this chunk.
     /// * `cursor_ptr` must be equal to or before the chunk's `ChunkFooter`.
     /// * `cursor_ptr` must be aligned to `MIN_ALIGN`.
+    /// * `cursor_ptr` must have permission for writes.
     /// * No live references to data in the current chunk before `cursor_ptr` can exist.
     pub unsafe fn set_cursor_ptr(&self, cursor_ptr: NonNull<u8>) {
         debug_assert!(cursor_ptr >= self.start_ptr.get());

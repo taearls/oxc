@@ -65,12 +65,13 @@ impl Allocator {
     ///   It is UB to call this method on an `Allocator` which has not allocated
     ///   i.e. fresh from `Allocator::new`.
     /// * `ptr` must point to within the `Allocator`'s current chunk.
-    /// * `ptr` must be equal to or after data pointer for this chunk.
+    /// * `ptr` must be equal to or after start pointer for this chunk.
     /// * `ptr` must be equal to or before the chunk's `ChunkFooter`.
+    /// * `ptr` must be aligned to the inner `Arena`'s `MIN_ALIGN`.
+    /// * `ptr` must have permission for writes.
     /// * No live references to data in the current chunk before `ptr` can exist.
     pub unsafe fn set_cursor_ptr(&self, ptr: NonNull<u8>) {
-        // SAFETY: Caller guarantees `Allocator` has at least 1 allocated chunk, and `ptr` is valid.
-        // The `Arena` contained in `Allocator` has `MIN_ALIGN = 1`, so no alignment requirement for `ptr`.
+        // SAFETY: Caller guarantees `Allocator` has at least 1 allocated chunk, and `ptr` is valid
         unsafe { self.arena().set_cursor_ptr(ptr) };
     }
 
