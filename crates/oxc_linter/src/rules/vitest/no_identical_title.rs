@@ -249,7 +249,7 @@ fn test() {
         ),
         (
             "
-              xtest('this', () => {});
+              test.skip('this', () => {});
               test('this', () => {});
             ",
             None,
@@ -285,13 +285,13 @@ fn test() {
         (
             "
               describe('foo', () => {});
-              xdescribe('foo', () => {});
+              describe.skip('foo', () => {});
             ",
             None,
         ),
         (
             "
-              fdescribe('foo', () => {});
+              describe.only('foo', () => {});
               describe('foo', () => {});
             ",
             None,
@@ -381,7 +381,6 @@ fn test() {
     fail.extend(fail_vitest.into_iter().map(|x| (x, None)));
 
     Tester::new(NoIdenticalTitle::NAME, NoIdenticalTitle::PLUGIN, pass, fail)
-        .with_jest_plugin(true)
         .with_vitest_plugin(true)
         .test_and_snapshot();
 }
