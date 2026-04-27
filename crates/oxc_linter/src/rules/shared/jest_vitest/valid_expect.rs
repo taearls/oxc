@@ -230,23 +230,24 @@ impl ValidExpectConfig {
 
                 let multifixer = fixer.for_multifix();
 
-                let capacity =
-                    if fixed_function_expression.contains(&function_scope_id) { 1 } else { 2 };
-
-                let mut fixes = multifixer.new_fix_with_capacity(capacity);
-
                 let is_async_function = match function_scope_node.kind() {
                     AstKind::ArrowFunctionExpression(fn_kind) => fn_kind.r#async,
                     AstKind::Function(fn_kind) => fn_kind.r#async,
                     _ => return fixer.noop(),
                 };
 
-                if !fixed_function_expression.contains(&function_scope_id) && !is_async_function {
+                let needs_async =
+                    !fixed_function_expression.contains(&function_scope_id) && !is_async_function;
+                let capacity = if needs_async { 2 } else { 1 };
+
+                let mut fixes = multifixer.new_fix_with_capacity(capacity);
+
+                if needs_async {
                     fixed_function_expression.insert(function_scope_id);
 
                     let context_function = ctx.nodes().parent_node(function_scope_node.id());
 
-                    /* Diff between Estree and Oxc in the following scenearion
+                    /* Difference between ESTree and Oxc in the following scenario
                      *
                      * expect.extend({
                      *               toResolve(obj) {
@@ -256,9 +257,9 @@ impl ValidExpectConfig {
                      *               }
                      *             })
                      *
-                     * Eslint span returns the toResolve(obj) {...}, but Oxc only returns (obj){...}.
-                     * This difference produce an invalid fix adding `async` between the function name and arguments,
-                     * writing toResolveasync (obj), instead of async toResolve(obj).
+                     * ESLint's span returns toResolve(obj) {...}, but Oxc only returns (obj){...}.
+                     * This difference produces an invalid fix by adding `async` between the function name and arguments,
+                     * writing toResolveasync (obj) instead of async toResolve(obj).
                      *
                      */
                     let span_to_insert_before =
@@ -287,7 +288,11 @@ impl ValidExpectConfig {
                     fixes.push(fixer.insert_text_before_range(final_node.span(), "await "));
                 }
 
-                fixes.with_message("WIP")
+                fixes.with_message(if needs_async {
+                    "Add `await` and make the enclosing function `async`."
+                } else {
+                    "Add `await`."
+                })
             });
         }
     }
@@ -465,11 +470,11 @@ impl Message {
         match self {
             Self::MatcherNotFound => (
                 "Expect must have a corresponding matcher call.",
-                "Did you forget add a matcher, e.g. `toBe`, `toBeDefined`",
+                "Did you forget to add a matcher, e.g. `toBe`, `toBeDefined`",
             ),
             Self::MatcherNotCalled => (
                 "Matchers must be called to assert.",
-                "You need call your matcher, e.g. `expect(true).toBe(true)`.",
+                "You need to call your matcher, e.g. `expect(true).toBe(true)`.",
             ),
             Self::ModifierUnknown => {
                 ("Expect has an unknown modifier.", "Is it a spelling mistake?")
