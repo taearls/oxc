@@ -10,7 +10,7 @@ use crate::{
 #[derive(Debug, Default, Clone)]
 pub struct PreferToContain;
 
-declare_oxc_lint!(PreferToContain, jest, style, fix, docs = DOCUMENTATION, version = "0.2.14",);
+declare_oxc_lint!(PreferToContain, vitest, style, fix, docs = DOCUMENTATION, version = "0.2.14",);
 
 impl Rule for PreferToContain {
     fn run_on_jest_node<'a, 'c>(
@@ -59,6 +59,8 @@ fn tests() {
             None,
         ),
         ("expect(a.includes(b)).toEqual(0 as boolean);", None),
+        ("expect(a.includes(b)).toEqual('test')", None),
+        ("expect(a.includes(b)).toBe('test')", None),
     ];
 
     #[expect(clippy::literal_string_with_formatting_args)]
@@ -103,6 +105,15 @@ fn tests() {
         ),
         // typescript
         ("expect(a.includes(b)).toEqual(false as boolean);", None),
+        ("expect(a.includes(b,),).toEqual(true,);", None),
+        ("expect([{a:1}].includes({a:1})).toBe(true);", None),
+        (
+            "
+                    import { expect as pleaseExpect } from 'vitest';
+                    pleaseExpect([{a:1}].includes({a:1})).not.toStrictEqual(false);
+                ",
+            None,
+        ),
     ];
 
     #[expect(clippy::literal_string_with_formatting_args)]
@@ -195,10 +206,18 @@ fn tests() {
             None,
         ),
         ("expect(a.includes(b)).toEqual(false as boolean);", "expect(a).not.toContain(b);", None),
+        ("expect(a.includes(b,),).toEqual(true,);", "expect(a).toContain(b);", None),
+        (
+            "import { expect as pleaseExpect } from 'vitest';
+                pleaseExpect([{a:1}].includes({a:1})).not.toStrictEqual(false);",
+            "import { expect as pleaseExpect } from 'vitest';
+                pleaseExpect([{ a: 1 }]).toContain({ a: 1 });",
+            None,
+        ),
     ];
 
     Tester::new(PreferToContain::NAME, PreferToContain::PLUGIN, pass, fail)
         .expect_fix(fix)
-        .with_jest_plugin(true)
+        .with_vitest_plugin(true)
         .test_and_snapshot();
 }
