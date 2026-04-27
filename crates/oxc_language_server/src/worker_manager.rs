@@ -18,7 +18,6 @@ use crate::{
 
 enum WorkerGuardInner<'a> {
     Vec(RwLockReadGuard<'a, Vec<WorkspaceWorker>>),
-    #[cfg(test)]
     Single(RwLockReadGuard<'a, WorkspaceWorker>),
 }
 
@@ -38,7 +37,6 @@ impl std::ops::Deref for WorkerGuard<'_> {
     fn deref(&self) -> &Self::Target {
         match &self.guard {
             WorkerGuardInner::Vec(vec_guard) => &vec_guard[self.index],
-            #[cfg(test)]
             WorkerGuardInner::Single(single_guard) => single_guard,
         }
     }
@@ -48,7 +46,6 @@ impl std::ops::Deref for WorkerGuard<'_> {
 pub enum ManagerMode {
     // the manager requires an explicit workspace to operate
     // these workspaces are managed by the client and communicated via `initialize` + `didChangeWorkspaceFolders`
-    #[expect(dead_code)] // needs to be implemented
     RequireWorkspace,
     // the manager works in 2 modes, when no workspaces are configured, it creates workers dynamically for file URIs.
     // When workspaces are reconfigured (added or removed by the client), it creates workers for those and ignores file URIs outside of them.
@@ -58,7 +55,6 @@ pub enum ManagerMode {
     ),
     // The manager will create workers dynamically for file URIs. It also supports workspaces configured by the client, but does not require them.
     // This is useful for tasks on URIs that are outside of any configured workspace.
-    #[cfg(test)] // needs to be implemented
     DynamicWithWorkspaces(Box<RwLock<WorkspaceWorker>>),
 }
 
@@ -92,7 +88,6 @@ impl WorkerManager {
         }
     }
 
-    #[cfg(test)]
     pub fn new_with_mode(tool_builder: Arc<dyn ToolBuilder>, mode: ManagerMode) -> Self {
         Self { mode, tool_builder, workers: RwLock::new(vec![]) }
     }
@@ -103,7 +98,6 @@ impl WorkerManager {
         *self.workers.write().await = workers;
 
         // for dynamic workspaces we need to start them manually
-        #[cfg(test)]
         if let ManagerMode::DynamicWithWorkspaces(worker) = &self.mode {
             worker.read().await.start_worker(serde_json::Value::Null).await;
         }
@@ -125,7 +119,6 @@ impl WorkerManager {
             clear_uris.extend(worker_uris);
         }
 
-        #[cfg(test)]
         if let ManagerMode::DynamicWithWorkspaces(worker) = &self.mode {
             let (worker_uris, _) = worker.read().await.shutdown().await;
             clear_uris.extend(worker_uris);
@@ -143,9 +136,7 @@ impl WorkerManager {
     }
 
     /// Acquire a shared read lock over the dynamic worker in `DynamicWithWorkspaces` mode, if enabled.
-    #[cfg_attr(not(test), expect(clippy::unused_async))] // when removing the test-only mode, this method will need to perform async initialization for the dynamic worker
     pub async fn read_dynamic_worker(&self) -> Option<RwLockReadGuard<'_, WorkspaceWorker>> {
-        #[cfg(test)]
         if let ManagerMode::DynamicWithWorkspaces(worker) = &self.mode {
             return Some(worker.read().await);
         }
@@ -240,7 +231,6 @@ impl WorkerManager {
             }
         }
 
-        #[cfg(test)]
         if let ManagerMode::DynamicWithWorkspaces(worker) = &self.mode {
             // In DynamicWithWorkspaces mode, if no worker matches the URI, fallback to the dynamic worker.
             return Some(WorkerGuard {
@@ -262,6 +252,9 @@ impl WorkerManager {
 
     /// Validate that every URI in `workspaces` can be resolved to a local file
     /// path.  Returns an LSP error on the first invalid URI.
+    ///
+    /// # Errors
+    /// * If any URI in `workspaces` cannot be converted to a file path, an error is returned indicating which URI was invalid.
     pub fn assert_workspaces_are_valid_paths(workspaces: &[Uri]) -> Result<()> {
         for uri in workspaces {
             if uri.to_file_path().is_none() {
@@ -367,7 +360,11 @@ impl WorkerManager {
         {
             let mut workers = self.workers.write().await;
             if self.is_single_file_mode() && Self::find_worker_for_uri(&workers, uri).is_none() {
-                workers.push(worker.take().unwrap());
+                #[expect(clippy::missing_panics_doc)]
+                // We wrapped the worker in `Some` to avoid moving it before acquiring the lock, so it should always be `Some` here.
+                workers.push(worker.take().expect(
+                    "freshly created worker should be available when storing it in the list",
+                ));
             }
         }
 

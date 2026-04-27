@@ -21,7 +21,7 @@ use tower_lsp_server::{
 use tracing::{debug, error, info, warn};
 
 use crate::{
-    ConcurrentHashMap, LanguageId, ToolBuilder,
+    ConcurrentHashMap, LanguageId,
     capabilities::{Capabilities, DiagnosticMode, server_capabilities},
     file_system::LSPFileSystem,
     options::WorkspaceOption,
@@ -929,11 +929,11 @@ impl Backend {
     /// The Backend will manage multiple [WorkspaceWorker]s and their configurations.
     /// It also holds the capabilities of the language server and an in-memory file system.
     /// The client is used to communicate with the LSP client.
-    pub fn new(client: Client, server_info: ServerInfo, tool: Arc<dyn ToolBuilder>) -> Self {
+    pub fn new(client: Client, server_info: ServerInfo, worker_manager: WorkerManager) -> Self {
         Self {
             client,
             server_info,
-            worker_manager: WorkerManager::new(tool),
+            worker_manager,
             capabilities: OnceCell::new(),
             file_system: Arc::new(LSPFileSystem::default()),
         }
