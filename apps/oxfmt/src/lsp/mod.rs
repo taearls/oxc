@@ -1,12 +1,10 @@
 use std::{
     fmt::Write,
     path::{Path, PathBuf},
-    str::FromStr,
     sync::Arc,
 };
 
 use oxc_language_server::{LanguageId, run_server};
-use tokio::sync::RwLock;
 use tower_lsp_server::ls_types::Uri;
 
 use crate::core::{ExternalFormatter, JsConfigLoaderCb, utils};
@@ -61,9 +59,6 @@ pub fn create_fake_file_path_from_language_id(
 }
 
 /// Run the language server
-///
-/// # Panics
-/// If `file:///` cannot be converted to `Uri`, which should never happen.
 pub async fn run_lsp(js_config_loader: JsConfigLoaderCb, external_formatter: ExternalFormatter) {
     let version = {
         let mut version = env!("CARGO_PKG_VERSION").to_string();
@@ -73,22 +68,12 @@ pub async fn run_lsp(js_config_loader: JsConfigLoaderCb, external_formatter: Ext
         version
     };
 
-    let builder: Arc<dyn oxc_language_server::ToolBuilder> = Arc::new(
-        server_formatter::ServerFormatterBuilder::new(js_config_loader, external_formatter),
-    );
     run_server(
         "oxfmt".to_string(),
         version,
-        oxc_language_server::WorkerManager::new_with_mode(
-            Arc::clone(&builder),
-            oxc_language_server::ManagerMode::DynamicWithWorkspaces(Box::new(RwLock::new(
-                oxc_language_server::WorkspaceWorker::new(
-                    Uri::from_str("file:///").unwrap(),
-                    builder,
-                    oxc_language_server::DiagnosticMode::None,
-                ),
-            ))),
-        ),
+        oxc_language_server::WorkerManager::new_dynamic(Arc::new(
+            server_formatter::ServerFormatterBuilder::new(js_config_loader, external_formatter),
+        )),
     )
     .await;
 }

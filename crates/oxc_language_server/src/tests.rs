@@ -4,10 +4,7 @@ use std::{
 };
 
 use serde_json::{Value, json};
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt, DuplexStream},
-    sync::RwLock,
-};
+use tokio::io::{AsyncReadExt, AsyncWriteExt, DuplexStream};
 use tower_lsp_server::{
     Client, LspService, Server,
     jsonrpc::{ErrorCode, Id, Request, Response},
@@ -15,8 +12,8 @@ use tower_lsp_server::{
 };
 
 use crate::{
-    DiagnosticMode, ManagerMode, TextDocument, Tool, ToolBuilder, ToolRestartChanges,
-    WorkerManager, WorkspaceWorker, backend::Backend, tool::DiagnosticResult,
+    DiagnosticMode, TextDocument, Tool, ToolBuilder, ToolRestartChanges, WorkerManager,
+    backend::Backend, tool::DiagnosticResult,
 };
 
 #[derive(Default)]
@@ -588,12 +585,8 @@ fn create_workspace_manager_with_builder(builder: FakeToolBuilder) -> WorkerMana
     WorkerManager::new(Arc::new(builder))
 }
 
-fn create_dynamic_workspace(builder: Arc<dyn ToolBuilder>) -> ManagerMode {
-    ManagerMode::DynamicWithWorkspaces(Box::new(RwLock::new(WorkspaceWorker::new(
-        "file:///".parse().unwrap(),
-        builder,
-        DiagnosticMode::Pull,
-    ))))
+fn create_dynamic_workspace_manager(builder: FakeToolBuilder) -> WorkerManager {
+    WorkerManager::new_dynamic(Arc::new(builder))
 }
 
 #[cfg(test)]
@@ -2070,23 +2063,19 @@ mod test_suite {
     }
 
     mod dynamic_mode {
-        use crate::{ToolBuilder, WorkerManager, tests::create_dynamic_workspace};
+        use crate::tests::create_dynamic_workspace_manager;
 
         use super::*;
         #[tokio::test]
         async fn test_dynamic_mode_pull_diagnostics() {
             let init_options = InitializeRequestOptions { pull_mode: true, ..Default::default() };
-            let builder: Arc<dyn ToolBuilder> = Arc::new(FakeToolBuilder::default());
 
             let mut server = TestServer::new_initialized(
                 |client| {
                     Backend::new(
                         client,
                         server_info(),
-                        WorkerManager::new_with_mode(
-                            Arc::clone(&builder),
-                            create_dynamic_workspace(builder),
-                        ),
+                        create_dynamic_workspace_manager(FakeToolBuilder::default()),
                     )
                 },
                 initialize_request(init_options),
@@ -2133,10 +2122,7 @@ mod test_suite {
                     Backend::new(
                         client,
                         server_info(),
-                        WorkerManager::new_with_mode(
-                            Arc::new(FakeToolBuilder::default()),
-                            create_dynamic_workspace(Arc::new(FakeToolBuilder::default())),
-                        ),
+                        create_dynamic_workspace_manager(FakeToolBuilder::default()),
                     )
                 },
                 initialize_request(InitializeRequestOptions {

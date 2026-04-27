@@ -163,7 +163,7 @@ impl LanguageServer for Backend {
             }
         }
 
-        self.worker_manager.start_manager(workers).await;
+        self.worker_manager.start_manager(workers, capabilities.diagnostic_mode.clone()).await;
 
         self.capabilities.set(capabilities).map_err(|err| {
             let message = match err {
@@ -813,8 +813,7 @@ impl LanguageServer for Backend {
             }
 
             {
-                let dynamic_worker = self.worker_manager.read_dynamic_worker().await;
-                if let Some(worker) = dynamic_worker {
+                if let Some(worker) = self.worker_manager.read_dynamic_worker() {
                     match worker.execute_command(&params.command, params.arguments.clone()).await {
                         Ok(Some(edit)) => edits.push(edit),
                         Ok(None) => {}

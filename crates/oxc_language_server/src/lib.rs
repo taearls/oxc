@@ -19,7 +19,7 @@ pub use crate::capabilities::{Capabilities, DiagnosticMode};
 pub use crate::language_id::LanguageId;
 pub use crate::tool::{DiagnosticResult, Tool, ToolBuilder, ToolRestartChanges};
 pub use crate::worker::WorkspaceWorker;
-pub use crate::worker_manager::{ManagerMode, WorkerManager};
+pub use crate::worker_manager::WorkerManager;
 
 pub type ConcurrentHashMap<K, V> = papaya::HashMap<K, V, FxBuildHasher>;
 
