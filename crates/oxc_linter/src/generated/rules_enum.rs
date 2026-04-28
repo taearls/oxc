@@ -717,6 +717,7 @@ pub use crate::rules::vitest::no_importing_vitest_globals::NoImportingVitestGlob
 pub use crate::rules::vitest::no_interpolation_in_snapshots::NoInterpolationInSnapshots as VitestNoInterpolationInSnapshots;
 pub use crate::rules::vitest::no_large_snapshots::NoLargeSnapshots as VitestNoLargeSnapshots;
 pub use crate::rules::vitest::no_mocks_import::NoMocksImport as VitestNoMocksImport;
+pub use crate::rules::vitest::no_restricted_matchers::NoRestrictedMatchers as VitestNoRestrictedMatchers;
 pub use crate::rules::vitest::no_restricted_vi_methods::NoRestrictedViMethods as VitestNoRestrictedViMethods;
 pub use crate::rules::vitest::prefer_called_exactly_once_with::PreferCalledExactlyOnceWith as VitestPreferCalledExactlyOnceWith;
 pub use crate::rules::vitest::prefer_called_once::PreferCalledOnce as VitestPreferCalledOnce;
@@ -1476,6 +1477,7 @@ pub enum RuleEnum {
     VitestNoInterpolationInSnapshots(VitestNoInterpolationInSnapshots),
     VitestNoLargeSnapshots(VitestNoLargeSnapshots),
     VitestNoMocksImport(VitestNoMocksImport),
+    VitestNoRestrictedMatchers(VitestNoRestrictedMatchers),
     VitestNoRestrictedViMethods(VitestNoRestrictedViMethods),
     VitestPreferCalledExactlyOnceWith(VitestPreferCalledExactlyOnceWith),
     VitestPreferCalledOnce(VitestPreferCalledOnce),
@@ -2320,7 +2322,8 @@ const VITEST_NO_INTERPOLATION_IN_SNAPSHOTS_ID: usize =
     VITEST_NO_IMPORTING_VITEST_GLOBALS_ID + 1usize;
 const VITEST_NO_LARGE_SNAPSHOTS_ID: usize = VITEST_NO_INTERPOLATION_IN_SNAPSHOTS_ID + 1usize;
 const VITEST_NO_MOCKS_IMPORT_ID: usize = VITEST_NO_LARGE_SNAPSHOTS_ID + 1usize;
-const VITEST_NO_RESTRICTED_VI_METHODS_ID: usize = VITEST_NO_MOCKS_IMPORT_ID + 1usize;
+const VITEST_NO_RESTRICTED_MATCHERS_ID: usize = VITEST_NO_MOCKS_IMPORT_ID + 1usize;
+const VITEST_NO_RESTRICTED_VI_METHODS_ID: usize = VITEST_NO_RESTRICTED_MATCHERS_ID + 1usize;
 const VITEST_PREFER_CALLED_EXACTLY_ONCE_WITH_ID: usize =
     VITEST_NO_RESTRICTED_VI_METHODS_ID + 1usize;
 const VITEST_PREFER_CALLED_ONCE_ID: usize = VITEST_PREFER_CALLED_EXACTLY_ONCE_WITH_ID + 1usize;
@@ -3193,6 +3196,7 @@ impl RuleEnum {
             Self::VitestNoInterpolationInSnapshots(_) => VITEST_NO_INTERPOLATION_IN_SNAPSHOTS_ID,
             Self::VitestNoLargeSnapshots(_) => VITEST_NO_LARGE_SNAPSHOTS_ID,
             Self::VitestNoMocksImport(_) => VITEST_NO_MOCKS_IMPORT_ID,
+            Self::VitestNoRestrictedMatchers(_) => VITEST_NO_RESTRICTED_MATCHERS_ID,
             Self::VitestNoRestrictedViMethods(_) => VITEST_NO_RESTRICTED_VI_METHODS_ID,
             Self::VitestPreferCalledExactlyOnceWith(_) => VITEST_PREFER_CALLED_EXACTLY_ONCE_WITH_ID,
             Self::VitestPreferCalledOnce(_) => VITEST_PREFER_CALLED_ONCE_ID,
@@ -4055,6 +4059,7 @@ impl RuleEnum {
             Self::VitestNoInterpolationInSnapshots(_) => VitestNoInterpolationInSnapshots::NAME,
             Self::VitestNoLargeSnapshots(_) => VitestNoLargeSnapshots::NAME,
             Self::VitestNoMocksImport(_) => VitestNoMocksImport::NAME,
+            Self::VitestNoRestrictedMatchers(_) => VitestNoRestrictedMatchers::NAME,
             Self::VitestNoRestrictedViMethods(_) => VitestNoRestrictedViMethods::NAME,
             Self::VitestPreferCalledExactlyOnceWith(_) => VitestPreferCalledExactlyOnceWith::NAME,
             Self::VitestPreferCalledOnce(_) => VitestPreferCalledOnce::NAME,
@@ -4959,6 +4964,7 @@ impl RuleEnum {
             Self::VitestNoInterpolationInSnapshots(_) => VitestNoInterpolationInSnapshots::CATEGORY,
             Self::VitestNoLargeSnapshots(_) => VitestNoLargeSnapshots::CATEGORY,
             Self::VitestNoMocksImport(_) => VitestNoMocksImport::CATEGORY,
+            Self::VitestNoRestrictedMatchers(_) => VitestNoRestrictedMatchers::CATEGORY,
             Self::VitestNoRestrictedViMethods(_) => VitestNoRestrictedViMethods::CATEGORY,
             Self::VitestPreferCalledExactlyOnceWith(_) => {
                 VitestPreferCalledExactlyOnceWith::CATEGORY
@@ -5830,6 +5836,7 @@ impl RuleEnum {
             Self::VitestNoInterpolationInSnapshots(_) => VitestNoInterpolationInSnapshots::FIX,
             Self::VitestNoLargeSnapshots(_) => VitestNoLargeSnapshots::FIX,
             Self::VitestNoMocksImport(_) => VitestNoMocksImport::FIX,
+            Self::VitestNoRestrictedMatchers(_) => VitestNoRestrictedMatchers::FIX,
             Self::VitestNoRestrictedViMethods(_) => VitestNoRestrictedViMethods::FIX,
             Self::VitestPreferCalledExactlyOnceWith(_) => VitestPreferCalledExactlyOnceWith::FIX,
             Self::VitestPreferCalledOnce(_) => VitestPreferCalledOnce::FIX,
@@ -6897,6 +6904,7 @@ impl RuleEnum {
             }
             Self::VitestNoLargeSnapshots(_) => VitestNoLargeSnapshots::documentation(),
             Self::VitestNoMocksImport(_) => VitestNoMocksImport::documentation(),
+            Self::VitestNoRestrictedMatchers(_) => VitestNoRestrictedMatchers::documentation(),
             Self::VitestNoRestrictedViMethods(_) => VitestNoRestrictedViMethods::documentation(),
             Self::VitestPreferCalledExactlyOnceWith(_) => {
                 VitestPreferCalledExactlyOnceWith::documentation()
@@ -8979,6 +8987,10 @@ impl RuleEnum {
                 .or_else(|| VitestNoLargeSnapshots::schema(generator)),
             Self::VitestNoMocksImport(_) => VitestNoMocksImport::config_schema(generator)
                 .or_else(|| VitestNoMocksImport::schema(generator)),
+            Self::VitestNoRestrictedMatchers(_) => {
+                VitestNoRestrictedMatchers::config_schema(generator)
+                    .or_else(|| VitestNoRestrictedMatchers::schema(generator))
+            }
             Self::VitestNoRestrictedViMethods(_) => {
                 VitestNoRestrictedViMethods::config_schema(generator)
                     .or_else(|| VitestNoRestrictedViMethods::schema(generator))
@@ -9833,6 +9845,7 @@ impl RuleEnum {
             Self::VitestNoInterpolationInSnapshots(_) => "vitest",
             Self::VitestNoLargeSnapshots(_) => "vitest",
             Self::VitestNoMocksImport(_) => "vitest",
+            Self::VitestNoRestrictedMatchers(_) => "vitest",
             Self::VitestNoRestrictedViMethods(_) => "vitest",
             Self::VitestPreferCalledExactlyOnceWith(_) => "vitest",
             Self::VitestPreferCalledOnce(_) => "vitest",
@@ -12148,6 +12161,9 @@ impl RuleEnum {
             Self::VitestNoMocksImport(_) => {
                 Ok(Self::VitestNoMocksImport(VitestNoMocksImport::from_configuration(value)?))
             }
+            Self::VitestNoRestrictedMatchers(_) => Ok(Self::VitestNoRestrictedMatchers(
+                VitestNoRestrictedMatchers::from_configuration(value)?,
+            )),
             Self::VitestNoRestrictedViMethods(_) => Ok(Self::VitestNoRestrictedViMethods(
                 VitestNoRestrictedViMethods::from_configuration(value)?,
             )),
@@ -13024,6 +13040,7 @@ impl RuleEnum {
             Self::VitestNoInterpolationInSnapshots(rule) => rule.to_configuration(),
             Self::VitestNoLargeSnapshots(rule) => rule.to_configuration(),
             Self::VitestNoMocksImport(rule) => rule.to_configuration(),
+            Self::VitestNoRestrictedMatchers(rule) => rule.to_configuration(),
             Self::VitestNoRestrictedViMethods(rule) => rule.to_configuration(),
             Self::VitestPreferCalledExactlyOnceWith(rule) => rule.to_configuration(),
             Self::VitestPreferCalledOnce(rule) => rule.to_configuration(),
@@ -13784,6 +13801,7 @@ impl RuleEnum {
             Self::VitestNoInterpolationInSnapshots(rule) => rule.run(node, ctx),
             Self::VitestNoLargeSnapshots(rule) => rule.run(node, ctx),
             Self::VitestNoMocksImport(rule) => rule.run(node, ctx),
+            Self::VitestNoRestrictedMatchers(rule) => rule.run(node, ctx),
             Self::VitestNoRestrictedViMethods(rule) => rule.run(node, ctx),
             Self::VitestPreferCalledExactlyOnceWith(rule) => rule.run(node, ctx),
             Self::VitestPreferCalledOnce(rule) => rule.run(node, ctx),
@@ -14542,6 +14560,7 @@ impl RuleEnum {
             Self::VitestNoInterpolationInSnapshots(rule) => rule.run_once(ctx),
             Self::VitestNoLargeSnapshots(rule) => rule.run_once(ctx),
             Self::VitestNoMocksImport(rule) => rule.run_once(ctx),
+            Self::VitestNoRestrictedMatchers(rule) => rule.run_once(ctx),
             Self::VitestNoRestrictedViMethods(rule) => rule.run_once(ctx),
             Self::VitestPreferCalledExactlyOnceWith(rule) => rule.run_once(ctx),
             Self::VitestPreferCalledOnce(rule) => rule.run_once(ctx),
@@ -15402,6 +15421,7 @@ impl RuleEnum {
             Self::VitestNoInterpolationInSnapshots(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestNoLargeSnapshots(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestNoMocksImport(rule) => rule.run_on_jest_node(jest_node, ctx),
+            Self::VitestNoRestrictedMatchers(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestNoRestrictedViMethods(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferCalledExactlyOnceWith(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferCalledOnce(rule) => rule.run_on_jest_node(jest_node, ctx),
@@ -16164,6 +16184,7 @@ impl RuleEnum {
             Self::VitestNoInterpolationInSnapshots(rule) => rule.should_run(ctx),
             Self::VitestNoLargeSnapshots(rule) => rule.should_run(ctx),
             Self::VitestNoMocksImport(rule) => rule.should_run(ctx),
+            Self::VitestNoRestrictedMatchers(rule) => rule.should_run(ctx),
             Self::VitestNoRestrictedViMethods(rule) => rule.should_run(ctx),
             Self::VitestPreferCalledExactlyOnceWith(rule) => rule.should_run(ctx),
             Self::VitestPreferCalledOnce(rule) => rule.should_run(ctx),
@@ -17226,6 +17247,7 @@ impl RuleEnum {
             }
             Self::VitestNoLargeSnapshots(_) => VitestNoLargeSnapshots::IS_TSGOLINT_RULE,
             Self::VitestNoMocksImport(_) => VitestNoMocksImport::IS_TSGOLINT_RULE,
+            Self::VitestNoRestrictedMatchers(_) => VitestNoRestrictedMatchers::IS_TSGOLINT_RULE,
             Self::VitestNoRestrictedViMethods(_) => VitestNoRestrictedViMethods::IS_TSGOLINT_RULE,
             Self::VitestPreferCalledExactlyOnceWith(_) => {
                 VitestPreferCalledExactlyOnceWith::IS_TSGOLINT_RULE
@@ -18150,6 +18172,7 @@ impl RuleEnum {
             Self::VitestNoInterpolationInSnapshots(_) => VitestNoInterpolationInSnapshots::VERSION,
             Self::VitestNoLargeSnapshots(_) => VitestNoLargeSnapshots::VERSION,
             Self::VitestNoMocksImport(_) => VitestNoMocksImport::VERSION,
+            Self::VitestNoRestrictedMatchers(_) => VitestNoRestrictedMatchers::VERSION,
             Self::VitestNoRestrictedViMethods(_) => VitestNoRestrictedViMethods::VERSION,
             Self::VitestPreferCalledExactlyOnceWith(_) => {
                 VitestPreferCalledExactlyOnceWith::VERSION
@@ -19093,6 +19116,7 @@ impl RuleEnum {
             }
             Self::VitestNoLargeSnapshots(_) => VitestNoLargeSnapshots::HAS_CONFIG,
             Self::VitestNoMocksImport(_) => VitestNoMocksImport::HAS_CONFIG,
+            Self::VitestNoRestrictedMatchers(_) => VitestNoRestrictedMatchers::HAS_CONFIG,
             Self::VitestNoRestrictedViMethods(_) => VitestNoRestrictedViMethods::HAS_CONFIG,
             Self::VitestPreferCalledExactlyOnceWith(_) => {
                 VitestPreferCalledExactlyOnceWith::HAS_CONFIG
@@ -19867,6 +19891,7 @@ impl RuleEnum {
             Self::VitestNoInterpolationInSnapshots(rule) => rule.types_info(),
             Self::VitestNoLargeSnapshots(rule) => rule.types_info(),
             Self::VitestNoMocksImport(rule) => rule.types_info(),
+            Self::VitestNoRestrictedMatchers(rule) => rule.types_info(),
             Self::VitestNoRestrictedViMethods(rule) => rule.types_info(),
             Self::VitestPreferCalledExactlyOnceWith(rule) => rule.types_info(),
             Self::VitestPreferCalledOnce(rule) => rule.types_info(),
@@ -20625,6 +20650,7 @@ impl RuleEnum {
             Self::VitestNoInterpolationInSnapshots(rule) => rule.run_info(),
             Self::VitestNoLargeSnapshots(rule) => rule.run_info(),
             Self::VitestNoMocksImport(rule) => rule.run_info(),
+            Self::VitestNoRestrictedMatchers(rule) => rule.run_info(),
             Self::VitestNoRestrictedViMethods(rule) => rule.run_info(),
             Self::VitestPreferCalledExactlyOnceWith(rule) => rule.run_info(),
             Self::VitestPreferCalledOnce(rule) => rule.run_info(),
@@ -21503,6 +21529,7 @@ pub static RULES: std::sync::LazyLock<Vec<RuleEnum>> = std::sync::LazyLock::new(
         RuleEnum::VitestNoInterpolationInSnapshots(VitestNoInterpolationInSnapshots::default()),
         RuleEnum::VitestNoLargeSnapshots(VitestNoLargeSnapshots::default()),
         RuleEnum::VitestNoMocksImport(VitestNoMocksImport::default()),
+        RuleEnum::VitestNoRestrictedMatchers(VitestNoRestrictedMatchers::default()),
         RuleEnum::VitestNoRestrictedViMethods(VitestNoRestrictedViMethods::default()),
         RuleEnum::VitestPreferCalledExactlyOnceWith(VitestPreferCalledExactlyOnceWith::default()),
         RuleEnum::VitestPreferCalledOnce(VitestPreferCalledOnce::default()),

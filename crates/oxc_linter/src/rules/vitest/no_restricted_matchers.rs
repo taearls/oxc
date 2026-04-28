@@ -11,7 +11,7 @@ pub struct NoRestrictedMatchers(Box<SharedNoRestrictedMatchers::NoRestrictedMatc
 
 declare_oxc_lint!(
     NoRestrictedMatchers,
-    jest,
+    vitest,
     style,
     config = SharedNoRestrictedMatchers::NoRestrictedMatchersConfig,
     docs = SharedNoRestrictedMatchers::DOCUMENTATION,
@@ -38,8 +38,6 @@ impl Rule for NoRestrictedMatchers {
 fn test() {
     use crate::tester::Tester;
 
-    // Note: Both Jest and Vitest share the same unit tests
-
     let pass = vec![
         ("expect(a).toHaveBeenCalled()", None),
         ("expect(a).not.toHaveBeenCalled()", None),
@@ -61,24 +59,10 @@ fn test() {
         ("expect(a)[\"toBe\"](b)", Some(serde_json::json!([{ "not.toBe": null }]))),
         ("expect(a).resolves.not.toBe(b)", Some(serde_json::json!([{ "not": null }]))),
         ("expect(a).resolves.not.toBe(b)", Some(serde_json::json!([{ "not.toBe": null }]))),
-        (
-            "expect(uploadFileMock).resolves.toHaveBeenCalledWith('file.name')",
-            Some(
-                serde_json::json!([{ "not.toHaveBeenCalledWith": "Use not.toHaveBeenCalled instead" }]),
-            ),
-        ),
-        (
-            "expect(uploadFileMock).resolves.not.toHaveBeenCalledWith('file.name')",
-            Some(
-                serde_json::json!([{ "not.toHaveBeenCalledWith": "Use not.toHaveBeenCalled instead" }]),
-            ),
-        ),
+        ("import { expect } from 'vitest'; expect(a).toHaveBeenCalled()", None),
     ];
 
     let fail = vec![
-        ("expect(a).toBe(b)", Some(serde_json::json!([{ "toBe": null }]))),
-        ("expect(a)[\"toBe\"](b)", Some(serde_json::json!([{ "toBe": null }]))),
-        ("expect(a).not[x]()", Some(serde_json::json!([{ "not": null }]))),
         ("expect(a).not.toBe(b)", Some(serde_json::json!([{ "not": null }]))),
         ("expect(a).resolves.toBe(b)", Some(serde_json::json!([{ "resolves": null }]))),
         ("expect(a).resolves.not.toBe(b)", Some(serde_json::json!([{ "resolves": null }]))),
@@ -110,9 +94,12 @@ fn test() {
                 { "not.toHaveBeenCalledWith": "Use not.toHaveBeenCalled instead" },
             ])),
         ),
+        (
+            "import { expect } from 'vitest'; expect(a).toBe(b)",
+            Some(serde_json::json!([{ "toBe": null }])),
+        ),
     ];
 
     Tester::new(NoRestrictedMatchers::NAME, NoRestrictedMatchers::PLUGIN, pass, fail)
-        .with_jest_plugin(true)
         .test_and_snapshot();
 }

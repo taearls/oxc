@@ -745,6 +745,7 @@ pub(crate) mod vitest {
     pub mod no_interpolation_in_snapshots;
     pub mod no_large_snapshots;
     pub mod no_mocks_import;
+    pub mod no_restricted_matchers;
     pub mod no_restricted_vi_methods;
     pub mod prefer_called_exactly_once_with;
     pub mod prefer_called_once;
