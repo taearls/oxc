@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use serde_json::Value;
 use tracing::instrument;
@@ -24,7 +27,7 @@ use super::{
 pub enum FormatStrategy {
     /// For JS/TS files formatted by oxc_formatter.
     OxcFormatter {
-        path: PathBuf,
+        path: Arc<Path>,
         source_type: SourceType,
         format_options: Box<FormatOptions>,
         /// For embedded language (xxx-in-js) formatting
@@ -38,11 +41,11 @@ pub enum FormatStrategy {
         insert_final_newline: bool,
     },
     /// For TOML files.
-    OxfmtToml { path: PathBuf, toml_options: TomlFormatterOptions, insert_final_newline: bool },
+    OxfmtToml { path: Arc<Path>, toml_options: TomlFormatterOptions, insert_final_newline: bool },
     /// For non-JS files formatted by external formatter (Prettier).
     #[cfg(feature = "napi")]
     ExternalFormatter {
-        path: PathBuf,
+        path: Arc<Path>,
         parser_name: &'static str,
         external_options: Value,
         insert_final_newline: bool,
@@ -50,7 +53,7 @@ pub enum FormatStrategy {
     /// For `package.json` files: optionally sorted then formatted.
     #[cfg(feature = "napi")]
     ExternalFormatterPackageJson {
-        path: PathBuf,
+        path: Arc<Path>,
         parser_name: &'static str,
         external_options: Value,
         sort_package_json: Option<sort_package_json::SortOptions>,
@@ -59,7 +62,7 @@ pub enum FormatStrategy {
 }
 
 impl FormatStrategy {
-    pub fn path(&self) -> &Path {
+    pub fn path(&self) -> &Arc<Path> {
         match self {
             Self::OxcFormatter { path, .. } | Self::OxfmtToml { path, .. } => path,
             #[cfg(feature = "napi")]

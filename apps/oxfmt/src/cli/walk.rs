@@ -216,18 +216,13 @@ impl ScopedWalker {
                 }
 
                 // Not a formatting target (e.g. unsupported extension) — skip silently
-                let Some(kind) = classify_file_kind(file.clone()) else {
+                let Some(kind) = classify_file_kind(Arc::from(file.as_path())) else {
                     continue;
                 };
                 let strategy = match file_config.resolve(kind) {
                     Ok(strategy) => strategy,
                     Err(err) => {
-                        report_resolve_error(
-                            tx_error,
-                            self.cwd.clone().into_boxed_path(),
-                            file,
-                            err,
-                        );
+                        report_resolve_error(tx_error, &self.cwd, file, err);
                         continue;
                     }
                 };
@@ -540,7 +535,7 @@ fn walk_and_stream(
     });
 
     let mut builder = WalkVisitorBuilder {
-        cwd: cwd.to_path_buf().into_boxed_path(),
+        cwd: Arc::from(cwd),
         sender: sender.clone(),
         tx_error: tx_error.clone(),
         root_config_resolver: Arc::clone(root_config_resolver),
@@ -585,7 +580,7 @@ fn configure_walk_builder(mut builder: ignore::WalkBuilder) -> ignore::WalkBuild
 }
 
 struct WalkVisitorBuilder {
-    cwd: Box<Path>,
+    cwd: Arc<Path>,
     sender: mpsc::Sender<FormatStrategy>,
     tx_error: DiagnosticSender,
     root_config_resolver: Arc<ConfigResolver>,
@@ -598,7 +593,7 @@ struct WalkVisitorBuilder {
 impl<'s> ignore::ParallelVisitorBuilder<'s> for WalkVisitorBuilder {
     fn build(&mut self) -> Box<dyn ignore::ParallelVisitor + 's> {
         Box::new(WalkVisitor {
-            cwd: self.cwd.clone(),
+            cwd: Arc::clone(&self.cwd),
             sender: self.sender.clone(),
             tx_error: self.tx_error.clone(),
             root_config_resolver: Arc::clone(&self.root_config_resolver),
@@ -611,7 +606,7 @@ impl<'s> ignore::ParallelVisitorBuilder<'s> for WalkVisitorBuilder {
 }
 
 struct WalkVisitor {
-    cwd: Box<Path>,
+    cwd: Arc<Path>,
     sender: mpsc::Sender<FormatStrategy>,
     tx_error: DiagnosticSender,
     root_config_resolver: Arc<ConfigResolver>,
@@ -699,13 +694,14 @@ impl ignore::ParallelVisitor for WalkVisitor {
                     // (Tier 4 = `.astro`, `.svelte`, etc: Other files supported by Prettier plugins)
                     // Everything else: Ignored
                     // Not a formatting target (e.g. unsupported extension) — skip silently
-                    let Some(kind) = classify_file_kind(path.clone()) else {
+                    let path: Arc<Path> = Arc::from(path);
+                    let Some(kind) = classify_file_kind(Arc::clone(&path)) else {
                         return ignore::WalkState::Continue;
                     };
                     let strategy = match resolver.resolve(kind) {
                         Ok(strategy) => strategy,
                         Err(err) => {
-                            report_resolve_error(&self.tx_error, self.cwd.clone(), &path, err);
+                            report_resolve_error(&self.tx_error, &self.cwd, &path, err);
                             return ignore::WalkState::Continue;
                         }
                     };
@@ -725,7 +721,7 @@ impl ignore::ParallelVisitor for WalkVisitor {
 // ---
 
 /// Report a per-file config resolve error via the diagnostic channel.
-fn report_resolve_error(tx_error: &DiagnosticSender, cwd: Box<Path>, path: &Path, err: String) {
+fn report_resolve_error(tx_error: &DiagnosticSender, cwd: &Path, path: &Path, err: String) {
     let diagnostics = DiagnosticService::wrap_diagnostics(
         cwd,
         path,

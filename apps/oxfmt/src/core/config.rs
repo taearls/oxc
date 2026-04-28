@@ -1,4 +1,6 @@
 use std::path::{Path, PathBuf};
+#[cfg(feature = "napi")]
+use std::sync::Arc;
 
 use editorconfig_parser::{
     EditorConfig, EditorConfigProperties, EditorConfigProperty, EndOfLine, IndentStyle,
@@ -79,7 +81,7 @@ pub fn resolve_options_for_embedded_js(
     source_type: SourceType,
     cwd: Option<&Path>,
 ) -> Result<(Box<FormatOptions>, Value, Option<PathBuf>), String> {
-    let kind = FileKind::OxcFormatter { path, source_type };
+    let kind = FileKind::OxcFormatter { path: Arc::from(path), source_type };
     let (oxfmt_options, mut external_options) = resolve_oxfmtrc_value(raw_config, cwd)?;
     finalize_external_options(&mut external_options, &kind);
     Ok((Box::new(oxfmt_options.format_options), external_options, None))

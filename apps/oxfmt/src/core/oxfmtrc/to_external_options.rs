@@ -240,7 +240,7 @@ mod tests {
 
     #[test]
     fn test_finalize_external_options_removes_oxfmt_extensions() {
-        use std::path::PathBuf;
+        use std::{path::Path, sync::Arc};
 
         use oxc_span::SourceType;
 
@@ -255,7 +255,7 @@ mod tests {
         let mut raw_config: Value = serde_json::from_str(json_string).unwrap();
 
         let kind = FileKind::OxcFormatter {
-            path: PathBuf::from("test.js"),
+            path: Arc::from(Path::new("test.js")),
             source_type: SourceType::mjs(),
         };
         finalize_external_options(&mut raw_config, &kind);
@@ -270,7 +270,7 @@ mod tests {
     #[test]
     #[cfg(feature = "napi")]
     fn test_finalize_external_options_sets_oxfmt_plugin_filepath() {
-        use std::path::PathBuf;
+        use std::{path::Path, sync::Arc};
 
         let json_string = r#"{
             "printWidth": 100,
@@ -280,7 +280,7 @@ mod tests {
         let mut raw_config: Value = serde_json::from_str(json_string).unwrap();
 
         let kind = FileKind::ExternalFormatter {
-            path: PathBuf::from("/tmp/foo/bar/App.vue"),
+            path: Arc::from(Path::new("/tmp/foo/bar/App.vue")),
             parser_name: "vue",
         };
         finalize_external_options(&mut raw_config, &kind);

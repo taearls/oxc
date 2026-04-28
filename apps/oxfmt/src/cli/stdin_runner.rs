@@ -2,6 +2,7 @@ use std::{
     env,
     io::{self, BufWriter, Read},
     path::PathBuf,
+    sync::Arc,
 };
 
 use super::{
@@ -138,7 +139,7 @@ impl StdinRunner {
             return CliRunResult::FormatSucceeded;
         }
 
-        let Some(kind) = classify_file_kind(filepath) else {
+        let Some(kind) = classify_file_kind(Arc::from(filepath)) else {
             utils::print_and_flush(stderr, "Unsupported file type for stdin-filepath\n");
             return CliRunResult::InvalidOptionConfig;
         };

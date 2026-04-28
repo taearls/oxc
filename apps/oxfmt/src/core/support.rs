@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::{path::Path, sync::Arc};
 
 use phf::phf_set;
 
@@ -7,7 +7,7 @@ use oxc_span::SourceType;
 /// Classify a file path into a [`FileKind`].
 ///
 /// Returns `None` when the file type is not a formatting target.
-pub fn classify_file_kind(path: PathBuf) -> Option<FileKind> {
+pub fn classify_file_kind(path: Arc<Path>) -> Option<FileKind> {
     if let Some(source_type) = get_oxc_formatter_source_type(&path) {
         return Some(FileKind::OxcFormatter { path, source_type });
     }
@@ -49,25 +49,25 @@ pub fn classify_file_kind(path: PathBuf) -> Option<FileKind> {
 /// resolver to construct a public [`super::FormatStrategy`] (with options).
 pub enum FileKind {
     OxcFormatter {
-        path: PathBuf,
+        path: Arc<Path>,
         source_type: SourceType,
     },
     /// TOML files formatted by taplo (Pure Rust).
     OxfmtToml {
-        path: PathBuf,
+        path: Arc<Path>,
     },
     /// Files formatted by external formatter (Prettier).
     /// Only available with the `napi` feature; without it, the classifier rejects such files.
     #[cfg(feature = "napi")]
     ExternalFormatter {
-        path: PathBuf,
+        path: Arc<Path>,
         parser_name: &'static str,
     },
     /// `package.json` is special: sorted by `sort-package-json` then formatted by external formatter.
     /// Only available with the `napi` feature; without it, the classifier rejects such files.
     #[cfg(feature = "napi")]
     ExternalFormatterPackageJson {
-        path: PathBuf,
+        path: Arc<Path>,
         parser_name: &'static str,
     },
 }
@@ -555,10 +555,10 @@ mod tests {
     #[test]
     #[cfg(feature = "napi")]
     fn test_package_json_is_special() {
-        let kind = classify_file_kind(PathBuf::from("package.json")).unwrap();
+        let kind = classify_file_kind(Arc::from(Path::new("package.json"))).unwrap();
         assert!(matches!(kind, FileKind::ExternalFormatterPackageJson { .. }));
 
-        let kind = classify_file_kind(PathBuf::from("composer.json")).unwrap();
+        let kind = classify_file_kind(Arc::from(Path::new("composer.json"))).unwrap();
         assert!(matches!(kind, FileKind::ExternalFormatter { .. }));
     }
 
@@ -575,7 +575,7 @@ mod tests {
         ];
 
         for file_name in toml_files {
-            let result = classify_file_kind(PathBuf::from(file_name));
+            let result = classify_file_kind(Arc::from(Path::new(file_name)));
             assert!(
                 matches!(result, Some(FileKind::OxfmtToml { .. })),
                 "`{file_name}` should be detected as TOML"
@@ -586,7 +586,7 @@ mod tests {
         let excluded_files = vec!["Cargo.lock", "poetry.lock", "pdm.lock", "uv.lock", "Gopkg.lock"];
 
         for file_name in excluded_files {
-            let result = classify_file_kind(PathBuf::from(file_name));
+            let result = classify_file_kind(Arc::from(Path::new(file_name)));
             assert!(result.is_none(), "`{file_name}` should be excluded (lock file)");
         }
     }

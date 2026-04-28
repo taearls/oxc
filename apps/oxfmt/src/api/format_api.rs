@@ -1,4 +1,4 @@
-use std::{env, path::Path};
+use std::{env, path::Path, sync::Arc};
 
 use serde_json::Value;
 
@@ -57,7 +57,7 @@ pub fn run(
     }
 
     let filepath = utils::normalize_relative_path(&cwd, Path::new(filename));
-    let Some(kind) = classify_file_kind(filepath) else {
+    let Some(kind) = classify_file_kind(Arc::from(filepath)) else {
         external_formatter.cleanup();
         return ApiFormatResult {
             code: source_text,

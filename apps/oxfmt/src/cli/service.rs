@@ -1,4 +1,9 @@
-use std::{fs, path::Path, sync::mpsc, time::Instant};
+use std::{
+    fs,
+    path::Path,
+    sync::{Arc, mpsc},
+    time::Instant,
+};
 
 use cow_utils::CowUtils;
 use rayon::prelude::*;
@@ -37,13 +42,13 @@ impl FormatService {
         rx_entry.into_iter().par_bridge().for_each(|strategy| {
             let start_time = matches!(self.format_mode, OutputMode::Check).then(Instant::now);
 
-            let path = strategy.path();
-            let Ok(source_text) = utils::read_to_string(path) else {
+            let path: Arc<Path> = Arc::clone(strategy.path());
+            let Ok(source_text) = utils::read_to_string(&path) else {
                 // This happens if binary file is attempted to be formatted
                 // e.g. `.ts` for MPEG-TS video file
                 let diagnostics = DiagnosticService::wrap_diagnostics(
                     self.cwd.clone(),
-                    path,
+                    &path,
                     "",
                     vec![
                         oxc_diagnostics::OxcDiagnostic::error(format!(
@@ -56,8 +61,6 @@ impl FormatService {
                 let _ = tx_error.send(diagnostics);
                 return;
             };
-
-            let path = path.to_path_buf();
 
             let (code, is_changed) = match self.formatter.format(&source_text, strategy) {
                 FormatResult::Success { code, is_changed } => (code, is_changed),
@@ -99,7 +102,7 @@ impl FormatService {
                     let display_path = path
                         // Show path relative to `cwd` for cleaner output
                         .strip_prefix(&self.cwd)
-                        .unwrap_or(&path)
+                        .unwrap_or(path.as_ref())
                         .to_string_lossy()
                         // Normalize path separators for consistent output across platforms
                         .cow_replace('\\', "/")
