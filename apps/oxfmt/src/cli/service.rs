@@ -38,7 +38,7 @@ impl FormatService {
         rx_entry.into_iter().par_bridge().for_each(|entry| {
             let start_time = matches!(self.format_mode, OutputMode::Check).then(Instant::now);
 
-            let FormatEntry { strategy, config_resolver } = entry;
+            let FormatEntry { strategy, resolved_options } = entry;
             let path = strategy.path();
             let Ok(source_text) = utils::read_to_string(path) else {
                 // This happens if binary file is attempted to be formatted
@@ -57,27 +57,6 @@ impl FormatService {
                 );
                 let _ = tx_error.send(diagnostics);
                 return;
-            };
-
-            // Resolve options for this specific file using its scope's config
-            let resolved_options = match config_resolver.resolve(&strategy) {
-                Ok(options) => options,
-                Err(err) => {
-                    let diagnostics = DiagnosticService::wrap_diagnostics(
-                        self.cwd.clone(),
-                        path,
-                        "",
-                        vec![
-                            oxc_diagnostics::OxcDiagnostic::error(format!(
-                                "Invalid resolved configuration for {}",
-                                path.display()
-                            ))
-                            .with_help(err),
-                        ],
-                    );
-                    let _ = tx_error.send(diagnostics);
-                    return;
-                }
             };
 
             let (code, is_changed) =
