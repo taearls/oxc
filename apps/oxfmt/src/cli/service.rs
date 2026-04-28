@@ -6,8 +6,7 @@ use rayon::prelude::*;
 use oxc_diagnostics::{DiagnosticSender, DiagnosticService};
 
 use super::command::OutputMode;
-use super::walk::FormatEntry;
-use crate::core::{FormatResult, SourceFormatter, utils};
+use crate::core::{FormatResult, FormatStrategy, SourceFormatter, utils};
 
 pub enum SuccessResult {
     Changed(String),
@@ -31,14 +30,13 @@ impl FormatService {
     /// Process entries as they are received from the channel
     pub fn run_streaming(
         &self,
-        rx_entry: mpsc::Receiver<FormatEntry>,
+        rx_entry: mpsc::Receiver<FormatStrategy>,
         tx_error: &DiagnosticSender,
         tx_success: &mpsc::Sender<SuccessResult>,
     ) {
-        rx_entry.into_iter().par_bridge().for_each(|entry| {
+        rx_entry.into_iter().par_bridge().for_each(|strategy| {
             let start_time = matches!(self.format_mode, OutputMode::Check).then(Instant::now);
 
-            let FormatEntry { strategy, resolved_options } = entry;
             let path = strategy.path();
             let Ok(source_text) = utils::read_to_string(path) else {
                 // This happens if binary file is attempted to be formatted
@@ -59,29 +57,30 @@ impl FormatService {
                 return;
             };
 
-            let (code, is_changed) =
-                match self.formatter.format(&strategy, &source_text, resolved_options) {
-                    FormatResult::Success { code, is_changed } => (code, is_changed),
-                    FormatResult::Error(diagnostics) => {
-                        let errors = DiagnosticService::wrap_diagnostics(
-                            self.cwd.clone(),
-                            path,
-                            &source_text,
-                            diagnostics,
-                        );
-                        let _ = tx_error.send(errors);
-                        return;
-                    }
-                };
+            let path = path.to_path_buf();
+
+            let (code, is_changed) = match self.formatter.format(&source_text, strategy) {
+                FormatResult::Success { code, is_changed } => (code, is_changed),
+                FormatResult::Error(diagnostics) => {
+                    let errors = DiagnosticService::wrap_diagnostics(
+                        self.cwd.clone(),
+                        &path,
+                        &source_text,
+                        diagnostics,
+                    );
+                    let _ = tx_error.send(errors);
+                    return;
+                }
+            };
 
             // Write back if needed
             if matches!(self.format_mode, OutputMode::Write) && is_changed {
-                match fs::write(path, &code) {
+                match fs::write(&path, &code) {
                     Ok(()) => (),
                     Err(err) => {
                         let diagnostics = DiagnosticService::wrap_diagnostics(
                             self.cwd.clone(),
-                            path,
+                            &path,
                             "",
                             vec![oxc_diagnostics::OxcDiagnostic::error(format!(
                                 "Failed to save '{}': {err}",
@@ -100,7 +99,7 @@ impl FormatService {
                     let display_path = path
                         // Show path relative to `cwd` for cleaner output
                         .strip_prefix(&self.cwd)
-                        .unwrap_or(path)
+                        .unwrap_or(&path)
                         .to_string_lossy()
                         // Normalize path separators for consistent output across platforms
                         .cow_replace('\\', "/")

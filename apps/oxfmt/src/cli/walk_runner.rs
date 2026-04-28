@@ -8,11 +8,13 @@ use super::{
     resolve::resolve_ignore_paths,
     result::CliRunResult,
     service::{FormatService, SuccessResult},
-    walk::{FormatEntry, ScopedWalker},
+    walk::ScopedWalker,
 };
 #[cfg(feature = "napi")]
 use crate::core::JsConfigLoaderCb;
-use crate::core::{ConfigResolver, SourceFormatter, resolve_editorconfig_path, utils};
+use crate::core::{
+    ConfigResolver, FormatStrategy, SourceFormatter, resolve_editorconfig_path, utils,
+};
 
 pub struct WalkRunner {
     options: FormatCommand,
@@ -134,7 +136,7 @@ impl WalkRunner {
         };
 
         // Shared channel for format entries from all scopes
-        let (tx_entry, rx_entry) = mpsc::channel::<FormatEntry>();
+        let (tx_entry, rx_entry) = mpsc::channel::<FormatStrategy>();
         // Collect format results (changed paths or unchanged count)
         let (tx_success, rx_success) = mpsc::channel();
         // Diagnostic from formatting service

@@ -14,16 +14,7 @@ use oxc_diagnostics::{DiagnosticSender, DiagnosticService, OxcDiagnostic};
 use super::resolve::{build_global_ignore_matchers, is_ignored, resolve_file_scope_config};
 #[cfg(feature = "napi")]
 use crate::core::JsConfigLoaderCb;
-use crate::core::{ConfigResolver, FormatStrategy, ResolvedOptions, config_discovery};
-
-/// A file entry paired with its resolved options.
-///
-/// `ResolvedOptions` is computed upfront in the walk thread (per-file, including overrides),
-/// so the format service can consume it directly without re-resolving.
-pub struct FormatEntry {
-    pub strategy: FormatStrategy,
-    pub resolved_options: ResolvedOptions,
-}
+use crate::core::{ConfigResolver, FormatStrategy, classify_file_kind, config_discovery};
 
 /// Orchestrates file discovery with nested config and ignore handling.
 ///
@@ -130,7 +121,7 @@ impl ScopedWalker {
         detect_nested: bool,
         editorconfig_path: Option<&Path>,
         #[cfg(feature = "napi")] js_config_loader: Option<&JsConfigLoaderCb>,
-        sender: &mpsc::Sender<FormatEntry>,
+        sender: &mpsc::Sender<FormatStrategy>,
         tx_error: &DiagnosticSender,
     ) -> Result<bool, String> {
         let root_config_resolver = Arc::new(root_config);
@@ -223,16 +214,13 @@ impl ScopedWalker {
                 if file_config.is_path_ignored(file, false) {
                     continue;
                 }
-                let Ok(strategy) = file_config.strategy_builder().build(file.clone()) else {
+
+                // Not a formatting target (e.g. unsupported extension) — skip silently
+                let Some(kind) = classify_file_kind(file.clone()) else {
                     continue;
                 };
-                #[cfg(not(feature = "napi"))]
-                if !strategy.can_format_without_external() {
-                    continue;
-                }
-
-                let resolved_options = match file_config.resolve(&strategy) {
-                    Ok(options) => options,
+                let strategy = match file_config.resolve(kind) {
+                    Ok(strategy) => strategy,
                     Err(err) => {
                         report_resolve_error(
                             tx_error,
@@ -245,7 +233,7 @@ impl ScopedWalker {
                 };
 
                 directly_processed.insert(file.clone());
-                if sender.send(FormatEntry { strategy, resolved_options }).is_err() {
+                if sender.send(strategy).is_err() {
                     break;
                 }
             }
@@ -499,7 +487,7 @@ fn walk_and_stream(
     directly_processed: &Arc<FxHashSet<PathBuf>>,
     config_ancestors: Option<&Arc<FxHashSet<PathBuf>>>,
     child_scope_map: &Arc<FxHashMap<PathBuf, Arc<ConfigResolver>>>,
-    sender: &mpsc::Sender<FormatEntry>,
+    sender: &mpsc::Sender<FormatStrategy>,
     tx_error: &DiagnosticSender,
 ) {
     let Some(first_path) = target_paths.first() else {
@@ -598,7 +586,7 @@ fn configure_walk_builder(mut builder: ignore::WalkBuilder) -> ignore::WalkBuild
 
 struct WalkVisitorBuilder {
     cwd: Box<Path>,
-    sender: mpsc::Sender<FormatEntry>,
+    sender: mpsc::Sender<FormatStrategy>,
     tx_error: DiagnosticSender,
     root_config_resolver: Arc<ConfigResolver>,
     glob_matcher: Option<Arc<GlobMatcher>>,
@@ -624,7 +612,7 @@ impl<'s> ignore::ParallelVisitorBuilder<'s> for WalkVisitorBuilder {
 
 struct WalkVisitor {
     cwd: Box<Path>,
-    sender: mpsc::Sender<FormatEntry>,
+    sender: mpsc::Sender<FormatStrategy>,
     tx_error: DiagnosticSender,
     root_config_resolver: Arc<ConfigResolver>,
     glob_matcher: Option<Arc<GlobMatcher>>,
@@ -710,28 +698,19 @@ impl ignore::ParallelVisitor for WalkVisitor {
                     // Tier 3 = `.html`, `.json`, etc: Other files supported by Prettier
                     // (Tier 4 = `.astro`, `.svelte`, etc: Other files supported by Prettier plugins)
                     // Everything else: Ignored
-                    let Ok(strategy) = resolver.strategy_builder().build(path) else {
+                    // Not a formatting target (e.g. unsupported extension) — skip silently
+                    let Some(kind) = classify_file_kind(path.clone()) else {
                         return ignore::WalkState::Continue;
                     };
-                    #[cfg(not(feature = "napi"))]
-                    if !strategy.can_format_without_external() {
-                        return ignore::WalkState::Continue;
-                    }
-
-                    let resolved_options = match resolver.resolve(&strategy) {
-                        Ok(options) => options,
+                    let strategy = match resolver.resolve(kind) {
+                        Ok(strategy) => strategy,
                         Err(err) => {
-                            report_resolve_error(
-                                &self.tx_error,
-                                self.cwd.clone(),
-                                strategy.path(),
-                                err,
-                            );
+                            report_resolve_error(&self.tx_error, self.cwd.clone(), &path, err);
                             return ignore::WalkState::Continue;
                         }
                     };
 
-                    if self.sender.send(FormatEntry { strategy, resolved_options }).is_err() {
+                    if self.sender.send(strategy).is_err() {
                         return ignore::WalkState::Quit;
                     }
                 }
