@@ -16,6 +16,7 @@ pub mod no_large_snapshots;
 pub mod no_mocks_import;
 pub mod no_restricted_jest_methods;
 pub mod no_restricted_matchers;
+pub mod no_standalone_expect;
 pub mod prefer_expect_assertions;
 pub mod prefer_to_contain;
 pub mod prefer_todo;
