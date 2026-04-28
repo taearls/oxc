@@ -20,6 +20,7 @@ pub mod no_standalone_expect;
 pub mod prefer_expect_assertions;
 pub mod prefer_to_contain;
 pub mod prefer_todo;
+pub mod require_to_throw_message;
 pub mod require_top_level_describe;
 pub mod valid_describe_callback;
 pub mod valid_expect;
