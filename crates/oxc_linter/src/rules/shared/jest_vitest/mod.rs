@@ -19,6 +19,7 @@ pub mod no_restricted_matchers;
 pub mod no_standalone_expect;
 pub mod no_test_prefixes;
 pub mod no_test_return_statement;
+pub mod no_unneeded_async_expect_function;
 pub mod prefer_expect_assertions;
 pub mod prefer_snapshot_hint;
 pub mod prefer_to_contain;

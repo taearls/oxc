@@ -1,5 +1,4 @@
 [
-  "no-unneeded-async-expect-function",
   "prefer-called-with",
   "prefer-comparison-matcher",
   "prefer-each",
