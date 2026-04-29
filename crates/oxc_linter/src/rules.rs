@@ -754,6 +754,7 @@ pub(crate) mod vitest {
     pub mod prefer_called_exactly_once_with;
     pub mod prefer_called_once;
     pub mod prefer_called_times;
+    pub mod prefer_called_with;
     pub mod prefer_describe_function_title;
     pub mod prefer_expect_assertions;
     pub mod prefer_expect_type_of;

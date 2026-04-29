@@ -1,5 +1,4 @@
 [
-  "prefer-called-with",
   "prefer-comparison-matcher",
   "prefer-each",
   "prefer-equality-matcher",
