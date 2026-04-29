@@ -904,7 +904,7 @@ mod test {
             {
                 "plugins": ["vitest", "typescript"],
                 "rules": {
-                    "vitest/no-test-prefixes": "error",
+                    "vitest/no-test-return-statement": "error",
                     "typescript/no-explicit-any": "error"
                 },
                 "overrides": [
@@ -920,10 +920,9 @@ mod test {
         let rules_for_test_file = config.apply_overrides("foo.test.ts".as_ref());
 
         assert!(
-            rules_for_test_file
-                .rules
-                .iter()
-                .any(|(rule, _)| rule.plugin_name() == "jest" && rule.name() == "no-test-prefixes"),
+            rules_for_test_file.rules.iter().any(|(rule, _)| {
+                rule.plugin_name() == "jest" && rule.name() == "no-test-return-statement"
+            }),
             "vitest-compatible jest rules should remain enabled when an override matches"
         );
         assert!(

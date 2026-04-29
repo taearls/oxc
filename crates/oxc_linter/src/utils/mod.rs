@@ -37,8 +37,7 @@ pub use self::{
 // the crates/oxc_linter/data/vitest_compatible_jest_rules.json
 // file is also updated. The JSON file is used by the oxlint-migrate
 // and eslint-plugin-oxlint repos to keep everything synced.
-const VITEST_COMPATIBLE_JEST_RULES: [&str; 17] = [
-    "no-test-prefixes",
+const VITEST_COMPATIBLE_JEST_RULES: [&str; 16] = [
     "no-test-return-statement",
     "no-unneeded-async-expect-function",
     "prefer-called-with",

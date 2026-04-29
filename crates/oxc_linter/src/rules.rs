@@ -748,6 +748,7 @@ pub(crate) mod vitest {
     pub mod no_restricted_matchers;
     pub mod no_restricted_vi_methods;
     pub mod no_standalone_expect;
+    pub mod no_test_prefixes;
     pub mod prefer_called_exactly_once_with;
     pub mod prefer_called_once;
     pub mod prefer_called_times;
