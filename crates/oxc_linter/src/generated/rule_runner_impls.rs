@@ -4505,6 +4505,12 @@ impl RuleRunner for crate::rules::vitest::no_test_prefixes::NoTestPrefixes {
     const RUN_FUNCTIONS: RuleRunFunctionsImplemented = RuleRunFunctionsImplemented::RunOnJestNode;
 }
 
+impl RuleRunner for crate::rules::vitest::no_test_return_statement::NoTestReturnStatement {
+    const NODE_TYPES: Option<&AstTypesBitset> =
+        Some(&AstTypesBitset::from_types(&[AstType::CallExpression, AstType::Function]));
+    const RUN_FUNCTIONS: RuleRunFunctionsImplemented = RuleRunFunctionsImplemented::Run;
+}
+
 impl RuleRunner
     for crate::rules::vitest::prefer_called_exactly_once_with::PreferCalledExactlyOnceWith
 {

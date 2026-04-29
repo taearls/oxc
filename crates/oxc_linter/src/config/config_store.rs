@@ -904,7 +904,7 @@ mod test {
             {
                 "plugins": ["vitest", "typescript"],
                 "rules": {
-                    "vitest/no-test-return-statement": "error",
+                    "vitest/no-unneeded-async-expect-function": "error",
                     "typescript/no-explicit-any": "error"
                 },
                 "overrides": [
@@ -921,7 +921,7 @@ mod test {
 
         assert!(
             rules_for_test_file.rules.iter().any(|(rule, _)| {
-                rule.plugin_name() == "jest" && rule.name() == "no-test-return-statement"
+                rule.plugin_name() == "jest" && rule.name() == "no-unneeded-async-expect-function"
             }),
             "vitest-compatible jest rules should remain enabled when an override matches"
         );
