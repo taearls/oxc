@@ -105,18 +105,18 @@ export function walkProgramWithCfg(
 
     if (typeId < NODE_TYPES_COUNT) {
       // Enter node. `typeId` is node type ID.
-      const node = stepData[i] as Node;
       const visit = visitors[typeId];
 
       if (typeId < LEAF_NODE_TYPES_COUNT) {
         // Leaf node
         if (visit !== null) {
           debugAssertIsFunction(visit);
-          visit(node);
+          visit(stepData[i] as Node);
         }
         // Don't add node to `ancestors`, because we don't visit leaf nodes on exit
       } else {
         // Non-leaf node
+        const node = stepData[i] as Node;
         if (visit !== null) {
           debugAssertIsEnterExitObject(visit);
           const { enter } = visit;
@@ -133,7 +133,6 @@ export function walkProgramWithCfg(
       // (`cmp` is essentially subtraction), in which case `- EXIT_TYPE_ID_OFFSET` would be cheaper than
       // `& EXIT_TYPE_ID_OFFSET - 1`. That's just speculation though! Have not checked what ASM TurboFan generates.
       typeId -= EXIT_TYPE_ID_OFFSET;
-      const node = stepData[i] as Node;
 
       ancestors.shift();
 
@@ -141,7 +140,7 @@ export function walkProgramWithCfg(
       if (enterExit !== null) {
         debugAssertIsEnterExitObject(enterExit);
         const { exit } = enterExit;
-        if (exit !== null) exit(node);
+        if (exit !== null) exit(stepData[i] as Node);
       }
     } else {
       // Call method (CFG event). `typeId` is event type ID.
