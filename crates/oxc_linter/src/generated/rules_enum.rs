@@ -727,6 +727,7 @@ pub use crate::rules::vitest::prefer_called_exactly_once_with::PreferCalledExact
 pub use crate::rules::vitest::prefer_called_once::PreferCalledOnce as VitestPreferCalledOnce;
 pub use crate::rules::vitest::prefer_called_times::PreferCalledTimes as VitestPreferCalledTimes;
 pub use crate::rules::vitest::prefer_called_with::PreferCalledWith as VitestPreferCalledWith;
+pub use crate::rules::vitest::prefer_comparison_matcher::PreferComparisonMatcher as VitestPreferComparisonMatcher;
 pub use crate::rules::vitest::prefer_describe_function_title::PreferDescribeFunctionTitle as VitestPreferDescribeFunctionTitle;
 pub use crate::rules::vitest::prefer_expect_assertions::PreferExpectAssertions as VitestPreferExpectAssertions;
 pub use crate::rules::vitest::prefer_expect_type_of::PreferExpectTypeOf as VitestPreferExpectTypeOf;
@@ -1499,6 +1500,7 @@ pub enum RuleEnum {
     VitestPreferCalledOnce(VitestPreferCalledOnce),
     VitestPreferCalledTimes(VitestPreferCalledTimes),
     VitestPreferCalledWith(VitestPreferCalledWith),
+    VitestPreferComparisonMatcher(VitestPreferComparisonMatcher),
     VitestPreferDescribeFunctionTitle(VitestPreferDescribeFunctionTitle),
     VitestPreferExpectAssertions(VitestPreferExpectAssertions),
     VitestPreferExpectTypeOf(VitestPreferExpectTypeOf),
@@ -2358,7 +2360,9 @@ const VITEST_PREFER_CALLED_EXACTLY_ONCE_WITH_ID: usize =
 const VITEST_PREFER_CALLED_ONCE_ID: usize = VITEST_PREFER_CALLED_EXACTLY_ONCE_WITH_ID + 1usize;
 const VITEST_PREFER_CALLED_TIMES_ID: usize = VITEST_PREFER_CALLED_ONCE_ID + 1usize;
 const VITEST_PREFER_CALLED_WITH_ID: usize = VITEST_PREFER_CALLED_TIMES_ID + 1usize;
-const VITEST_PREFER_DESCRIBE_FUNCTION_TITLE_ID: usize = VITEST_PREFER_CALLED_WITH_ID + 1usize;
+const VITEST_PREFER_COMPARISON_MATCHER_ID: usize = VITEST_PREFER_CALLED_WITH_ID + 1usize;
+const VITEST_PREFER_DESCRIBE_FUNCTION_TITLE_ID: usize =
+    VITEST_PREFER_COMPARISON_MATCHER_ID + 1usize;
 const VITEST_PREFER_EXPECT_ASSERTIONS_ID: usize = VITEST_PREFER_DESCRIBE_FUNCTION_TITLE_ID + 1usize;
 const VITEST_PREFER_EXPECT_TYPE_OF_ID: usize = VITEST_PREFER_EXPECT_ASSERTIONS_ID + 1usize;
 const VITEST_PREFER_IMPORT_IN_MOCK_ID: usize = VITEST_PREFER_EXPECT_TYPE_OF_ID + 1usize;
@@ -3245,6 +3249,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(_) => VITEST_PREFER_CALLED_ONCE_ID,
             Self::VitestPreferCalledTimes(_) => VITEST_PREFER_CALLED_TIMES_ID,
             Self::VitestPreferCalledWith(_) => VITEST_PREFER_CALLED_WITH_ID,
+            Self::VitestPreferComparisonMatcher(_) => VITEST_PREFER_COMPARISON_MATCHER_ID,
             Self::VitestPreferDescribeFunctionTitle(_) => VITEST_PREFER_DESCRIBE_FUNCTION_TITLE_ID,
             Self::VitestPreferExpectAssertions(_) => VITEST_PREFER_EXPECT_ASSERTIONS_ID,
             Self::VitestPreferExpectTypeOf(_) => VITEST_PREFER_EXPECT_TYPE_OF_ID,
@@ -4122,6 +4127,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(_) => VitestPreferCalledOnce::NAME,
             Self::VitestPreferCalledTimes(_) => VitestPreferCalledTimes::NAME,
             Self::VitestPreferCalledWith(_) => VitestPreferCalledWith::NAME,
+            Self::VitestPreferComparisonMatcher(_) => VitestPreferComparisonMatcher::NAME,
             Self::VitestPreferDescribeFunctionTitle(_) => VitestPreferDescribeFunctionTitle::NAME,
             Self::VitestPreferExpectAssertions(_) => VitestPreferExpectAssertions::NAME,
             Self::VitestPreferExpectTypeOf(_) => VitestPreferExpectTypeOf::NAME,
@@ -5043,6 +5049,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(_) => VitestPreferCalledOnce::CATEGORY,
             Self::VitestPreferCalledTimes(_) => VitestPreferCalledTimes::CATEGORY,
             Self::VitestPreferCalledWith(_) => VitestPreferCalledWith::CATEGORY,
+            Self::VitestPreferComparisonMatcher(_) => VitestPreferComparisonMatcher::CATEGORY,
             Self::VitestPreferDescribeFunctionTitle(_) => {
                 VitestPreferDescribeFunctionTitle::CATEGORY
             }
@@ -5927,6 +5934,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(_) => VitestPreferCalledOnce::FIX,
             Self::VitestPreferCalledTimes(_) => VitestPreferCalledTimes::FIX,
             Self::VitestPreferCalledWith(_) => VitestPreferCalledWith::FIX,
+            Self::VitestPreferComparisonMatcher(_) => VitestPreferComparisonMatcher::FIX,
             Self::VitestPreferDescribeFunctionTitle(_) => VitestPreferDescribeFunctionTitle::FIX,
             Self::VitestPreferExpectAssertions(_) => VitestPreferExpectAssertions::FIX,
             Self::VitestPreferExpectTypeOf(_) => VitestPreferExpectTypeOf::FIX,
@@ -7011,6 +7019,9 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(_) => VitestPreferCalledOnce::documentation(),
             Self::VitestPreferCalledTimes(_) => VitestPreferCalledTimes::documentation(),
             Self::VitestPreferCalledWith(_) => VitestPreferCalledWith::documentation(),
+            Self::VitestPreferComparisonMatcher(_) => {
+                VitestPreferComparisonMatcher::documentation()
+            }
             Self::VitestPreferDescribeFunctionTitle(_) => {
                 VitestPreferDescribeFunctionTitle::documentation()
             }
@@ -9126,6 +9137,10 @@ impl RuleEnum {
                 .or_else(|| VitestPreferCalledTimes::schema(generator)),
             Self::VitestPreferCalledWith(_) => VitestPreferCalledWith::config_schema(generator)
                 .or_else(|| VitestPreferCalledWith::schema(generator)),
+            Self::VitestPreferComparisonMatcher(_) => {
+                VitestPreferComparisonMatcher::config_schema(generator)
+                    .or_else(|| VitestPreferComparisonMatcher::schema(generator))
+            }
             Self::VitestPreferDescribeFunctionTitle(_) => {
                 VitestPreferDescribeFunctionTitle::config_schema(generator)
                     .or_else(|| VitestPreferDescribeFunctionTitle::schema(generator))
@@ -10000,6 +10015,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(_) => "vitest",
             Self::VitestPreferCalledTimes(_) => "vitest",
             Self::VitestPreferCalledWith(_) => "vitest",
+            Self::VitestPreferComparisonMatcher(_) => "vitest",
             Self::VitestPreferDescribeFunctionTitle(_) => "vitest",
             Self::VitestPreferExpectAssertions(_) => "vitest",
             Self::VitestPreferExpectTypeOf(_) => "vitest",
@@ -12352,6 +12368,9 @@ impl RuleEnum {
             Self::VitestPreferCalledWith(_) => {
                 Ok(Self::VitestPreferCalledWith(VitestPreferCalledWith::from_configuration(value)?))
             }
+            Self::VitestPreferComparisonMatcher(_) => Ok(Self::VitestPreferComparisonMatcher(
+                VitestPreferComparisonMatcher::from_configuration(value)?,
+            )),
             Self::VitestPreferDescribeFunctionTitle(_) => {
                 Ok(Self::VitestPreferDescribeFunctionTitle(
                     VitestPreferDescribeFunctionTitle::from_configuration(value)?,
@@ -13245,6 +13264,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(rule) => rule.to_configuration(),
             Self::VitestPreferCalledTimes(rule) => rule.to_configuration(),
             Self::VitestPreferCalledWith(rule) => rule.to_configuration(),
+            Self::VitestPreferComparisonMatcher(rule) => rule.to_configuration(),
             Self::VitestPreferDescribeFunctionTitle(rule) => rule.to_configuration(),
             Self::VitestPreferExpectAssertions(rule) => rule.to_configuration(),
             Self::VitestPreferExpectTypeOf(rule) => rule.to_configuration(),
@@ -14018,6 +14038,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(rule) => rule.run(node, ctx),
             Self::VitestPreferCalledTimes(rule) => rule.run(node, ctx),
             Self::VitestPreferCalledWith(rule) => rule.run(node, ctx),
+            Self::VitestPreferComparisonMatcher(rule) => rule.run(node, ctx),
             Self::VitestPreferDescribeFunctionTitle(rule) => rule.run(node, ctx),
             Self::VitestPreferExpectAssertions(rule) => rule.run(node, ctx),
             Self::VitestPreferExpectTypeOf(rule) => rule.run(node, ctx),
@@ -14789,6 +14810,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(rule) => rule.run_once(ctx),
             Self::VitestPreferCalledTimes(rule) => rule.run_once(ctx),
             Self::VitestPreferCalledWith(rule) => rule.run_once(ctx),
+            Self::VitestPreferComparisonMatcher(rule) => rule.run_once(ctx),
             Self::VitestPreferDescribeFunctionTitle(rule) => rule.run_once(ctx),
             Self::VitestPreferExpectAssertions(rule) => rule.run_once(ctx),
             Self::VitestPreferExpectTypeOf(rule) => rule.run_once(ctx),
@@ -15664,6 +15686,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferCalledTimes(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferCalledWith(rule) => rule.run_on_jest_node(jest_node, ctx),
+            Self::VitestPreferComparisonMatcher(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferDescribeFunctionTitle(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferExpectAssertions(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferExpectTypeOf(rule) => rule.run_on_jest_node(jest_node, ctx),
@@ -16439,6 +16462,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(rule) => rule.should_run(ctx),
             Self::VitestPreferCalledTimes(rule) => rule.should_run(ctx),
             Self::VitestPreferCalledWith(rule) => rule.should_run(ctx),
+            Self::VitestPreferComparisonMatcher(rule) => rule.should_run(ctx),
             Self::VitestPreferDescribeFunctionTitle(rule) => rule.should_run(ctx),
             Self::VitestPreferExpectAssertions(rule) => rule.should_run(ctx),
             Self::VitestPreferExpectTypeOf(rule) => rule.should_run(ctx),
@@ -17518,6 +17542,9 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(_) => VitestPreferCalledOnce::IS_TSGOLINT_RULE,
             Self::VitestPreferCalledTimes(_) => VitestPreferCalledTimes::IS_TSGOLINT_RULE,
             Self::VitestPreferCalledWith(_) => VitestPreferCalledWith::IS_TSGOLINT_RULE,
+            Self::VitestPreferComparisonMatcher(_) => {
+                VitestPreferComparisonMatcher::IS_TSGOLINT_RULE
+            }
             Self::VitestPreferDescribeFunctionTitle(_) => {
                 VitestPreferDescribeFunctionTitle::IS_TSGOLINT_RULE
             }
@@ -18459,6 +18486,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(_) => VitestPreferCalledOnce::VERSION,
             Self::VitestPreferCalledTimes(_) => VitestPreferCalledTimes::VERSION,
             Self::VitestPreferCalledWith(_) => VitestPreferCalledWith::VERSION,
+            Self::VitestPreferComparisonMatcher(_) => VitestPreferComparisonMatcher::VERSION,
             Self::VitestPreferDescribeFunctionTitle(_) => {
                 VitestPreferDescribeFunctionTitle::VERSION
             }
@@ -19417,6 +19445,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(_) => VitestPreferCalledOnce::HAS_CONFIG,
             Self::VitestPreferCalledTimes(_) => VitestPreferCalledTimes::HAS_CONFIG,
             Self::VitestPreferCalledWith(_) => VitestPreferCalledWith::HAS_CONFIG,
+            Self::VitestPreferComparisonMatcher(_) => VitestPreferComparisonMatcher::HAS_CONFIG,
             Self::VitestPreferDescribeFunctionTitle(_) => {
                 VitestPreferDescribeFunctionTitle::HAS_CONFIG
             }
@@ -20202,6 +20231,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(rule) => rule.types_info(),
             Self::VitestPreferCalledTimes(rule) => rule.types_info(),
             Self::VitestPreferCalledWith(rule) => rule.types_info(),
+            Self::VitestPreferComparisonMatcher(rule) => rule.types_info(),
             Self::VitestPreferDescribeFunctionTitle(rule) => rule.types_info(),
             Self::VitestPreferExpectAssertions(rule) => rule.types_info(),
             Self::VitestPreferExpectTypeOf(rule) => rule.types_info(),
@@ -20973,6 +21003,7 @@ impl RuleEnum {
             Self::VitestPreferCalledOnce(rule) => rule.run_info(),
             Self::VitestPreferCalledTimes(rule) => rule.run_info(),
             Self::VitestPreferCalledWith(rule) => rule.run_info(),
+            Self::VitestPreferComparisonMatcher(rule) => rule.run_info(),
             Self::VitestPreferDescribeFunctionTitle(rule) => rule.run_info(),
             Self::VitestPreferExpectAssertions(rule) => rule.run_info(),
             Self::VitestPreferExpectTypeOf(rule) => rule.run_info(),
@@ -21866,6 +21897,7 @@ pub static RULES: std::sync::LazyLock<Vec<RuleEnum>> = std::sync::LazyLock::new(
         RuleEnum::VitestPreferCalledOnce(VitestPreferCalledOnce::default()),
         RuleEnum::VitestPreferCalledTimes(VitestPreferCalledTimes::default()),
         RuleEnum::VitestPreferCalledWith(VitestPreferCalledWith::default()),
+        RuleEnum::VitestPreferComparisonMatcher(VitestPreferComparisonMatcher::default()),
         RuleEnum::VitestPreferDescribeFunctionTitle(VitestPreferDescribeFunctionTitle::default()),
         RuleEnum::VitestPreferExpectAssertions(VitestPreferExpectAssertions::default()),
         RuleEnum::VitestPreferExpectTypeOf(VitestPreferExpectTypeOf::default()),
