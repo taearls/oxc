@@ -2334,8 +2334,7 @@ impl RuleRunner for crate::rules::jest::prefer_lowercase_title::PreferLowercaseT
 }
 
 impl RuleRunner for crate::rules::jest::prefer_mock_promise_shorthand::PreferMockPromiseShorthand {
-    const NODE_TYPES: Option<&AstTypesBitset> =
-        Some(&AstTypesBitset::from_types(&[AstType::CallExpression]));
+    const NODE_TYPES: Option<&AstTypesBitset> = None;
     const RUN_FUNCTIONS: RuleRunFunctionsImplemented = RuleRunFunctionsImplemented::Run;
 }
 
@@ -4618,6 +4617,13 @@ impl RuleRunner
 impl RuleRunner for crate::rules::vitest::prefer_lowercase_title::PreferLowercaseTitle {
     const NODE_TYPES: Option<&AstTypesBitset> = None;
     const RUN_FUNCTIONS: RuleRunFunctionsImplemented = RuleRunFunctionsImplemented::RunOnJestNode;
+}
+
+impl RuleRunner
+    for crate::rules::vitest::prefer_mock_promise_shorthand::PreferMockPromiseShorthand
+{
+    const NODE_TYPES: Option<&AstTypesBitset> = None;
+    const RUN_FUNCTIONS: RuleRunFunctionsImplemented = RuleRunFunctionsImplemented::Run;
 }
 
 impl RuleRunner for crate::rules::vitest::prefer_snapshot_hint::PreferSnapshotHint {
