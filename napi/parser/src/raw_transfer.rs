@@ -186,8 +186,8 @@ unsafe fn parse_raw_impl(
 ) {
     // Check buffer has expected size and alignment
     assert_eq!(buffer.len(), BLOCK_SIZE);
-    let buffer_ptr = ptr::from_mut(buffer).cast::<u8>();
-    assert!((buffer_ptr as usize).is_multiple_of(BLOCK_ALIGN));
+    let buffer_ptr = NonNull::from_mut(buffer).cast::<u8>();
+    assert!(buffer_ptr.addr().get().is_multiple_of(BLOCK_ALIGN));
 
     // Get offsets and size of data region to be managed by arena allocator.
     //
@@ -218,7 +218,7 @@ unsafe fn parse_raw_impl(
     // SAFETY: `data_offset` is less than `buffer.len()`, so `.add(data_offset)` cannot wrap
     // or be out of bounds.
     let data_ptr = unsafe { buffer_ptr.add(data_offset) };
-    debug_assert!((data_ptr as usize).is_multiple_of(ARENA_ALIGN));
+    debug_assert!(data_ptr.addr().get().is_multiple_of(ARENA_ALIGN));
     debug_assert!(data_size.is_multiple_of(ARENA_ALIGN));
 
     // SAFETY: `data_ptr` and `data_size` outline a section of the memory in `buffer`.
@@ -227,14 +227,8 @@ unsafe fn parse_raw_impl(
     // The chunk region (`data_ptr..data_ptr + data_size`) lies entirely within the buffer.
     // `buffer_ptr` was derived from a `&mut [u8]` slice, so has permission for writes.
     // `data_ptr` was derived from `buffer_ptr`, so inherits that permission.
-    let allocator = unsafe {
-        Allocator::from_raw_parts(
-            NonNull::new_unchecked(data_ptr),
-            data_size,
-            NonNull::new_unchecked(buffer_ptr),
-            BLOCK_LAYOUT,
-        )
-    };
+    let allocator =
+        unsafe { Allocator::from_raw_parts(data_ptr, data_size, buffer_ptr, BLOCK_LAYOUT) };
     let allocator = ManuallyDrop::new(allocator);
 
     const _: () = assert!(ACTIVE_SIZE.is_multiple_of(CURSOR_MIN_ALIGN));
@@ -245,7 +239,7 @@ unsafe fn parse_raw_impl(
     // `ACTIVE_SIZE` is aligned on `Arena::MIN_ALIGN`.
     unsafe {
         let cursor_ptr = buffer_ptr.add(ACTIVE_SIZE);
-        allocator.set_cursor_ptr(NonNull::new_unchecked(cursor_ptr));
+        allocator.set_cursor_ptr(cursor_ptr);
     }
 
     // Parse source.
@@ -339,9 +333,8 @@ unsafe fn parse_raw_impl(
     const RAW_METADATA_OFFSET: usize = ACTIVE_SIZE;
     // SAFETY: `RAW_METADATA_OFFSET` is less than length of `buffer`, and aligned for `RawTransferMetadata`
     unsafe {
-        #[expect(clippy::cast_ptr_alignment)]
         let metadata_ptr = buffer_ptr.add(RAW_METADATA_OFFSET).cast::<RawTransferMetadata>();
-        debug_assert!(metadata_ptr.addr().is_multiple_of(align_of::<RawTransferMetadata>()));
+        debug_assert!(metadata_ptr.addr().get().is_multiple_of(align_of::<RawTransferMetadata>()));
         metadata_ptr.write(metadata);
     }
 }
