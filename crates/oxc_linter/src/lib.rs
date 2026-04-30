@@ -595,6 +595,7 @@ impl Linter {
     ///
     /// This is the common code path shared by both `run_external_rules` and
     /// `clone_into_fixed_size_allocator_and_run_external_rules`.
+    #[cfg(all(target_pointer_width = "64", target_endian = "little"))]
     fn convert_and_call_external_linter(
         &self,
         external_rules: &[(ExternalRuleId, ExternalOptionsId, AllowWarnDeny)],
