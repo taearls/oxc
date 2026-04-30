@@ -253,7 +253,7 @@ unsafe fn get_buffer(
     // We only create an immutable ref from this pointer.
     let metadata_ptr = unsafe { allocator.fixed_size_metadata_ptr() };
     // SAFETY: Fixed-size allocators always have a valid `FixedSizeAllocatorMetadata`
-    // stored at the pointer returned by `Allocator::fixed_size_metadata_ptr`.
+    // stored at the pointer returned by `Allocator::fixed_size_metadata_ptr`
     let metadata = unsafe { metadata_ptr.as_ref() };
 
     let buffer_id = metadata.id;
@@ -270,12 +270,9 @@ unsafe fn get_buffer(
     // Buffer has not already been sent to JS. Send it.
 
     // Get pointer to start of allocator chunk.
-    // Note: `Allocator::data_ptr` would not provide the right pointer, because source text
-    // gets written to start of the allocator chunk, and `data_ptr` gets moved to after it.
-    // SAFETY: Fixed-size allocators have their chunk aligned on `BLOCK_ALIGN`,
-    // and size less than `BLOCK_ALIGN`. So we can get pointer to start of `Allocator` chunk
-    // by rounding down to next multiple of `BLOCK_ALIGN`. That can't go out of bounds of
-    // the backing allocation.
+    // SAFETY: Fixed-size allocators have their chunk aligned on `BLOCK_ALIGN`, and size less than `BLOCK_ALIGN`.
+    // So we can get pointer to start of `Allocator` chunk by rounding down to next multiple of `BLOCK_ALIGN`.
+    // That can't go out of bounds of the backing allocation.
     let chunk_ptr = unsafe {
         let ptr = metadata_ptr.cast::<u8>();
         let offset = ptr.addr().get() % BLOCK_ALIGN;
@@ -288,13 +285,12 @@ unsafe fn get_buffer(
     //
     // We can't prove that no mutable references to data in the buffer exist,
     // but there shouldn't be any, because linter doesn't mutate the AST.
-    // Anyway, I (@overlookmotel) am not sure if the aliasing rules apply to code in another
-    // language. Probably not, as JS code is outside the domain of the "Rust abstract machine".
+    // Anyway, I (@overlookmotel) am not sure if the aliasing rules apply to code in another language.
+    // Probably not, as JS code is outside the domain of the "Rust abstract machine".
     // As long as we don't mutate data in the buffer on JS side, it should be fine.
     //
-    // On the other side, while many immutable references to data in the buffer exist
-    // (`AstKind`s for every AST node), JS side does not mutate the data in the buffer,
-    // so that shouldn't break the guarantees of `&` references.
+    // On the other side, while many immutable references to data in the buffer exist (`AstKind`s for every AST node),
+    // JS side does not mutate the data in the buffer, so that shouldn't break the guarantees of `&` references.
     //
     // This is all a bit wavy, but such is the way with sharing memory outside of Rust.
     //
