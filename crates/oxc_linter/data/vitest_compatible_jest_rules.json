@@ -1,5 +1,4 @@
 [
-  "prefer-hooks-on-top",
   "prefer-lowercase-title",
   "prefer-mock-promise-shorthand",
   "prefer-mock-return-shorthand",

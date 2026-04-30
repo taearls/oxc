@@ -9,7 +9,7 @@ use crate::{
 #[derive(Debug, Default, Clone)]
 pub struct PreferHooksOnTop;
 
-declare_oxc_lint!(PreferHooksOnTop, jest, style, docs = DOCUMENTATION, version = "0.4.2",);
+declare_oxc_lint!(PreferHooksOnTop, vitest, style, docs = DOCUMENTATION, version = "0.4.2",);
 
 impl Rule for PreferHooksOnTop {
     fn run_once(&self, ctx: &LintContext) {
@@ -206,6 +206,6 @@ fn test() {
     ];
 
     Tester::new(PreferHooksOnTop::NAME, PreferHooksOnTop::PLUGIN, pass, fail)
-        .with_jest_plugin(true)
+        .with_vitest_plugin(true)
         .test_and_snapshot();
 }

@@ -737,6 +737,7 @@ pub use crate::rules::vitest::prefer_expect_assertions::PreferExpectAssertions a
 pub use crate::rules::vitest::prefer_expect_resolves::PreferExpectResolves as VitestPreferExpectResolves;
 pub use crate::rules::vitest::prefer_expect_type_of::PreferExpectTypeOf as VitestPreferExpectTypeOf;
 pub use crate::rules::vitest::prefer_hooks_in_order::PreferHooksInOrder as VitestPreferHooksInOrder;
+pub use crate::rules::vitest::prefer_hooks_on_top::PreferHooksOnTop as VitestPreferHooksOnTop;
 pub use crate::rules::vitest::prefer_import_in_mock::PreferImportInMock as VitestPreferImportInMock;
 pub use crate::rules::vitest::prefer_importing_vitest_globals::PreferImportingVitestGlobals as VitestPreferImportingVitestGlobals;
 pub use crate::rules::vitest::prefer_snapshot_hint::PreferSnapshotHint as VitestPreferSnapshotHint;
@@ -1517,6 +1518,7 @@ pub enum RuleEnum {
     VitestPreferExpectResolves(VitestPreferExpectResolves),
     VitestPreferExpectTypeOf(VitestPreferExpectTypeOf),
     VitestPreferHooksInOrder(VitestPreferHooksInOrder),
+    VitestPreferHooksOnTop(VitestPreferHooksOnTop),
     VitestPreferImportInMock(VitestPreferImportInMock),
     VitestPreferImportingVitestGlobals(VitestPreferImportingVitestGlobals),
     VitestPreferSnapshotHint(VitestPreferSnapshotHint),
@@ -2386,7 +2388,8 @@ const VITEST_PREFER_EXPECT_ASSERTIONS_ID: usize = VITEST_PREFER_EQUALITY_MATCHER
 const VITEST_PREFER_EXPECT_RESOLVES_ID: usize = VITEST_PREFER_EXPECT_ASSERTIONS_ID + 1usize;
 const VITEST_PREFER_EXPECT_TYPE_OF_ID: usize = VITEST_PREFER_EXPECT_RESOLVES_ID + 1usize;
 const VITEST_PREFER_HOOKS_IN_ORDER_ID: usize = VITEST_PREFER_EXPECT_TYPE_OF_ID + 1usize;
-const VITEST_PREFER_IMPORT_IN_MOCK_ID: usize = VITEST_PREFER_HOOKS_IN_ORDER_ID + 1usize;
+const VITEST_PREFER_HOOKS_ON_TOP_ID: usize = VITEST_PREFER_HOOKS_IN_ORDER_ID + 1usize;
+const VITEST_PREFER_IMPORT_IN_MOCK_ID: usize = VITEST_PREFER_HOOKS_ON_TOP_ID + 1usize;
 const VITEST_PREFER_IMPORTING_VITEST_GLOBALS_ID: usize = VITEST_PREFER_IMPORT_IN_MOCK_ID + 1usize;
 const VITEST_PREFER_SNAPSHOT_HINT_ID: usize = VITEST_PREFER_IMPORTING_VITEST_GLOBALS_ID + 1usize;
 const VITEST_PREFER_STRICT_BOOLEAN_MATCHERS_ID: usize = VITEST_PREFER_SNAPSHOT_HINT_ID + 1usize;
@@ -3281,6 +3284,7 @@ impl RuleEnum {
             Self::VitestPreferExpectResolves(_) => VITEST_PREFER_EXPECT_RESOLVES_ID,
             Self::VitestPreferExpectTypeOf(_) => VITEST_PREFER_EXPECT_TYPE_OF_ID,
             Self::VitestPreferHooksInOrder(_) => VITEST_PREFER_HOOKS_IN_ORDER_ID,
+            Self::VitestPreferHooksOnTop(_) => VITEST_PREFER_HOOKS_ON_TOP_ID,
             Self::VitestPreferImportInMock(_) => VITEST_PREFER_IMPORT_IN_MOCK_ID,
             Self::VitestPreferImportingVitestGlobals(_) => {
                 VITEST_PREFER_IMPORTING_VITEST_GLOBALS_ID
@@ -4168,6 +4172,7 @@ impl RuleEnum {
             Self::VitestPreferExpectResolves(_) => VitestPreferExpectResolves::NAME,
             Self::VitestPreferExpectTypeOf(_) => VitestPreferExpectTypeOf::NAME,
             Self::VitestPreferHooksInOrder(_) => VitestPreferHooksInOrder::NAME,
+            Self::VitestPreferHooksOnTop(_) => VitestPreferHooksOnTop::NAME,
             Self::VitestPreferImportInMock(_) => VitestPreferImportInMock::NAME,
             Self::VitestPreferImportingVitestGlobals(_) => VitestPreferImportingVitestGlobals::NAME,
             Self::VitestPreferSnapshotHint(_) => VitestPreferSnapshotHint::NAME,
@@ -5099,6 +5104,7 @@ impl RuleEnum {
             Self::VitestPreferExpectResolves(_) => VitestPreferExpectResolves::CATEGORY,
             Self::VitestPreferExpectTypeOf(_) => VitestPreferExpectTypeOf::CATEGORY,
             Self::VitestPreferHooksInOrder(_) => VitestPreferHooksInOrder::CATEGORY,
+            Self::VitestPreferHooksOnTop(_) => VitestPreferHooksOnTop::CATEGORY,
             Self::VitestPreferImportInMock(_) => VitestPreferImportInMock::CATEGORY,
             Self::VitestPreferImportingVitestGlobals(_) => {
                 VitestPreferImportingVitestGlobals::CATEGORY
@@ -5991,6 +5997,7 @@ impl RuleEnum {
             Self::VitestPreferExpectResolves(_) => VitestPreferExpectResolves::FIX,
             Self::VitestPreferExpectTypeOf(_) => VitestPreferExpectTypeOf::FIX,
             Self::VitestPreferHooksInOrder(_) => VitestPreferHooksInOrder::FIX,
+            Self::VitestPreferHooksOnTop(_) => VitestPreferHooksOnTop::FIX,
             Self::VitestPreferImportInMock(_) => VitestPreferImportInMock::FIX,
             Self::VitestPreferImportingVitestGlobals(_) => VitestPreferImportingVitestGlobals::FIX,
             Self::VitestPreferSnapshotHint(_) => VitestPreferSnapshotHint::FIX,
@@ -7091,6 +7098,7 @@ impl RuleEnum {
             Self::VitestPreferExpectResolves(_) => VitestPreferExpectResolves::documentation(),
             Self::VitestPreferExpectTypeOf(_) => VitestPreferExpectTypeOf::documentation(),
             Self::VitestPreferHooksInOrder(_) => VitestPreferHooksInOrder::documentation(),
+            Self::VitestPreferHooksOnTop(_) => VitestPreferHooksOnTop::documentation(),
             Self::VitestPreferImportInMock(_) => VitestPreferImportInMock::documentation(),
             Self::VitestPreferImportingVitestGlobals(_) => {
                 VitestPreferImportingVitestGlobals::documentation()
@@ -9238,6 +9246,8 @@ impl RuleEnum {
                 .or_else(|| VitestPreferExpectTypeOf::schema(generator)),
             Self::VitestPreferHooksInOrder(_) => VitestPreferHooksInOrder::config_schema(generator)
                 .or_else(|| VitestPreferHooksInOrder::schema(generator)),
+            Self::VitestPreferHooksOnTop(_) => VitestPreferHooksOnTop::config_schema(generator)
+                .or_else(|| VitestPreferHooksOnTop::schema(generator)),
             Self::VitestPreferImportInMock(_) => VitestPreferImportInMock::config_schema(generator)
                 .or_else(|| VitestPreferImportInMock::schema(generator)),
             Self::VitestPreferImportingVitestGlobals(_) => {
@@ -10116,6 +10126,7 @@ impl RuleEnum {
             Self::VitestPreferExpectResolves(_) => "vitest",
             Self::VitestPreferExpectTypeOf(_) => "vitest",
             Self::VitestPreferHooksInOrder(_) => "vitest",
+            Self::VitestPreferHooksOnTop(_) => "vitest",
             Self::VitestPreferImportInMock(_) => "vitest",
             Self::VitestPreferImportingVitestGlobals(_) => "vitest",
             Self::VitestPreferSnapshotHint(_) => "vitest",
@@ -12500,6 +12511,9 @@ impl RuleEnum {
             Self::VitestPreferHooksInOrder(_) => Ok(Self::VitestPreferHooksInOrder(
                 VitestPreferHooksInOrder::from_configuration(value)?,
             )),
+            Self::VitestPreferHooksOnTop(_) => {
+                Ok(Self::VitestPreferHooksOnTop(VitestPreferHooksOnTop::from_configuration(value)?))
+            }
             Self::VitestPreferImportInMock(_) => Ok(Self::VitestPreferImportInMock(
                 VitestPreferImportInMock::from_configuration(value)?,
             )),
@@ -13397,6 +13411,7 @@ impl RuleEnum {
             Self::VitestPreferExpectResolves(rule) => rule.to_configuration(),
             Self::VitestPreferExpectTypeOf(rule) => rule.to_configuration(),
             Self::VitestPreferHooksInOrder(rule) => rule.to_configuration(),
+            Self::VitestPreferHooksOnTop(rule) => rule.to_configuration(),
             Self::VitestPreferImportInMock(rule) => rule.to_configuration(),
             Self::VitestPreferImportingVitestGlobals(rule) => rule.to_configuration(),
             Self::VitestPreferSnapshotHint(rule) => rule.to_configuration(),
@@ -14178,6 +14193,7 @@ impl RuleEnum {
             Self::VitestPreferExpectResolves(rule) => rule.run(node, ctx),
             Self::VitestPreferExpectTypeOf(rule) => rule.run(node, ctx),
             Self::VitestPreferHooksInOrder(rule) => rule.run(node, ctx),
+            Self::VitestPreferHooksOnTop(rule) => rule.run(node, ctx),
             Self::VitestPreferImportInMock(rule) => rule.run(node, ctx),
             Self::VitestPreferImportingVitestGlobals(rule) => rule.run(node, ctx),
             Self::VitestPreferSnapshotHint(rule) => rule.run(node, ctx),
@@ -14957,6 +14973,7 @@ impl RuleEnum {
             Self::VitestPreferExpectResolves(rule) => rule.run_once(ctx),
             Self::VitestPreferExpectTypeOf(rule) => rule.run_once(ctx),
             Self::VitestPreferHooksInOrder(rule) => rule.run_once(ctx),
+            Self::VitestPreferHooksOnTop(rule) => rule.run_once(ctx),
             Self::VitestPreferImportInMock(rule) => rule.run_once(ctx),
             Self::VitestPreferImportingVitestGlobals(rule) => rule.run_once(ctx),
             Self::VitestPreferSnapshotHint(rule) => rule.run_once(ctx),
@@ -15840,6 +15857,7 @@ impl RuleEnum {
             Self::VitestPreferExpectResolves(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferExpectTypeOf(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferHooksInOrder(rule) => rule.run_on_jest_node(jest_node, ctx),
+            Self::VitestPreferHooksOnTop(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferImportInMock(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferImportingVitestGlobals(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferSnapshotHint(rule) => rule.run_on_jest_node(jest_node, ctx),
@@ -16623,6 +16641,7 @@ impl RuleEnum {
             Self::VitestPreferExpectResolves(rule) => rule.should_run(ctx),
             Self::VitestPreferExpectTypeOf(rule) => rule.should_run(ctx),
             Self::VitestPreferHooksInOrder(rule) => rule.should_run(ctx),
+            Self::VitestPreferHooksOnTop(rule) => rule.should_run(ctx),
             Self::VitestPreferImportInMock(rule) => rule.should_run(ctx),
             Self::VitestPreferImportingVitestGlobals(rule) => rule.should_run(ctx),
             Self::VitestPreferSnapshotHint(rule) => rule.should_run(ctx),
@@ -17718,6 +17737,7 @@ impl RuleEnum {
             Self::VitestPreferExpectResolves(_) => VitestPreferExpectResolves::IS_TSGOLINT_RULE,
             Self::VitestPreferExpectTypeOf(_) => VitestPreferExpectTypeOf::IS_TSGOLINT_RULE,
             Self::VitestPreferHooksInOrder(_) => VitestPreferHooksInOrder::IS_TSGOLINT_RULE,
+            Self::VitestPreferHooksOnTop(_) => VitestPreferHooksOnTop::IS_TSGOLINT_RULE,
             Self::VitestPreferImportInMock(_) => VitestPreferImportInMock::IS_TSGOLINT_RULE,
             Self::VitestPreferImportingVitestGlobals(_) => {
                 VitestPreferImportingVitestGlobals::IS_TSGOLINT_RULE
@@ -18669,6 +18689,7 @@ impl RuleEnum {
             Self::VitestPreferExpectResolves(_) => VitestPreferExpectResolves::VERSION,
             Self::VitestPreferExpectTypeOf(_) => VitestPreferExpectTypeOf::VERSION,
             Self::VitestPreferHooksInOrder(_) => VitestPreferHooksInOrder::VERSION,
+            Self::VitestPreferHooksOnTop(_) => VitestPreferHooksOnTop::VERSION,
             Self::VitestPreferImportInMock(_) => VitestPreferImportInMock::VERSION,
             Self::VitestPreferImportingVitestGlobals(_) => {
                 VitestPreferImportingVitestGlobals::VERSION
@@ -19639,6 +19660,7 @@ impl RuleEnum {
             Self::VitestPreferExpectResolves(_) => VitestPreferExpectResolves::HAS_CONFIG,
             Self::VitestPreferExpectTypeOf(_) => VitestPreferExpectTypeOf::HAS_CONFIG,
             Self::VitestPreferHooksInOrder(_) => VitestPreferHooksInOrder::HAS_CONFIG,
+            Self::VitestPreferHooksOnTop(_) => VitestPreferHooksOnTop::HAS_CONFIG,
             Self::VitestPreferImportInMock(_) => VitestPreferImportInMock::HAS_CONFIG,
             Self::VitestPreferImportingVitestGlobals(_) => {
                 VitestPreferImportingVitestGlobals::HAS_CONFIG
@@ -20432,6 +20454,7 @@ impl RuleEnum {
             Self::VitestPreferExpectResolves(rule) => rule.types_info(),
             Self::VitestPreferExpectTypeOf(rule) => rule.types_info(),
             Self::VitestPreferHooksInOrder(rule) => rule.types_info(),
+            Self::VitestPreferHooksOnTop(rule) => rule.types_info(),
             Self::VitestPreferImportInMock(rule) => rule.types_info(),
             Self::VitestPreferImportingVitestGlobals(rule) => rule.types_info(),
             Self::VitestPreferSnapshotHint(rule) => rule.types_info(),
@@ -21211,6 +21234,7 @@ impl RuleEnum {
             Self::VitestPreferExpectResolves(rule) => rule.run_info(),
             Self::VitestPreferExpectTypeOf(rule) => rule.run_info(),
             Self::VitestPreferHooksInOrder(rule) => rule.run_info(),
+            Self::VitestPreferHooksOnTop(rule) => rule.run_info(),
             Self::VitestPreferImportInMock(rule) => rule.run_info(),
             Self::VitestPreferImportingVitestGlobals(rule) => rule.run_info(),
             Self::VitestPreferSnapshotHint(rule) => rule.run_info(),
@@ -22112,6 +22136,7 @@ pub static RULES: std::sync::LazyLock<Vec<RuleEnum>> = std::sync::LazyLock::new(
         RuleEnum::VitestPreferExpectResolves(VitestPreferExpectResolves::default()),
         RuleEnum::VitestPreferExpectTypeOf(VitestPreferExpectTypeOf::default()),
         RuleEnum::VitestPreferHooksInOrder(VitestPreferHooksInOrder::default()),
+        RuleEnum::VitestPreferHooksOnTop(VitestPreferHooksOnTop::default()),
         RuleEnum::VitestPreferImportInMock(VitestPreferImportInMock::default()),
         RuleEnum::VitestPreferImportingVitestGlobals(VitestPreferImportingVitestGlobals::default()),
         RuleEnum::VitestPreferSnapshotHint(VitestPreferSnapshotHint::default()),
