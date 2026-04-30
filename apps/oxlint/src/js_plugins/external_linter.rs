@@ -278,7 +278,7 @@ unsafe fn get_buffer(
     // the backing allocation.
     let chunk_ptr = unsafe {
         let ptr = metadata_ptr.cast::<u8>();
-        let offset = ptr.as_ptr() as usize % BLOCK_ALIGN;
+        let offset = ptr.addr().get() % BLOCK_ALIGN;
         ptr.sub(offset)
     };
 

@@ -56,7 +56,10 @@ const BLOCK_LAYOUT: Layout = match Layout::from_size_align(BLOCK_SIZE, BLOCK_ALI
 #[allow(clippy::needless_pass_by_value, clippy::allow_attributes)]
 pub fn get_buffer_offset(buffer: Uint8Array) -> u32 {
     let buffer = &*buffer;
-    let offset = (BLOCK_ALIGN - (buffer.as_ptr() as usize % BLOCK_ALIGN)) % BLOCK_ALIGN;
+    // The final `% BLOCK_ALIGN` is to handle where `buffer` is already aligned on `BLOCK_ALIGN`.
+    // In that case, `buffer.as_ptr().addr() % BLOCK_ALIGN == 0`, so without the final `% BLOCK_ALIGN`,
+    // `offset` would be `BLOCK_ALIGN`. The final `% BLOCK_ALIGN` reduces it to `0`.
+    let offset = (BLOCK_ALIGN - (buffer.as_ptr().addr() % BLOCK_ALIGN)) % BLOCK_ALIGN;
     #[expect(clippy::cast_possible_truncation)]
     return offset as u32;
 }
