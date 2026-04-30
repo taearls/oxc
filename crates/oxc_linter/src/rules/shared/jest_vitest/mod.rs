@@ -34,6 +34,7 @@ pub mod prefer_mock_return_shorthand;
 pub mod prefer_snapshot_hint;
 pub mod prefer_spy_on;
 pub mod prefer_strict_equal;
+pub mod prefer_to_be;
 pub mod prefer_to_contain;
 pub mod prefer_to_have_been_called_times;
 pub mod prefer_to_have_length;
