@@ -12,13 +12,12 @@ pub struct PreferMockReturnShorthand;
 
 declare_oxc_lint!(
     PreferMockReturnShorthand,
-    jest,
+    vitest,
     style,
     fix,
     docs = DOCUMENTATION,
     version = "1.49.0",
 );
-
 impl Rule for PreferMockReturnShorthand {
     fn run<'a>(&self, node: &AstNode<'a>, ctx: &LintContext<'a>) {
         run(node, ctx);
@@ -27,9 +26,9 @@ impl Rule for PreferMockReturnShorthand {
 
 #[test]
 fn test() {
-    use crate::tester::Tester;
+    use crate::{rule::RuleMeta, tester::Tester};
 
-    let pass = vec![
+    let pass_jest = vec![
         "describe()",
         "it()",
         "describe.skip()",
@@ -321,7 +320,146 @@ fn test() {
             });",
     ];
 
-    let fail = vec![
+    let mut pass = vec![
+        "describe()",
+        "it()",
+        "describe.skip()",
+        "it.skip()",
+        "test()",
+        "test.skip()",
+        "var appliedOnly = describe.only; appliedOnly.apply(describe)",
+        "var calledOnly = it.only; calledOnly.call(it)",
+        "it.each()()",
+        "it.each`table`()",
+        "test.each()()",
+        "test.each`table`()",
+        "test.concurrent()",
+        "vi.fn().mockReturnValue(42)",
+        "vi.fn(() => Promise.resolve(42))",
+        "vi.fn(() => 42)",
+        "vi.fn(() => ({}))",
+        "aVariable.mockImplementation",
+        "aVariable.mockImplementation()",
+        "jest.fn().mockImplementation(async () => 1);",
+        "jest.fn().mockImplementation(async function () {});",
+        "
+                    jest.fn().mockImplementation(async function () {
+                      return 42;
+                    });
+                  ",
+        "vi.fn().mockImplementation((...args) => console.log(...args));",
+        "
+                  aVariable.mockImplementation(() => {
+                    if (true) {
+                      return 1;
+                    }
+
+                    return 2;
+                  });
+                ",
+        "aVariable.mockImplementation(() => value++)",
+        "aVariable.mockImplementationOnce(() => --value)",
+        "
+                  const aValue = 0;
+                  aVariable.mockImplementation(() => {
+                    return aValue++;
+                  });
+                ",
+        "
+                  aVariable.mockImplementation(() => {
+                    aValue += 1;
+
+                    return aValue;
+                  });
+                ",
+        "
+                  aVariable.mockImplementation(() => {
+                    aValue++;
+
+                    return aValue;
+                  });
+                ",
+        "aVariable.mockReturnValue()",
+        "aVariable.mockReturnValue(1)",
+        r#"aVariable.mockReturnValue("hello world")"#,
+        "vi.spyOn(Thingy, 'method').mockImplementation(param => param * 2);",
+        "vi.spyOn(Thingy, 'method').mockImplementation(param => true ? param : 0);",
+        "
+                  aVariable.mockImplementation(() => {
+                    const value = new Date();
+
+                    return Promise.resolve(value);
+                  });
+                ",
+        "
+                  aVariable.mockImplementation(() => {
+                    throw new Error('oh noes!');
+                  });
+                ",
+        "aVariable.mockImplementation(() => { /* do something */ });",
+        "
+                  aVariable.mockImplementation(() => {
+                    const x = 1;
+
+                    console.log(x + 2);
+                  });
+                ",
+        "aVariable.mockReturnValue(Promise.all([1, 2, 3]));",
+        "
+                  let currentX = 0;
+                  jest.spyOn(X, getCount).mockImplementation(() => currentX);
+
+                  // stuff happens
+
+                  currentX++;
+
+                  // more stuff happens
+                ",
+        "
+                  let currentX = 0;
+                  jest.spyOn(X, getCount).mockImplementation(() => currentX);
+                ",
+        "
+                  let currentX = 0;
+                  currentX = 0;
+                  jest.spyOn(X, getCount).mockImplementation(() => currentX);
+                ",
+        "
+                  var currentX = 0;
+                  currentX = 0;
+                  jest.spyOn(X, getCount).mockImplementation(() => currentX);
+                ",
+        "
+                  var currentX = 0;
+                  var currentX = 0;
+                  jest.spyOn(X, getCount).mockImplementation(() => currentX);
+                ",
+        "
+                  let doSomething = () => {};
+
+                  jest.spyOn(X, getCount).mockImplementation(() => doSomething);
+                ",
+        "
+                  let currentX = 0;
+                  jest.spyOn(X, getCount).mockImplementation(() => {
+                    currentX += 1;
+
+                    return currentX;
+                  });
+                ",
+        "
+                  const currentX = 0;
+                  jest.spyOn(X, getCount).mockImplementation(() => {
+                    console.log('returning', currentX);
+
+                    return currentX;
+                  });
+                ",
+    ];
+
+    pass.extend(pass_jest);
+
+    let fail_jest = vec![
         r#"jest.fn().mockImplementation(() => "hello sunshine")"#,
         "jest.fn().mockImplementation(() => ({}))",
         "jest.fn().mockImplementation(() => x)",
@@ -542,7 +680,23 @@ fn test() {
             aVariable.mockImplementation(() => true ? true : true ? true : false);",
     ];
 
-    let fix = vec![
+    let mut fail = vec![
+        r#"vi.fn().mockImplementation(() => "hello sunshine")"#,
+        "vi.fn().mockImplementation(() => ({}))",
+        "vi.fn().mockImplementation(() => x)",
+        "vi.fn().mockImplementation(() => true ? x : y)",
+        r#"vi.fn().mockImplementation(() => "hello world")"#,
+        r#"aVariable.mockImplementation(() => "hello world")"#,
+        r#"vi.fn().mockImplementationOnce(() => "hello world")"#,
+        r#"aVariable.mockImplementationOnce(() => "hello world")"#,
+        "vi.fn().mockImplementation(() => console.log(123));",
+        "vi.fn().mockImplementation(() => [], xyz)",
+        r#"vi.spyOn(fs, "readFile").mockImplementation(() => new Error("oh noes!"))"#,
+    ];
+
+    fail.extend(fail_jest);
+
+    let fix_jest = vec![
         (
             r#"jest.fn().mockImplementation(() => "hello sunshine")"#,
             r#"jest.fn().mockReturnValue("hello sunshine")"#,
@@ -912,8 +1066,37 @@ fn test() {
         ),
     ];
 
+    let mut fix = vec![
+        (
+            r#"vi.fn().mockImplementation(() => "hello sunshine")"#,
+            r#"vi.fn().mockReturnValue("hello sunshine")"#,
+        ),
+        ("vi.fn().mockImplementation(() => ({}))", "vi.fn().mockReturnValue({})"),
+        ("vi.fn().mockImplementation(() => x)", "vi.fn().mockReturnValue(x)"),
+        ("vi.fn().mockImplementation(() => true ? x : y)", "vi.fn().mockReturnValue(true ? x : y)"),
+        (
+            r#"vi.fn().mockImplementation(() => "hello world")"#,
+            r#"vi.fn().mockReturnValue("hello world")"#,
+        ),
+        (
+            r#"aVariable.mockImplementation(() => "hello world")"#,
+            r#"aVariable.mockReturnValue("hello world")"#,
+        ),
+        (
+            r#"vi.fn().mockImplementationOnce(() => "hello world")"#,
+            r#"vi.fn().mockReturnValueOnce("hello world")"#,
+        ),
+        (
+            r#"aVariable.mockImplementationOnce(() => "hello world")"#,
+            r#"aVariable.mockReturnValueOnce("hello world")"#,
+        ),
+        ("vi.fn().mockImplementation(() => [], xyz)", "vi.fn().mockReturnValue([], xyz)"),
+    ];
+
+    fix.extend(fix_jest);
+
     Tester::new(PreferMockReturnShorthand::NAME, PreferMockReturnShorthand::PLUGIN, pass, fail)
         .expect_fix(fix)
-        .with_jest_plugin(true)
+        .with_vitest_plugin(true)
         .test_and_snapshot();
 }

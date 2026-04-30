@@ -770,6 +770,7 @@ pub(crate) mod vitest {
     pub mod prefer_importing_vitest_globals;
     pub mod prefer_lowercase_title;
     pub mod prefer_mock_promise_shorthand;
+    pub mod prefer_mock_return_shorthand;
     pub mod prefer_snapshot_hint;
     pub mod prefer_strict_boolean_matchers;
     pub mod prefer_to_be_falsy;

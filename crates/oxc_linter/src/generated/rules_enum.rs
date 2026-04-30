@@ -742,6 +742,7 @@ pub use crate::rules::vitest::prefer_import_in_mock::PreferImportInMock as Vites
 pub use crate::rules::vitest::prefer_importing_vitest_globals::PreferImportingVitestGlobals as VitestPreferImportingVitestGlobals;
 pub use crate::rules::vitest::prefer_lowercase_title::PreferLowercaseTitle as VitestPreferLowercaseTitle;
 pub use crate::rules::vitest::prefer_mock_promise_shorthand::PreferMockPromiseShorthand as VitestPreferMockPromiseShorthand;
+pub use crate::rules::vitest::prefer_mock_return_shorthand::PreferMockReturnShorthand as VitestPreferMockReturnShorthand;
 pub use crate::rules::vitest::prefer_snapshot_hint::PreferSnapshotHint as VitestPreferSnapshotHint;
 pub use crate::rules::vitest::prefer_strict_boolean_matchers::PreferStrictBooleanMatchers as VitestPreferStrictBooleanMatchers;
 pub use crate::rules::vitest::prefer_to_be_falsy::PreferToBeFalsy as VitestPreferToBeFalsy;
@@ -1525,6 +1526,7 @@ pub enum RuleEnum {
     VitestPreferImportingVitestGlobals(VitestPreferImportingVitestGlobals),
     VitestPreferLowercaseTitle(VitestPreferLowercaseTitle),
     VitestPreferMockPromiseShorthand(VitestPreferMockPromiseShorthand),
+    VitestPreferMockReturnShorthand(VitestPreferMockReturnShorthand),
     VitestPreferSnapshotHint(VitestPreferSnapshotHint),
     VitestPreferStrictBooleanMatchers(VitestPreferStrictBooleanMatchers),
     VitestPreferToBeFalsy(VitestPreferToBeFalsy),
@@ -2397,7 +2399,9 @@ const VITEST_PREFER_IMPORT_IN_MOCK_ID: usize = VITEST_PREFER_HOOKS_ON_TOP_ID + 1
 const VITEST_PREFER_IMPORTING_VITEST_GLOBALS_ID: usize = VITEST_PREFER_IMPORT_IN_MOCK_ID + 1usize;
 const VITEST_PREFER_LOWERCASE_TITLE_ID: usize = VITEST_PREFER_IMPORTING_VITEST_GLOBALS_ID + 1usize;
 const VITEST_PREFER_MOCK_PROMISE_SHORTHAND_ID: usize = VITEST_PREFER_LOWERCASE_TITLE_ID + 1usize;
-const VITEST_PREFER_SNAPSHOT_HINT_ID: usize = VITEST_PREFER_MOCK_PROMISE_SHORTHAND_ID + 1usize;
+const VITEST_PREFER_MOCK_RETURN_SHORTHAND_ID: usize =
+    VITEST_PREFER_MOCK_PROMISE_SHORTHAND_ID + 1usize;
+const VITEST_PREFER_SNAPSHOT_HINT_ID: usize = VITEST_PREFER_MOCK_RETURN_SHORTHAND_ID + 1usize;
 const VITEST_PREFER_STRICT_BOOLEAN_MATCHERS_ID: usize = VITEST_PREFER_SNAPSHOT_HINT_ID + 1usize;
 const VITEST_PREFER_TO_BE_FALSY_ID: usize = VITEST_PREFER_STRICT_BOOLEAN_MATCHERS_ID + 1usize;
 const VITEST_PREFER_TO_BE_OBJECT_ID: usize = VITEST_PREFER_TO_BE_FALSY_ID + 1usize;
@@ -3297,6 +3301,7 @@ impl RuleEnum {
             }
             Self::VitestPreferLowercaseTitle(_) => VITEST_PREFER_LOWERCASE_TITLE_ID,
             Self::VitestPreferMockPromiseShorthand(_) => VITEST_PREFER_MOCK_PROMISE_SHORTHAND_ID,
+            Self::VitestPreferMockReturnShorthand(_) => VITEST_PREFER_MOCK_RETURN_SHORTHAND_ID,
             Self::VitestPreferSnapshotHint(_) => VITEST_PREFER_SNAPSHOT_HINT_ID,
             Self::VitestPreferStrictBooleanMatchers(_) => VITEST_PREFER_STRICT_BOOLEAN_MATCHERS_ID,
             Self::VitestPreferToBeFalsy(_) => VITEST_PREFER_TO_BE_FALSY_ID,
@@ -4185,6 +4190,7 @@ impl RuleEnum {
             Self::VitestPreferImportingVitestGlobals(_) => VitestPreferImportingVitestGlobals::NAME,
             Self::VitestPreferLowercaseTitle(_) => VitestPreferLowercaseTitle::NAME,
             Self::VitestPreferMockPromiseShorthand(_) => VitestPreferMockPromiseShorthand::NAME,
+            Self::VitestPreferMockReturnShorthand(_) => VitestPreferMockReturnShorthand::NAME,
             Self::VitestPreferSnapshotHint(_) => VitestPreferSnapshotHint::NAME,
             Self::VitestPreferStrictBooleanMatchers(_) => VitestPreferStrictBooleanMatchers::NAME,
             Self::VitestPreferToBeFalsy(_) => VitestPreferToBeFalsy::NAME,
@@ -5121,6 +5127,7 @@ impl RuleEnum {
             }
             Self::VitestPreferLowercaseTitle(_) => VitestPreferLowercaseTitle::CATEGORY,
             Self::VitestPreferMockPromiseShorthand(_) => VitestPreferMockPromiseShorthand::CATEGORY,
+            Self::VitestPreferMockReturnShorthand(_) => VitestPreferMockReturnShorthand::CATEGORY,
             Self::VitestPreferSnapshotHint(_) => VitestPreferSnapshotHint::CATEGORY,
             Self::VitestPreferStrictBooleanMatchers(_) => {
                 VitestPreferStrictBooleanMatchers::CATEGORY
@@ -6014,6 +6021,7 @@ impl RuleEnum {
             Self::VitestPreferImportingVitestGlobals(_) => VitestPreferImportingVitestGlobals::FIX,
             Self::VitestPreferLowercaseTitle(_) => VitestPreferLowercaseTitle::FIX,
             Self::VitestPreferMockPromiseShorthand(_) => VitestPreferMockPromiseShorthand::FIX,
+            Self::VitestPreferMockReturnShorthand(_) => VitestPreferMockReturnShorthand::FIX,
             Self::VitestPreferSnapshotHint(_) => VitestPreferSnapshotHint::FIX,
             Self::VitestPreferStrictBooleanMatchers(_) => VitestPreferStrictBooleanMatchers::FIX,
             Self::VitestPreferToBeFalsy(_) => VitestPreferToBeFalsy::FIX,
@@ -7120,6 +7128,9 @@ impl RuleEnum {
             Self::VitestPreferLowercaseTitle(_) => VitestPreferLowercaseTitle::documentation(),
             Self::VitestPreferMockPromiseShorthand(_) => {
                 VitestPreferMockPromiseShorthand::documentation()
+            }
+            Self::VitestPreferMockReturnShorthand(_) => {
+                VitestPreferMockReturnShorthand::documentation()
             }
             Self::VitestPreferSnapshotHint(_) => VitestPreferSnapshotHint::documentation(),
             Self::VitestPreferStrictBooleanMatchers(_) => {
@@ -9280,6 +9291,10 @@ impl RuleEnum {
                 VitestPreferMockPromiseShorthand::config_schema(generator)
                     .or_else(|| VitestPreferMockPromiseShorthand::schema(generator))
             }
+            Self::VitestPreferMockReturnShorthand(_) => {
+                VitestPreferMockReturnShorthand::config_schema(generator)
+                    .or_else(|| VitestPreferMockReturnShorthand::schema(generator))
+            }
             Self::VitestPreferSnapshotHint(_) => VitestPreferSnapshotHint::config_schema(generator)
                 .or_else(|| VitestPreferSnapshotHint::schema(generator)),
             Self::VitestPreferStrictBooleanMatchers(_) => {
@@ -10157,6 +10172,7 @@ impl RuleEnum {
             Self::VitestPreferImportingVitestGlobals(_) => "vitest",
             Self::VitestPreferLowercaseTitle(_) => "vitest",
             Self::VitestPreferMockPromiseShorthand(_) => "vitest",
+            Self::VitestPreferMockReturnShorthand(_) => "vitest",
             Self::VitestPreferSnapshotHint(_) => "vitest",
             Self::VitestPreferStrictBooleanMatchers(_) => "vitest",
             Self::VitestPreferToBeFalsy(_) => "vitest",
@@ -12558,6 +12574,9 @@ impl RuleEnum {
                     VitestPreferMockPromiseShorthand::from_configuration(value)?,
                 ))
             }
+            Self::VitestPreferMockReturnShorthand(_) => Ok(Self::VitestPreferMockReturnShorthand(
+                VitestPreferMockReturnShorthand::from_configuration(value)?,
+            )),
             Self::VitestPreferSnapshotHint(_) => Ok(Self::VitestPreferSnapshotHint(
                 VitestPreferSnapshotHint::from_configuration(value)?,
             )),
@@ -13452,6 +13471,7 @@ impl RuleEnum {
             Self::VitestPreferImportingVitestGlobals(rule) => rule.to_configuration(),
             Self::VitestPreferLowercaseTitle(rule) => rule.to_configuration(),
             Self::VitestPreferMockPromiseShorthand(rule) => rule.to_configuration(),
+            Self::VitestPreferMockReturnShorthand(rule) => rule.to_configuration(),
             Self::VitestPreferSnapshotHint(rule) => rule.to_configuration(),
             Self::VitestPreferStrictBooleanMatchers(rule) => rule.to_configuration(),
             Self::VitestPreferToBeFalsy(rule) => rule.to_configuration(),
@@ -14236,6 +14256,7 @@ impl RuleEnum {
             Self::VitestPreferImportingVitestGlobals(rule) => rule.run(node, ctx),
             Self::VitestPreferLowercaseTitle(rule) => rule.run(node, ctx),
             Self::VitestPreferMockPromiseShorthand(rule) => rule.run(node, ctx),
+            Self::VitestPreferMockReturnShorthand(rule) => rule.run(node, ctx),
             Self::VitestPreferSnapshotHint(rule) => rule.run(node, ctx),
             Self::VitestPreferStrictBooleanMatchers(rule) => rule.run(node, ctx),
             Self::VitestPreferToBeFalsy(rule) => rule.run(node, ctx),
@@ -15018,6 +15039,7 @@ impl RuleEnum {
             Self::VitestPreferImportingVitestGlobals(rule) => rule.run_once(ctx),
             Self::VitestPreferLowercaseTitle(rule) => rule.run_once(ctx),
             Self::VitestPreferMockPromiseShorthand(rule) => rule.run_once(ctx),
+            Self::VitestPreferMockReturnShorthand(rule) => rule.run_once(ctx),
             Self::VitestPreferSnapshotHint(rule) => rule.run_once(ctx),
             Self::VitestPreferStrictBooleanMatchers(rule) => rule.run_once(ctx),
             Self::VitestPreferToBeFalsy(rule) => rule.run_once(ctx),
@@ -15904,6 +15926,7 @@ impl RuleEnum {
             Self::VitestPreferImportingVitestGlobals(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferLowercaseTitle(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferMockPromiseShorthand(rule) => rule.run_on_jest_node(jest_node, ctx),
+            Self::VitestPreferMockReturnShorthand(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferSnapshotHint(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferStrictBooleanMatchers(rule) => rule.run_on_jest_node(jest_node, ctx),
             Self::VitestPreferToBeFalsy(rule) => rule.run_on_jest_node(jest_node, ctx),
@@ -16690,6 +16713,7 @@ impl RuleEnum {
             Self::VitestPreferImportingVitestGlobals(rule) => rule.should_run(ctx),
             Self::VitestPreferLowercaseTitle(rule) => rule.should_run(ctx),
             Self::VitestPreferMockPromiseShorthand(rule) => rule.should_run(ctx),
+            Self::VitestPreferMockReturnShorthand(rule) => rule.should_run(ctx),
             Self::VitestPreferSnapshotHint(rule) => rule.should_run(ctx),
             Self::VitestPreferStrictBooleanMatchers(rule) => rule.should_run(ctx),
             Self::VitestPreferToBeFalsy(rule) => rule.should_run(ctx),
@@ -17792,6 +17816,9 @@ impl RuleEnum {
             Self::VitestPreferMockPromiseShorthand(_) => {
                 VitestPreferMockPromiseShorthand::IS_TSGOLINT_RULE
             }
+            Self::VitestPreferMockReturnShorthand(_) => {
+                VitestPreferMockReturnShorthand::IS_TSGOLINT_RULE
+            }
             Self::VitestPreferSnapshotHint(_) => VitestPreferSnapshotHint::IS_TSGOLINT_RULE,
             Self::VitestPreferStrictBooleanMatchers(_) => {
                 VitestPreferStrictBooleanMatchers::IS_TSGOLINT_RULE
@@ -18746,6 +18773,7 @@ impl RuleEnum {
             }
             Self::VitestPreferLowercaseTitle(_) => VitestPreferLowercaseTitle::VERSION,
             Self::VitestPreferMockPromiseShorthand(_) => VitestPreferMockPromiseShorthand::VERSION,
+            Self::VitestPreferMockReturnShorthand(_) => VitestPreferMockReturnShorthand::VERSION,
             Self::VitestPreferSnapshotHint(_) => VitestPreferSnapshotHint::VERSION,
             Self::VitestPreferStrictBooleanMatchers(_) => {
                 VitestPreferStrictBooleanMatchers::VERSION
@@ -19721,6 +19749,7 @@ impl RuleEnum {
             Self::VitestPreferMockPromiseShorthand(_) => {
                 VitestPreferMockPromiseShorthand::HAS_CONFIG
             }
+            Self::VitestPreferMockReturnShorthand(_) => VitestPreferMockReturnShorthand::HAS_CONFIG,
             Self::VitestPreferSnapshotHint(_) => VitestPreferSnapshotHint::HAS_CONFIG,
             Self::VitestPreferStrictBooleanMatchers(_) => {
                 VitestPreferStrictBooleanMatchers::HAS_CONFIG
@@ -20515,6 +20544,7 @@ impl RuleEnum {
             Self::VitestPreferImportingVitestGlobals(rule) => rule.types_info(),
             Self::VitestPreferLowercaseTitle(rule) => rule.types_info(),
             Self::VitestPreferMockPromiseShorthand(rule) => rule.types_info(),
+            Self::VitestPreferMockReturnShorthand(rule) => rule.types_info(),
             Self::VitestPreferSnapshotHint(rule) => rule.types_info(),
             Self::VitestPreferStrictBooleanMatchers(rule) => rule.types_info(),
             Self::VitestPreferToBeFalsy(rule) => rule.types_info(),
@@ -21297,6 +21327,7 @@ impl RuleEnum {
             Self::VitestPreferImportingVitestGlobals(rule) => rule.run_info(),
             Self::VitestPreferLowercaseTitle(rule) => rule.run_info(),
             Self::VitestPreferMockPromiseShorthand(rule) => rule.run_info(),
+            Self::VitestPreferMockReturnShorthand(rule) => rule.run_info(),
             Self::VitestPreferSnapshotHint(rule) => rule.run_info(),
             Self::VitestPreferStrictBooleanMatchers(rule) => rule.run_info(),
             Self::VitestPreferToBeFalsy(rule) => rule.run_info(),
@@ -22201,6 +22232,7 @@ pub static RULES: std::sync::LazyLock<Vec<RuleEnum>> = std::sync::LazyLock::new(
         RuleEnum::VitestPreferImportingVitestGlobals(VitestPreferImportingVitestGlobals::default()),
         RuleEnum::VitestPreferLowercaseTitle(VitestPreferLowercaseTitle::default()),
         RuleEnum::VitestPreferMockPromiseShorthand(VitestPreferMockPromiseShorthand::default()),
+        RuleEnum::VitestPreferMockReturnShorthand(VitestPreferMockReturnShorthand::default()),
         RuleEnum::VitestPreferSnapshotHint(VitestPreferSnapshotHint::default()),
         RuleEnum::VitestPreferStrictBooleanMatchers(VitestPreferStrictBooleanMatchers::default()),
         RuleEnum::VitestPreferToBeFalsy(VitestPreferToBeFalsy::default()),
