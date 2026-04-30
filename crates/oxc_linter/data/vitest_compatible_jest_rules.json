@@ -1,5 +1,4 @@
 [
-  "prefer-lowercase-title",
   "prefer-mock-promise-shorthand",
   "prefer-mock-return-shorthand",
   "prefer-spy-on",
