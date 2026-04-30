@@ -759,6 +759,7 @@ pub(crate) mod vitest {
     pub mod prefer_called_with;
     pub mod prefer_comparison_matcher;
     pub mod prefer_describe_function_title;
+    pub mod prefer_each;
     pub mod prefer_expect_assertions;
     pub mod prefer_expect_type_of;
     pub mod prefer_import_in_mock;
