@@ -23,6 +23,7 @@ pub mod no_unneeded_async_expect_function;
 pub mod prefer_called_with;
 pub mod prefer_comparison_matcher;
 pub mod prefer_each;
+pub mod prefer_equality_matcher;
 pub mod prefer_expect_assertions;
 pub mod prefer_snapshot_hint;
 pub mod prefer_to_contain;

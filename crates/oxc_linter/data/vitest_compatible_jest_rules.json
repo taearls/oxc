@@ -1,5 +1,4 @@
 [
-  "prefer-equality-matcher",
   "prefer-expect-resolves",
   "prefer-hooks-in-order",
   "prefer-hooks-on-top",
