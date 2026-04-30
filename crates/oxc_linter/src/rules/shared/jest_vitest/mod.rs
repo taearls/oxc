@@ -26,6 +26,7 @@ pub mod prefer_each;
 pub mod prefer_equality_matcher;
 pub mod prefer_expect_assertions;
 pub mod prefer_expect_resolves;
+pub mod prefer_hooks_in_order;
 pub mod prefer_snapshot_hint;
 pub mod prefer_to_contain;
 pub mod prefer_to_have_been_called_times;

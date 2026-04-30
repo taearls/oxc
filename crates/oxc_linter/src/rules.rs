@@ -764,6 +764,7 @@ pub(crate) mod vitest {
     pub mod prefer_expect_assertions;
     pub mod prefer_expect_resolves;
     pub mod prefer_expect_type_of;
+    pub mod prefer_hooks_in_order;
     pub mod prefer_import_in_mock;
     pub mod prefer_importing_vitest_globals;
     pub mod prefer_snapshot_hint;
