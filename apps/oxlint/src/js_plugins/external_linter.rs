@@ -297,6 +297,9 @@ unsafe fn get_buffer(
     // so that shouldn't break the guarantees of `&` references.
     //
     // This is all a bit wavy, but such is the way with sharing memory outside of Rust.
+    //
+    // The `Uint8Array` shared with JS covers the allocatable region plus `RawTransferMetadata`.
+    // It does not include `FixedSizeAllocatorMetadata` or `ChunkFooter`, which sit at the end of the block.
     let buffer = unsafe {
         Uint8Array::with_external_data(chunk_ptr.as_ptr(), BUFFER_SIZE, move |_ptr, _len| {
             free_fixed_size_allocator(metadata_ptr);
