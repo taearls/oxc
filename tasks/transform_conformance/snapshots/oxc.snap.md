@@ -1,6 +1,6 @@
 commit: c543b031
 
-Passed: 222/369
+Passed: 224/371
 
 # All Passed:
 * babel-plugin-transform-class-static-block
@@ -69,7 +69,7 @@ after transform: SymbolId(0): [ReferenceId(0), ReferenceId(2), ReferenceId(6), R
 rebuilt        : SymbolId(0): [ReferenceId(0), ReferenceId(2), ReferenceId(6), ReferenceId(10)]
 
 
-# babel-plugin-transform-typescript (17/50)
+# babel-plugin-transform-typescript (19/52)
 * allow-declare-fields-false/input.ts
 Unresolved references mismatch:
 after transform: ["dce"]
