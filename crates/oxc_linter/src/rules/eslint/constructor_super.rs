@@ -13,7 +13,7 @@ use oxc_cfg::{
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_macros::declare_oxc_lint;
 use oxc_semantic::NodeId;
-use oxc_span::Span;
+use oxc_span::{GetSpan, Span};
 
 use crate::{AstNode, context::LintContext, rule::Rule};
 
@@ -35,10 +35,26 @@ fn duplicate_super(span: Span) -> OxcDiagnostic {
         .with_label(span)
 }
 
-fn bad_super(span: Span) -> OxcDiagnostic {
+#[derive(Clone, Copy)]
+struct SuperClassContext {
+    span: Span,
+    label: &'static str,
+}
+
+fn bad_super(span: Span, super_class_context: Option<SuperClassContext>) -> OxcDiagnostic {
+    let mut labels = vec![span.primary_label("This `super()` call is invalid here.")];
+    if let Some(context) = super_class_context {
+        labels.push(context.span.label(context.label));
+    }
+
     OxcDiagnostic::warn("Unexpected `super()` because `super` is not a constructor.")
-        .with_help("Remove the `super()` call or check the class declaration")
-        .with_label(span)
+        .with_help(
+            "Remove the `super()` call or change the `extends` clause to a constructable superclass.",
+        )
+        .with_note(
+            "`super()` calls the constructor of the superclass, but this class does not extend a constructable value.",
+        )
+        .with_labels(labels)
 }
 
 #[derive(Debug, Default, Clone)]
@@ -201,6 +217,8 @@ impl Rule for ConstructorSuper {
         let AstKind::Class(class) = node.kind() else { return };
 
         let super_class_type = Self::classify_super_class(class.super_class.as_ref());
+        let super_class_context =
+            Self::super_class_context(super_class_type, class.super_class.as_ref());
 
         let Some(constructor) = class.body.body.iter().find_map(|elem| {
             if let ClassElement::MethodDefinition(method) = elem
@@ -225,7 +243,7 @@ impl Rule for ConstructorSuper {
         match super_class_type {
             SuperClassType::None | SuperClassType::Invalid => {
                 for &span in &super_call_spans {
-                    ctx.diagnostic(bad_super(span));
+                    ctx.diagnostic(bad_super(span, super_class_context));
                 }
             }
             SuperClassType::Null => {
@@ -237,7 +255,7 @@ impl Rule for ConstructorSuper {
                     }
                 } else {
                     for &span in &super_call_spans {
-                        ctx.diagnostic(bad_super(span));
+                        ctx.diagnostic(bad_super(span, super_class_context));
                     }
                 }
             }
@@ -308,6 +326,25 @@ impl ConstructorSuper {
             Some(Expression::NullLiteral(_)) => SuperClassType::Null,
             Some(expr) if Self::is_invalid_super_class(expr) => SuperClassType::Invalid,
             Some(_) => SuperClassType::Valid,
+        }
+    }
+
+    fn super_class_context(
+        super_class_type: SuperClassType,
+        super_class: Option<&Expression>,
+    ) -> Option<SuperClassContext> {
+        let super_class = super_class?;
+
+        match super_class_type {
+            SuperClassType::Null => Some(SuperClassContext {
+                span: super_class.span(),
+                label: "`null` does not provide a constructor to call.",
+            }),
+            SuperClassType::Invalid => Some(SuperClassContext {
+                span: super_class.span(),
+                label: "This superclass expression is not constructable.",
+            }),
+            SuperClassType::None | SuperClassType::Valid => None,
         }
     }
 
