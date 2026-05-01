@@ -681,42 +681,62 @@ source: crates/oxc_linter/src/tester.rs
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useState" cannot be called in an async function.
    ╭─[rules_of_hooks.tsx:3:21]
+ 1 │ 
  2 │                 async function AsyncComponent() {
+   ·                 ──┬──
+   ·                   ╰── This function is async.
  3 │                     useState();
-   ·                     ──────────
+   ·                     ─────┬────
+   ·                          ╰── Hook is called here
  4 │                 }
    ╰────
 
-  ⚠ react-hooks(rules-of-hooks): React Hook "Anonymous" cannot be called in an async function.
-   ╭─[rules_of_hooks.tsx:2:40]
- 1 │     
- 2 │ ╭─▶                 const AsyncComponent = async () => {
- 3 │ │                       useState();
- 4 │ ╰─▶                 }
- 5 │             
+  ⚠ react-hooks(rules-of-hooks): React Hook "useState" cannot be called in an async function.
+   ╭─[rules_of_hooks.tsx:3:21]
+ 1 │ 
+ 2 │                 const AsyncComponent = async () => {
+   ·                                        ──┬──
+   ·                                          ╰── This function is async.
+ 3 │                     useState();
+   ·                     ─────┬────
+   ·                          ╰── Hook is called here
+ 4 │                 }
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useId" cannot be called in an async function.
    ╭─[rules_of_hooks.tsx:3:19]
+ 1 │ 
  2 │                 async function Page() {
+   ·                 ──┬──
+   ·                   ╰── This function is async.
  3 │                   useId();
-   ·                   ───────
+   ·                   ───┬───
+   ·                      ╰── Hook is called here
  4 │                   React.useId();
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useId" cannot be called in an async function.
    ╭─[rules_of_hooks.tsx:4:19]
+ 1 │ 
+ 2 │                 async function Page() {
+   ·                 ──┬──
+   ·                   ╰── This function is async.
  3 │                   useId();
  4 │                   React.useId();
-   ·                   ─────────────
+   ·                   ──────┬──────
+   ·                         ╰── Hook is called here
  5 │                 }
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useState" cannot be called in an async function.
    ╭─[rules_of_hooks.tsx:3:21]
+ 1 │ 
  2 │                 async function useAsyncHook() {
+   ·                 ──┬──
+   ·                   ╰── This function is async.
  3 │                     useState();
-   ·                     ──────────
+   ·                     ─────┬────
+   ·                          ╰── Hook is called here
  4 │                 }
    ╰────
 
@@ -799,9 +819,13 @@ source: crates/oxc_linter/src/tester.rs
 
   ⚠ react-hooks(rules-of-hooks): React Hook "use" cannot be called in an async function.
    ╭─[rules_of_hooks.tsx:3:21]
+ 1 │ 
  2 │             async function AsyncComponent() {
+   ·             ──┬──
+   ·               ╰── This function is async.
  3 │                     use();
-   ·                     ─────
+   ·                     ──┬──
+   ·                       ╰── Hook is called here
  4 │             }
    ╰────
 

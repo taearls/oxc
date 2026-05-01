@@ -73,11 +73,20 @@ mod diagnostics {
         .with_error_code_scope(SCOPE)
     }
 
-    pub(super) fn async_component(span: Span, func_name: &str) -> OxcDiagnostic {
+    pub(super) fn async_component(
+        hook_span: Span,
+        async_keyword_span: Option<Span>,
+        hook_name: &str,
+    ) -> OxcDiagnostic {
+        let mut labels = vec![hook_span.primary_label("Hook is called here")];
+        if let Some(async_keyword_span) = async_keyword_span {
+            labels.push(async_keyword_span.label("This function is async."));
+        }
+
         OxcDiagnostic::warn(format!(
-            "React Hook {func_name:?} cannot be called in an async function. "
+            "React Hook {hook_name:?} cannot be called in an async function. "
         ))
-        .with_label(span)
+        .with_labels(labels)
         .with_error_code_scope(SCOPE)
     }
 
@@ -285,16 +294,19 @@ impl Rule for RulesOfHooks {
                 }
             }
             // Hooks can't be called from async function.
-            AstKind::Function(Function { id: Some(_), r#async: true, .. }) => {
-                return ctx.diagnostic(diagnostics::async_component(span, hook_name));
-            }
-            // Hooks can't be called from async arrow function.
-            AstKind::ArrowFunctionExpression(ArrowFunctionExpression {
-                span,
+            AstKind::Function(Function {
+                id: Some(_), span: async_span, r#async: true, ..
+            })
+            | AstKind::ArrowFunctionExpression(ArrowFunctionExpression {
+                span: async_span,
                 r#async: true,
                 ..
             }) => {
-                return ctx.diagnostic(diagnostics::async_component(*span, "Anonymous"));
+                return ctx.diagnostic(diagnostics::async_component(
+                    span,
+                    async_keyword_span(ctx, *async_span),
+                    hook_name,
+                ));
             }
             _ => {}
         }
@@ -355,6 +367,12 @@ fn class_component_span(ctx: &LintContext<'_>, node_id: NodeId) -> Option<Span> 
         }
         _ => None,
     })
+}
+
+#[expect(clippy::cast_possible_truncation)]
+fn async_keyword_span(ctx: &LintContext<'_>, span: Span) -> Option<Span> {
+    let start = span.start + ctx.find_next_token_within(span.start, span.end, "async")?;
+    Some(Span::sized(start, "async".len() as u32))
 }
 
 fn has_conditional_path_accept_throw(
