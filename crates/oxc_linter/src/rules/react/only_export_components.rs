@@ -512,6 +512,15 @@ impl OnlyExportComponents {
         is_function: bool,
         init: Option<&Expression>,
     ) -> ExportType {
+        if let Some(init_expr) = init
+            && let Expression::CallExpression(call_expr) = Self::skip_ts_expression(init_expr)
+            && self.is_callee_hoc(&call_expr.callee)
+            && !call_expr.arguments.is_empty()
+            && is_react_component_name(name)
+        {
+            return ExportType::ReactComponent;
+        }
+
         if self.allow_export_names.contains(name) {
             return ExportType::Allowed;
         }
@@ -547,16 +556,6 @@ impl OnlyExportComponents {
                     return ExportType::ReactContext(span);
                 }
 
-                // For named exports the binding name already provides a
-                // stable component identity, so only the callee needs to be
-                // a recognized HOC. The argument shape (arrow function,
-                // identifier, etc.) does not matter.
-                if self.is_callee_hoc(&call_expr.callee)
-                    && !call_expr.arguments.is_empty()
-                    && is_react_component_name(name)
-                {
-                    return ExportType::ReactComponent;
-                }
                 return ExportType::NonComponent(span);
             }
 
@@ -597,18 +596,13 @@ impl OnlyExportComponents {
     fn is_callee_hoc(&self, callee: &Expression) -> bool {
         match callee {
             Expression::CallExpression(inner_call) => {
-                if let Expression::Identifier(ident) = &inner_call.callee {
-                    ident.name == "connect"
-                } else {
-                    false
-                }
+                matches!(&inner_call.callee, Expression::Identifier(ident) if ident.name == "connect")
+                    || self.is_callee_hoc(&inner_call.callee)
             }
             Expression::StaticMemberExpression(member) => {
-                if let Expression::Identifier(_) = &member.object {
-                    self.is_react_hoc(&member.property.name)
-                } else {
-                    false
-                }
+                self.is_react_hoc(&member.property.name)
+                    || matches!(&member.object, Expression::Identifier(ident) if self.is_react_hoc(&ident.name))
+                    || matches!(&member.object, Expression::CallExpression(call_expr) if self.is_callee_hoc(&call_expr.callee))
             }
             Expression::Identifier(ident) => self.is_react_hoc(&ident.name),
             _ => false,
@@ -761,6 +755,16 @@ fn test() {
         (
             "const MyComponent = () => {}; export default observer(MyComponent);",
             Some(serde_json::json!([{ "customHOCs": ["observer"] }])),
+        ),
+        (
+            "export const Route = createFileRoute('/profile')({ component: Component }); function Component() { return <div />; }",
+            Some(serde_json::json!([{ "customHOCs": ["createFileRoute"] }])),
+        ),
+        (
+            "export const Route = createFileRoute('/profile')({ component: Component }); function Component() { return <div />; }",
+            Some(
+                serde_json::json!([{ "customHOCs": ["createFileRoute"], "allowExportNames": ["Route"] }]),
+            ),
         ),
         ("const SomeConstant = 42; export function someUtility() { return SomeConstant }", None),
         (
