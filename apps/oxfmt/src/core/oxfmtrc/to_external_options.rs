@@ -1,188 +1,241 @@
+use std::path::Path;
+
+#[cfg(feature = "napi")]
+use serde::Serialize;
 use serde_json::Value;
 
-use oxc_formatter::{FormatOptions, IndentStyle, LineEnding};
+use oxc_formatter::FormatOptions;
 
-use crate::core::support::FileKind;
+use super::format_config::{
+    ArrowParensConfig, EmbeddedLanguageFormattingConfig, EndOfLineConfig, FormatConfig,
+    HtmlWhitespaceSensitivityConfig, ObjectWrapConfig, ProseWrapConfig, QuotePropsConfig,
+    SortTailwindcssUserConfig, TrailingCommaConfig,
+};
 
-/// Syncs resolved `FormatOptions` values into the raw config JSON.
-/// This ensures `external_formatter`(Prettier) receives the same options that `oxc_formatter` uses.
+/// Build base Prettier-compatible options from a typed `FormatConfig`.
 ///
-/// Only options that meet one of these criteria need to be mapped:
-/// - 1. Different defaults between Prettier and oxc_formatter
-///   - e.g. `printWidth`: Prettier: 80, Oxfmt: 100
-/// - 2. Can be set via `.editorconfig` (values won't be in raw config JSON)
-///   - `max_line_length` -> `printWidth`
-///   - `end_of_line` -> `endOfLine`
-///   - `indent_style` -> `useTabs`
-///   - `indent_size` -> `tabWidth`
+/// Emits only Prettier-known keys.
+/// - `printWidth` is always present because Prettier's default (80) differs from oxfmt's (100)
+///   - We must send oxfmt's default explicitly
+/// - Every other key is emitted only when the user (or `.editorconfig` via `apply_editorconfig`) set it
+/// - oxfmt-specific keys are never emitted
+///   - To reduce confusion and JSON size
 ///
-/// This function should be called once during config caching.
-/// For strategy-specific options (plugin flags), use [`finalize_external_options()`] separately.
-pub fn sync_external_options(options: &FormatOptions, config: &mut Value) {
-    let Some(obj) = config.as_object_mut() else {
-        return;
-    };
+/// `parser`, `filepath`, and plugin payloads are layered in via the dedicated `inject_*` helpers below.
+pub fn to_prettier_options(config: &FormatConfig) -> Value {
+    let mut obj = serde_json::Map::new();
 
-    // vs Prettier defaults and `.editorconfig` values
-    obj.insert("printWidth".to_string(), Value::from(options.line_width.value()));
-
-    // vs `.editorconfig` values
+    // `printWidth` is the one core option whose default genuinely differs
+    // (Prettier 80 vs oxfmt 100), so we send oxfmt's default when unset.
+    // TODO: Read the default from a neutral source (e.g. a shared `oxc_formatter_core`
+    // / `ResolvedFormatConfig`) instead of the JS formatter's typed enum once available.
     obj.insert(
-        "useTabs".to_string(),
-        Value::from(match options.indent_style {
-            IndentStyle::Tab => true,
-            IndentStyle::Space => false,
-        }),
-    );
-    obj.insert("tabWidth".to_string(), Value::from(options.indent_width.value()));
-    obj.insert(
-        "endOfLine".to_string(),
-        Value::from(match options.line_ending {
-            LineEnding::Lf => "lf",
-            LineEnding::Crlf => "crlf",
-            LineEnding::Cr => "cr",
-        }),
+        "printWidth".to_string(),
+        Value::from(config.print_width.unwrap_or(FormatOptions::default().line_width.value())),
     );
 
-    // Any other fields are preserved as-is.
-    // - e.g. `htmlWhitespaceSensitivity`, `vueIndentScriptAndStyle`, etc.
-    //   - Defined in `Oxfmtrc`, but only used by Prettier
-    // - e.g. `plugins`
-    //   - It does not mean plugin works correctly with Oxfmt
-    //   - Oxfmt still not aware of any plugin-defined languages
-    // Other options defined independently by plugins are also left as they are.
+    // Other Prettier core options share defaults with oxfmt,
+    // so we only emit when the user (or `.editorconfig` via `apply_editorconfig`) set them.
+    if let Some(v) = config.use_tabs {
+        obj.insert("useTabs".to_string(), Value::from(v));
+    }
+    if let Some(v) = config.tab_width {
+        obj.insert("tabWidth".to_string(), Value::from(v));
+    }
+    if let Some(v) = config.end_of_line {
+        obj.insert(
+            "endOfLine".to_string(),
+            Value::from(match v {
+                EndOfLineConfig::Lf => "lf",
+                EndOfLineConfig::Crlf => "crlf",
+                EndOfLineConfig::Cr => "cr",
+            }),
+        );
+    }
+    if let Some(v) = config.single_quote {
+        obj.insert("singleQuote".to_string(), Value::from(v));
+    }
+    if let Some(v) = config.jsx_single_quote {
+        obj.insert("jsxSingleQuote".to_string(), Value::from(v));
+    }
+    if let Some(v) = config.quote_props {
+        obj.insert(
+            "quoteProps".to_string(),
+            Value::from(match v {
+                QuotePropsConfig::AsNeeded => "as-needed",
+                QuotePropsConfig::Consistent => "consistent",
+                QuotePropsConfig::Preserve => "preserve",
+            }),
+        );
+    }
+    if let Some(v) = config.trailing_comma {
+        obj.insert(
+            "trailingComma".to_string(),
+            Value::from(match v {
+                TrailingCommaConfig::All => "all",
+                TrailingCommaConfig::Es5 => "es5",
+                TrailingCommaConfig::None => "none",
+            }),
+        );
+    }
+    if let Some(v) = config.semi {
+        obj.insert("semi".to_string(), Value::from(v));
+    }
+    if let Some(v) = config.arrow_parens {
+        obj.insert(
+            "arrowParens".to_string(),
+            Value::from(match v {
+                ArrowParensConfig::Always => "always",
+                ArrowParensConfig::Avoid => "avoid",
+            }),
+        );
+    }
+    if let Some(v) = config.bracket_spacing {
+        obj.insert("bracketSpacing".to_string(), Value::from(v));
+    }
+    if let Some(v) = config.bracket_same_line {
+        obj.insert("bracketSameLine".to_string(), Value::from(v));
+    }
+    if let Some(v) = config.object_wrap {
+        obj.insert(
+            "objectWrap".to_string(),
+            Value::from(match v {
+                ObjectWrapConfig::Preserve => "preserve",
+                ObjectWrapConfig::Collapse => "collapse",
+            }),
+        );
+    }
+    if let Some(v) = config.single_attribute_per_line {
+        obj.insert("singleAttributePerLine".to_string(), Value::from(v));
+    }
+    if let Some(v) = config.embedded_language_formatting {
+        obj.insert(
+            "embeddedLanguageFormatting".to_string(),
+            Value::from(match v {
+                EmbeddedLanguageFormattingConfig::Auto => "auto",
+                EmbeddedLanguageFormattingConfig::Off => "off",
+            }),
+        );
+    }
+
+    // Prettier-only options
+    if let Some(v) = config.prose_wrap {
+        obj.insert(
+            "proseWrap".to_string(),
+            Value::from(match v {
+                ProseWrapConfig::Always => "always",
+                ProseWrapConfig::Never => "never",
+                ProseWrapConfig::Preserve => "preserve",
+            }),
+        );
+    }
+    if let Some(v) = config.html_whitespace_sensitivity {
+        obj.insert(
+            "htmlWhitespaceSensitivity".to_string(),
+            Value::from(match v {
+                HtmlWhitespaceSensitivityConfig::Css => "css",
+                HtmlWhitespaceSensitivityConfig::Strict => "strict",
+                HtmlWhitespaceSensitivityConfig::Ignore => "ignore",
+            }),
+        );
+    }
+    if let Some(v) = config.vue_indent_script_and_style {
+        obj.insert("vueIndentScriptAndStyle".to_string(), Value::from(v));
+    }
+
+    Value::Object(obj)
 }
 
-/// Finalizes external options by adding plugin-specific flags based on the file kind.
-/// This should be called during `resolve()` after getting cached config.
+// ---
+
+/// Unwrap a [`Value`] produced by [`to_prettier_options`] back to its underlying object map.
 ///
-/// - `_useTailwindPlugin`: Flag for JS side to load Tailwind plugin
-/// - `_oxfmtPluginOptionsJson`: Bundled options for `prettier-plugin-oxfmt`
+/// Used by every `inject_*` helper below
+/// so the invariant ("`to_prettier_options` returns [`Value::Object`]") lives in exactly one place.
+fn as_object_mut(opts: &mut Value) -> &mut serde_json::Map<String, Value> {
+    opts.as_object_mut().expect("`to_prettier_options` returns `Value::Object`")
+}
+
+/// Inject `parser` key.
+/// Set explicitly to skip Prettier's parser inference.
+pub fn inject_parser(opts: &mut Value, parser_name: &str) {
+    as_object_mut(opts).insert("parser".to_string(), Value::String(parser_name.to_string()));
+}
+
+/// Inject `filepath` key.
 ///
-/// Also removes Prettier-unaware options to minimize payload size.
-pub fn finalize_external_options(config: &mut Value, kind: &FileKind) {
-    let Some(obj) = config.as_object_mut() else {
+/// Some plugins (Tailwind sorter, etc.) depend on it.
+/// Shipped explicitly because Prettier replaces it with `dummy.{ts,tsx}`
+/// for some embedded contexts (e.g., js-in-mdx).
+pub fn inject_filepath(opts: &mut Value, path: &Path) {
+    as_object_mut(opts)
+        .insert("filepath".to_string(), Value::String(path.to_string_lossy().to_string()));
+}
+
+/// Inject Tailwind plugin keys derived from `config.sort_tailwindcss`.
+///
+/// No-ops when `sortTailwindcss` is disabled in config (activation check).
+/// The caller gates this on capability (`supports_tailwind`).
+///
+/// See: <https://github.com/tailwindlabs/prettier-plugin-tailwindcss#options>
+pub fn inject_tailwind_plugin_payload(opts: &mut Value, config: &FormatConfig) {
+    let Some(tw) = config.sort_tailwindcss.clone().and_then(SortTailwindcssUserConfig::into_config)
+    else {
         return;
     };
+    let map = as_object_mut(opts);
 
-    // Add Tailwind plugin flag and map options if needed
-    if obj.contains_key("sortTailwindcss") && kind.needs_tailwind_plugin() {
-        if let Some(tailwind) = obj.get("sortTailwindcss").and_then(|v| v.as_object()).cloned() {
-            // See: https://github.com/tailwindlabs/prettier-plugin-tailwindcss#options
-            for (src, dst) in [
-                ("config", "tailwindConfig"),
-                ("stylesheet", "tailwindStylesheet"),
-                ("functions", "tailwindFunctions"),
-                ("attributes", "tailwindAttributes"),
-                ("preserveWhitespace", "tailwindPreserveWhitespace"),
-                ("preserveDuplicates", "tailwindPreserveDuplicates"),
-            ] {
-                if let Some(value) = tailwind.get(src).cloned() {
-                    obj.insert(dst.to_string(), value);
-                }
-            }
-        }
-        obj.insert("_useTailwindPlugin".to_string(), Value::Number(1.into()));
+    if let Some(v) = tw.config {
+        map.insert("tailwindConfig".to_string(), Value::from(v));
     }
-
-    // Build oxfmt plugin options JSON for js-in-xxx parsers
-    #[cfg(feature = "napi")]
-    if let FileKind::ExternalFormatter { path, .. } = kind
-        && kind.needs_oxfmt_plugin()
-    {
-        let mut oxfmt_plugin_options = serde_json::Map::new();
-        for key in [
-            "printWidth",
-            "useTabs",
-            "tabWidth",
-            "endOfLine",
-            "singleQuote",
-            "bracketSpacing",
-            "bracketSameLine",
-            "semi",
-            "trailingComma",
-            "arrowParens",
-            "quoteProps",
-            "jsxSingleQuote",
-            "sortImports",
-            "sortTailwindcss",
-            "jsdoc",
-        ] {
-            if let Some(value) = obj.get(key) {
-                oxfmt_plugin_options.insert(key.to_string(), value.clone());
-            }
-        }
-
-        // NOTE: Pass the parent file path so embedded JS/TS formatting
-        // uses the same path for Tailwind config resolution as the parent file.
-        // This is needed for ts-in-(markdown|mdx),
-        // which Prettier overrides the full path with a `dummy.ts(x)`...
-        // This filepath roundtrips:
-        // Rust → JS (Prettier plugin options) → Rust (text_to_doc_api),
-        // where it becomes `filepath_override` in `FormatStrategy::OxcFormatter`.
-        oxfmt_plugin_options
-            .insert("filepath".to_string(), Value::String(path.to_string_lossy().to_string()));
-
-        if let Ok(json_str) = serde_json::to_string(&Value::Object(oxfmt_plugin_options)) {
-            obj.insert("_oxfmtPluginOptionsJson".to_string(), Value::String(json_str));
-        }
+    if let Some(v) = tw.stylesheet {
+        map.insert("tailwindStylesheet".to_string(), Value::from(v));
     }
-
-    // To minimize payload size, remove Prettier unaware options
-    for key in [
-        "sortImports",
-        "sortTailwindcss",
-        "sortPackageJson",
-        "insertFinalNewline",
-        "overrides",
-        "ignorePatterns",
-        "jsdoc",
-    ] {
-        obj.remove(key);
+    if let Some(v) = tw.functions {
+        map.insert("tailwindFunctions".to_string(), Value::from(v));
     }
+    if let Some(v) = tw.attributes {
+        map.insert("tailwindAttributes".to_string(), Value::from(v));
+    }
+    if let Some(v) = tw.preserve_whitespace {
+        map.insert("tailwindPreserveWhitespace".to_string(), Value::from(v));
+    }
+    if let Some(v) = tw.preserve_duplicates {
+        map.insert("tailwindPreserveDuplicates".to_string(), Value::from(v));
+    }
+    map.insert("_useTailwindPlugin".to_string(), Value::Number(1.into()));
+}
+
+/// Inject `_oxfmtPluginOptionsJson` carrying the typed [`FormatConfig`] plus
+/// the parent filepath for the embedded callback to recover.
+///
+/// `filepath` is shipped explicitly because Prettier replaces it with
+/// `dummy.{ts,tsx}` for some embedded contexts (e.g., js-in-mdx).
+///
+/// The caller gates this on capability (`supports_oxfmt`).
+///
+/// # Panics
+///
+/// Panics if payload serialization fails;
+/// Unreachable in practice because the payload is plainly-serializable data.
+#[cfg(feature = "napi")]
+pub fn inject_oxfmt_plugin_payload(opts: &mut Value, config: &FormatConfig, path: &Path) {
+    #[derive(Serialize)]
+    struct Payload<'a> {
+        config: &'a FormatConfig,
+        filepath: &'a str,
+    }
+    let filepath = path.to_string_lossy();
+    let payload_json = serde_json::to_string(&Payload { config, filepath: &filepath })
+        .expect("oxfmt plugin payload serialization should not fail");
+    as_object_mut(opts).insert("_oxfmtPluginOptionsJson".to_string(), Value::String(payload_json));
 }
 
 // ---
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::oxfmtrc::{FormatConfig, Oxfmtrc, to_oxfmt_options};
-
-    #[test]
-    fn test_sync_external_options_defaults() {
-        let json_string = r"{}";
-        let mut raw_config: Value = serde_json::from_str(json_string).unwrap();
-        let config: FormatConfig = serde_json::from_str(json_string).unwrap();
-        let oxfmt_options = to_oxfmt_options(config).unwrap();
-
-        sync_external_options(&oxfmt_options.format_options, &mut raw_config);
-
-        let obj = raw_config.as_object().unwrap();
-        assert_eq!(obj.get("printWidth").unwrap(), 100);
-    }
-
-    #[test]
-    fn test_sync_external_options_with_user_values() {
-        let json_string = r#"{
-            "printWidth": 80,
-            "ignorePatterns": ["*.min.js"],
-            "experimentalSortImports": { "order": "asc" }
-        }"#;
-        let mut raw_config: Value = serde_json::from_str(json_string).unwrap();
-        let config: FormatConfig = serde_json::from_str(json_string).unwrap();
-        let oxfmt_options = to_oxfmt_options(config).unwrap();
-
-        sync_external_options(&oxfmt_options.format_options, &mut raw_config);
-
-        let obj = raw_config.as_object().unwrap();
-        // User-specified value is preserved via FormatOptions
-        assert_eq!(obj.get("printWidth").unwrap(), 80);
-        // oxfmt extensions are preserved (for caching)
-        // They will be removed later by `finalize_external_options()`
-        assert!(obj.contains_key("ignorePatterns"));
-        assert!(obj.contains_key("experimentalSortImports"));
-    }
+mod tests_overrides_parsing {
+    use crate::core::oxfmtrc::Oxfmtrc;
 
     #[test]
     fn test_overrides_parsing() {
@@ -217,85 +270,146 @@ mod tests {
         assert_eq!(overrides[1].exclude_files, Some(vec!["*.min.js".to_string()]));
         assert_eq!(overrides[1].options.print_width, Some(80));
     }
+}
 
-    #[test]
-    fn test_sync_external_options_preserves_overrides() {
-        let json_string = r#"{
-            "tabWidth": 2,
-            "overrides": [
-                { "files": ["*.test.js"], "options": { "tabWidth": 4 } }
-            ]
-        }"#;
-        let mut raw_config: Value = serde_json::from_str(json_string).unwrap();
-        let oxfmtrc: Oxfmtrc = serde_json::from_str(json_string).unwrap();
-        let oxfmt_options = to_oxfmt_options(oxfmtrc.format_config).unwrap();
+// ---
 
-        sync_external_options(&oxfmt_options.format_options, &mut raw_config);
+#[cfg(test)]
+mod tests_to_prettier_options {
+    use super::*;
+    use crate::core::oxfmtrc::FormatConfig;
 
-        let obj = raw_config.as_object().unwrap();
-        // Overrides are preserved (for caching)
-        // They will be removed later by `finalize_external_options()`
-        assert!(obj.contains_key("overrides"));
+    fn config_from(json: &str) -> FormatConfig {
+        serde_json::from_str(json).unwrap()
     }
 
     #[test]
-    fn test_finalize_external_options_removes_oxfmt_extensions() {
-        use std::{path::Path, sync::Arc};
+    fn emits_only_print_width_for_empty_config() {
+        let config = config_from("{}");
+        let value = to_prettier_options(&config);
+        let obj = value.as_object().unwrap();
 
-        use oxc_span::SourceType;
-
-        let json_string = r#"{
-            "tabWidth": 2,
-            "overrides": [
-                { "files": ["*.test.js"], "options": { "tabWidth": 4 } }
-            ],
-            "ignorePatterns": ["*.min.js"],
-            "sortImports": { "order": "asc" }
-        }"#;
-        let mut raw_config: Value = serde_json::from_str(json_string).unwrap();
-
-        let kind = FileKind::OxcFormatter {
-            path: Arc::from(Path::new("test.js")),
-            source_type: SourceType::mjs(),
-        };
-        finalize_external_options(&mut raw_config, &kind);
-
-        let obj = raw_config.as_object().unwrap();
-        // oxfmt extensions are removed by finalize_external_options
-        assert!(!obj.contains_key("overrides"));
-        assert!(!obj.contains_key("ignorePatterns"));
-        assert!(!obj.contains_key("sortImports"));
+        // `printWidth` is always emitted because oxfmt's default (100) differs
+        // from Prettier's (80). The other core options share defaults and are
+        // omitted when unset.
+        assert_eq!(obj.get("printWidth"), Some(&Value::from(100)));
+        assert!(!obj.contains_key("useTabs"));
+        assert!(!obj.contains_key("tabWidth"));
+        assert!(!obj.contains_key("endOfLine"));
     }
 
     #[test]
-    #[cfg(feature = "napi")]
-    fn test_finalize_external_options_sets_oxfmt_plugin_filepath() {
-        use std::{path::Path, sync::Arc};
-
-        let json_string = r#"{
-            "printWidth": 100,
-            "singleQuote": true,
-            "experimentalSortImports": { "order": "asc" }
-        }"#;
-        let mut raw_config: Value = serde_json::from_str(json_string).unwrap();
-
-        let kind = FileKind::ExternalFormatter {
-            path: Arc::from(Path::new("/tmp/foo/bar/App.vue")),
-            parser_name: "vue",
-        };
-        finalize_external_options(&mut raw_config, &kind);
-
-        let obj = raw_config.as_object().unwrap();
-        let plugin_options_json = obj
-            .get("_oxfmtPluginOptionsJson")
-            .and_then(Value::as_str)
-            .expect("Expected `_oxfmtPluginOptionsJson` to be set");
-
-        let plugin_options: Value = serde_json::from_str(plugin_options_json).unwrap();
-        let plugin_obj = plugin_options.as_object().unwrap();
-        assert_eq!(
-            plugin_obj.get("filepath"),
-            Some(&Value::String("/tmp/foo/bar/App.vue".to_string()))
+    fn emits_user_set_core_options() {
+        let config = config_from(
+            r#"{ "printWidth": 80, "useTabs": true, "tabWidth": 4, "endOfLine": "crlf" }"#,
         );
+        let value = to_prettier_options(&config);
+        let obj = value.as_object().unwrap();
+
+        assert_eq!(obj.get("printWidth"), Some(&Value::from(80)));
+        assert_eq!(obj.get("useTabs"), Some(&Value::from(true)));
+        assert_eq!(obj.get("tabWidth"), Some(&Value::from(4)));
+        assert_eq!(obj.get("endOfLine"), Some(&Value::from("crlf")));
+    }
+
+    #[test]
+    fn omits_unset_optional_prettier_options() {
+        let config = config_from("{}");
+        let value = to_prettier_options(&config);
+        let obj = value.as_object().unwrap();
+
+        // Optional Prettier options are omitted when not set
+        assert!(!obj.contains_key("singleQuote"));
+        assert!(!obj.contains_key("trailingComma"));
+        assert!(!obj.contains_key("semi"));
+        assert!(!obj.contains_key("vueIndentScriptAndStyle"));
+        assert!(!obj.contains_key("htmlWhitespaceSensitivity"));
+    }
+
+    #[test]
+    fn emits_user_set_optional_prettier_options() {
+        let config = config_from(
+            r#"{
+                "singleQuote": true,
+                "trailingComma": "es5",
+                "semi": false,
+                "arrowParens": "avoid",
+                "quoteProps": "consistent",
+                "objectWrap": "collapse",
+                "embeddedLanguageFormatting": "off",
+                "proseWrap": "always",
+                "htmlWhitespaceSensitivity": "ignore",
+                "vueIndentScriptAndStyle": true
+            }"#,
+        );
+        let value = to_prettier_options(&config);
+        let obj = value.as_object().unwrap();
+
+        assert_eq!(obj.get("singleQuote"), Some(&Value::from(true)));
+        assert_eq!(obj.get("trailingComma"), Some(&Value::from("es5")));
+        assert_eq!(obj.get("semi"), Some(&Value::from(false)));
+        assert_eq!(obj.get("arrowParens"), Some(&Value::from("avoid")));
+        assert_eq!(obj.get("quoteProps"), Some(&Value::from("consistent")));
+        assert_eq!(obj.get("objectWrap"), Some(&Value::from("collapse")));
+        assert_eq!(obj.get("embeddedLanguageFormatting"), Some(&Value::from("off")));
+        assert_eq!(obj.get("proseWrap"), Some(&Value::from("always")));
+        assert_eq!(obj.get("htmlWhitespaceSensitivity"), Some(&Value::from("ignore")));
+        assert_eq!(obj.get("vueIndentScriptAndStyle"), Some(&Value::from(true)));
+    }
+
+    #[test]
+    fn never_emits_oxfmt_specific_keys() {
+        // Even with all oxfmt-specific options set, none should appear in the Prettier options
+        let config = config_from(
+            r#"{
+                "insertFinalNewline": false,
+                "sortImports": true,
+                "sortPackageJson": true,
+                "sortTailwindcss": true,
+                "jsdoc": true
+            }"#,
+        );
+        let value = to_prettier_options(&config);
+        let obj = value.as_object().unwrap();
+
+        for key in [
+            "insertFinalNewline",
+            "sortImports",
+            "experimentalSortImports",
+            "sortPackageJson",
+            "experimentalSortPackageJson",
+            "sortTailwindcss",
+            "experimentalTailwindcss",
+            "jsdoc",
+            "overrides",
+            "ignorePatterns",
+            "experimentalOperatorPosition",
+            "experimentalTernaries",
+        ] {
+            assert!(!obj.contains_key(key), "Key `{key}` must NOT be in Prettier options");
+        }
+    }
+
+    #[test]
+    fn to_prettier_options_never_injects_tailwind_keys() {
+        // Tailwind keys are always opt-in via `inject_tailwind_plugin_payload`.
+        let config = config_from(r#"{ "sortTailwindcss": true }"#);
+        let value = to_prettier_options(&config);
+        let obj = value.as_object().unwrap();
+
+        assert!(!obj.contains_key("_useTailwindPlugin"));
+        assert!(!obj.contains_key("tailwindConfig"));
+    }
+
+    #[test]
+    fn does_not_inject_filepath_or_plugin_options_json() {
+        // These belong to the format step, not to_prettier_options
+        let config = config_from(r#"{ "printWidth": 80 }"#);
+        let value = to_prettier_options(&config);
+        let obj = value.as_object().unwrap();
+
+        assert!(!obj.contains_key("filepath"));
+        assert!(!obj.contains_key("parser"));
+        assert!(!obj.contains_key("_oxfmtPluginOptionsJson"));
     }
 }

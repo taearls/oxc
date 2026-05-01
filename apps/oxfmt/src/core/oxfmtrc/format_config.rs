@@ -622,7 +622,7 @@ pub struct SortPackageJsonConfig {
 }
 
 impl SortPackageJsonConfig {
-    pub(super) fn to_sort_options(&self) -> sort_package_json::SortOptions {
+    pub fn to_sort_options(&self) -> sort_package_json::SortOptions {
         sort_package_json::SortOptions {
             sort_scripts: self.sort_scripts.unwrap_or(false),
             // Small optimization: Prettier will reformat anyway
