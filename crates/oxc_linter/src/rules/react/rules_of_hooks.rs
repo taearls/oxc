@@ -10,7 +10,7 @@ use oxc_cfg::{
 };
 use oxc_macros::declare_oxc_lint;
 use oxc_semantic::{AstNodes, NodeId};
-use oxc_span::GetSpan;
+use oxc_span::{GetSpan, Span};
 use oxc_syntax::operator::AssignmentOperator;
 
 use crate::{
@@ -81,13 +81,27 @@ mod diagnostics {
         .with_error_code_scope(SCOPE)
     }
 
-    pub(super) fn class_component(span: Span, hook_name: &str) -> OxcDiagnostic {
+    pub(super) fn class_component(
+        hook_span: Span,
+        class_component_span: Option<Span>,
+        hook_name: &str,
+    ) -> OxcDiagnostic {
+        debug_assert!(
+            class_component_span.is_some(),
+            "Hooks in class components should have a containing class span"
+        );
+
+        let mut labels = vec![hook_span.primary_label("Hook is called here")];
+        if let Some(class_component_span) = class_component_span {
+            labels.push(class_component_span.label("Class component is defined here."));
+        }
+
         OxcDiagnostic::warn(format!(
             "React Hook {hook_name:?} cannot be called in a class component. React Hooks \
             must be called in a React function component or a custom React \
             Hook function."
         ))
-        .with_label(span)
+        .with_labels(labels)
         .with_error_code_scope(SCOPE)
     }
 
@@ -203,7 +217,11 @@ impl Rule for RulesOfHooks {
             nodes.parent_kind(parent_func.id()),
             AstKind::MethodDefinition(_) | AstKind::StaticBlock(_) | AstKind::PropertyDefinition(_)
         ) {
-            return ctx.diagnostic(diagnostics::class_component(span, hook_name));
+            return ctx.diagnostic(diagnostics::class_component(
+                span,
+                class_component_span(ctx, parent_func.id()),
+                hook_name,
+            ));
         }
 
         match parent_func.kind() {
@@ -314,6 +332,29 @@ impl Rule for RulesOfHooks {
             return ctx.diagnostic(diagnostics::conditional_hook(span, hook_name));
         }
     }
+}
+
+fn class_component_span(ctx: &LintContext<'_>, node_id: NodeId) -> Option<Span> {
+    ctx.nodes().ancestors(node_id).find_map(|node| match node.kind() {
+        AstKind::Class(class) => {
+            if let Some(id) = &class.id {
+                Some(id.span)
+            } else {
+                let search_start = class
+                    .decorators
+                    .last()
+                    .map_or(class.span.start, |decorator| decorator.span.end);
+                let offset =
+                    ctx.find_next_token_within(search_start, class.body.span.start, "class")?;
+                let start = search_start + offset;
+                Some(Span::new(
+                    start,
+                    start + u32::try_from("class".len()).expect("keyword length should fit in u32"),
+                ))
+            }
+        }
+        _ => None,
+    })
 }
 
 fn has_conditional_path_accept_throw(

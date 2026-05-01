@@ -76,25 +76,42 @@ source: crates/oxc_linter/src/tester.rs
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useHook" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function.
    ╭─[rules_of_hooks.tsx:4:22]
+ 1 │ 
+ 2 │             class C {
+   ·                   ┬
+   ·                   ╰── Class component is defined here.
  3 │                  m() {
  4 │                      This.useHook();
-   ·                      ──────────────
+   ·                      ───────┬──────
+   ·                             ╰── Hook is called here
  5 │                      Super.useHook();
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useHook" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function.
    ╭─[rules_of_hooks.tsx:5:22]
+ 1 │ 
+ 2 │             class C {
+   ·                   ┬
+   ·                   ╰── Class component is defined here.
+ 3 │                  m() {
  4 │                      This.useHook();
  5 │                      Super.useHook();
-   ·                      ───────────────
+   ·                      ───────┬───────
+   ·                             ╰── Hook is called here
  6 │                  }
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useFeatureFlag" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function.
    ╭─[rules_of_hooks.tsx:5:25]
+ 1 │ 
+ 2 │             class Foo extends Component {
+   ·                   ─┬─
+   ·                    ╰── Class component is defined here.
+ 3 │                 render() {
  4 │                     if (cond) {
  5 │                         FooStore.useFeatureFlag();
-   ·                         ─────────────────────────
+   ·                         ────────────┬────────────
+   ·                                     ╰── Hook is called here
  6 │                     }
    ╰────
 
@@ -605,42 +622,61 @@ source: crates/oxc_linter/src/tester.rs
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useFeatureFlag" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function.
    ╭─[rules_of_hooks.tsx:5:29]
+ 1 │ 
+ 2 │                 class ClassComponentWithFeatureFlag extends React.Component {
+   ·                       ──────────────┬──────────────
+   ·                                     ╰── Class component is defined here.
+ 3 │                     render() {
  4 │                         if (foo) {
  5 │                             useFeatureFlag();
-   ·                             ────────────────
+   ·                             ────────┬───────
+   ·                                     ╰── Hook is called here
  6 │                         }
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useState" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function.
    ╭─[rules_of_hooks.tsx:4:25]
+ 1 │ 
+ 2 │                 class ClassComponentWithHook extends React.Component {
+   ·                       ───────────┬──────────
+   ·                                  ╰── Class component is defined here.
  3 │                     render() {
  4 │                         React.useState();
-   ·                         ────────────────
+   ·                         ────────┬───────
+   ·                                 ╰── Hook is called here
  5 │                     }
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useState" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function.
    ╭─[rules_of_hooks.tsx:1:27]
  1 │ (class {useHook = () => { useState(); }});
-   ·                           ──────────
+   ·  ──┬──                    ─────┬────
+   ·    │                           ╰── Hook is called here
+   ·    ╰── Class component is defined here.
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useState" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function.
    ╭─[rules_of_hooks.tsx:1:21]
  1 │ (class {useHook() { useState(); }});
-   ·                     ──────────
+   ·  ──┬──              ─────┬────
+   ·    │                     ╰── Hook is called here
+   ·    ╰── Class component is defined here.
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useState" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function.
    ╭─[rules_of_hooks.tsx:1:21]
  1 │ (class {h = () => { useState(); }});
-   ·                     ──────────
+   ·  ──┬──              ─────┬────
+   ·    │                     ╰── Hook is called here
+   ·    ╰── Class component is defined here.
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useState" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function.
    ╭─[rules_of_hooks.tsx:1:15]
  1 │ (class {i() { useState(); }});
-   ·               ──────────
+   ·  ──┬──        ─────┬────
+   ·    │               ╰── Hook is called here
+   ·    ╰── Class component is defined here.
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useState" cannot be called in an async function.
@@ -750,9 +786,14 @@ source: crates/oxc_linter/src/tester.rs
 
   ⚠ react-hooks(rules-of-hooks): React Hook "use" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function.
    ╭─[rules_of_hooks.tsx:4:21]
+ 1 │ 
+ 2 │             class C {
+   ·                   ┬
+   ·                   ╰── Class component is defined here.
  3 │                 m() {
  4 │                     use(promise);
-   ·                     ────────────
+   ·                     ──────┬─────
+   ·                           ╰── Hook is called here
  5 │                 }
    ╰────
 
