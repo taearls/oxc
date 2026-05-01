@@ -105,12 +105,14 @@ impl Rule for BranchesSharingCode {
 
         let if_span = Span::new(if_stmt.span.start, if_stmt.span.start + 2);
 
-        if let Some(start) = start_eq {
+        if let Some(start) =
+            start_eq.filter(|&start| !duplicated_stmts_are_empty(start, &bodies, false))
+        {
             let spans = bodies.iter().map(|body| get_duplicated_span(start, body, false));
             ctx.diagnostic(branches_sharing_code_at_start_diagnostic(if_span, spans));
         }
 
-        if let Some(end) = end_eq {
+        if let Some(end) = end_eq.filter(|&end| !duplicated_stmts_are_empty(end, &bodies, true)) {
             let spans = bodies.iter().map(|body| get_duplicated_span(end, body, true));
             ctx.diagnostic(branches_sharing_code_at_end_diagnostic(if_span, spans));
         }
@@ -130,6 +132,14 @@ fn get_duplicated_span(count: usize, body: &Statement, reverse: bool) -> Span {
     let start = range.first().map(|s| s.span().start).unwrap();
     let end = range.last().map(|s| s.span().end).unwrap();
     Span::new(start, end)
+}
+
+fn duplicated_stmts_are_empty(count: usize, bodies: &[&Statement], reverse: bool) -> bool {
+    bodies.iter().all(|body| {
+        let stmts = get_block_statements(body);
+        let range = if reverse { &stmts[stmts.len() - count..] } else { &stmts[..count] };
+        range.iter().all(|stmt| matches!(stmt, Statement::EmptyStatement(_)))
+    })
 }
 
 fn scan_blocks_for_eq<'a>(bodies: &[&'a Statement<'a>]) -> (Option<usize>, Option<usize>) {
@@ -244,6 +254,15 @@ fn test() {
         }
         ",
         "if (condition) {} else {}",
+        r"
+        if (isArray(value)) {
+            ;(originObject as IAnyObject)[property] = [...value]
+        } else if (isPlainObject(value)) {
+            ;(originObject as IAnyObject)[property] = { ...value }
+        } else {
+            ;(originObject as IAnyObject)[property] = assignObject[property] as unknown
+        }
+        ",
     ];
 
     let fail = vec![
