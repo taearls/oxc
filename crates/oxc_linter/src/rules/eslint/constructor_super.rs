@@ -29,10 +29,13 @@ fn missing_super_some(span: Span) -> OxcDiagnostic {
         .with_label(span)
 }
 
-fn duplicate_super(span: Span) -> OxcDiagnostic {
+fn duplicate_super(span: Span, first_super_span: Span) -> OxcDiagnostic {
     OxcDiagnostic::warn("Unexpected duplicate `super()`.")
         .with_help("Remove the duplicate `super()` call")
-        .with_label(span)
+        .with_labels([
+            span.primary_label("This path may call `super()` after it was already called."),
+            first_super_span.label("`super()` was first called here."),
+        ])
 }
 
 #[derive(Clone, Copy)]
@@ -273,9 +276,10 @@ impl Rule for ConstructorSuper {
                     if super_call_spans.len() > 1 {
                         let mut sorted_spans = super_call_spans;
                         sorted_spans.sort_by_key(|s| s.start);
+                        let first_super_span = sorted_spans[0];
 
                         for &span in sorted_spans.iter().skip(1) {
-                            ctx.diagnostic(duplicate_super(span));
+                            ctx.diagnostic(duplicate_super(span, first_super_span));
                         }
                     }
                 } else {
@@ -307,9 +311,10 @@ impl Rule for ConstructorSuper {
                     if has_duplicate && super_call_spans.len() > 1 {
                         let mut sorted_spans = super_call_spans;
                         sorted_spans.sort_by_key(|s| s.start);
+                        let first_super_span = sorted_spans[0];
 
                         for &span in sorted_spans.iter().skip(1) {
-                            ctx.diagnostic(duplicate_super(span));
+                            ctx.diagnostic(duplicate_super(span, first_super_span));
                         }
                     }
                 }
@@ -432,13 +437,13 @@ impl ConstructorSuper {
                                     record_super(span);
                                 }
                             }
-                            // Special case: `super() || super()` - report both as duplicate.
+                            // Special case: `super() || super()` - report the RHS as duplicate.
                             //
                             // Technically, `super()` returns the constructed instance (truthy),
                             // so the RHS of `||` won't execute at runtime. However:
-                            // 1. ESLint reports this as duplicate for compatibility
+                            // 1. ESLint reports the RHS as a duplicate for compatibility
                             // 2. This code pattern is almost certainly a mistake
-                            // 3. The CFG doesn't catch this because it sees only LHS as reachable
+                            // 3. The CFG records the reachable LHS, but not the short-circuited RHS
                             //
                             // We intentionally match ESLint's behavior here.
                             Expression::LogicalExpression(logical)
@@ -457,14 +462,13 @@ impl ConstructorSuper {
                                 let left_span = check_super(&logical.left);
                                 let right_span = check_super(&logical.right);
 
-                                // Report both super() calls as duplicates if both exist
-                                if left_span.is_some() && right_span.is_some() {
-                                    if let Some(span) = left_span {
-                                        record_super(span);
-                                    }
-                                    if let Some(span) = right_span {
-                                        record_super(span);
-                                    }
+                                // The CFG records the reachable left `super()` call. Add the
+                                // right call so `super() || super()` still matches ESLint's
+                                // duplicate-super behavior.
+                                if left_span.is_some()
+                                    && let Some(span) = right_span
+                                {
+                                    record_super(span);
                                 }
                             }
                             _ => {}

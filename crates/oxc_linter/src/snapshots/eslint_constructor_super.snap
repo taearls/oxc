@@ -241,35 +241,36 @@ source: crates/oxc_linter/src/tester.rs
   ⚠ eslint(constructor-super): Unexpected duplicate `super()`.
    ╭─[constructor_super.tsx:1:46]
  1 │ class A extends B { constructor() { super(); super(); } }
-   ·                                              ───────
-   ╰────
-  help: Remove the duplicate `super()` call
-
-  ⚠ eslint(constructor-super): Unexpected duplicate `super()`.
-   ╭─[constructor_super.tsx:1:37]
- 1 │ class A extends B { constructor() { super() || super(); } }
-   ·                                     ───────
+   ·                                     ───┬───  ───┬───
+   ·                                        │        ╰── This path may call `super()` after it was already called.
+   ·                                        ╰── `super()` was first called here.
    ╰────
   help: Remove the duplicate `super()` call
 
   ⚠ eslint(constructor-super): Unexpected duplicate `super()`.
    ╭─[constructor_super.tsx:1:48]
  1 │ class A extends B { constructor() { super() || super(); } }
-   ·                                                ───────
+   ·                                     ───┬───    ───┬───
+   ·                                        │          ╰── This path may call `super()` after it was already called.
+   ·                                        ╰── `super()` was first called here.
    ╰────
   help: Remove the duplicate `super()` call
 
   ⚠ eslint(constructor-super): Unexpected duplicate `super()`.
    ╭─[constructor_super.tsx:1:53]
  1 │ class A extends B { constructor() { if (a) super(); super(); } }
-   ·                                                     ───────
+   ·                                            ───┬───  ───┬───
+   ·                                               │        ╰── This path may call `super()` after it was already called.
+   ·                                               ╰── `super()` was first called here.
    ╰────
   help: Remove the duplicate `super()` call
 
   ⚠ eslint(constructor-super): Unexpected duplicate `super()`.
    ╭─[constructor_super.tsx:1:76]
  1 │ class A extends B { constructor() { switch (a) { case 0: super(); default: super(); } } }
-   ·                                                                            ───────
+   ·                                                          ───┬───           ───┬───
+   ·                                                             │                 ╰── This path may call `super()` after it was already called.
+   ·                                                             ╰── `super()` was first called here.
    ╰────
   help: Remove the duplicate `super()` call
 
