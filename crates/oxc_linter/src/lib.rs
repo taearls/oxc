@@ -71,7 +71,7 @@ pub use crate::{
         Config, ConfigBuilderError, ConfigStore, ConfigStoreBuilder, ESLintRule, LintIgnoreMatcher,
         LintPlugins, Oxlintrc, ResolvedLinterState,
     },
-    context::{ContextSubHost, LintContext},
+    context::{ContextSubHost, ContextSubHostOptions, LintContext},
     external_linter::{
         ExternalLinter, ExternalLinterCreateWorkspaceCb, ExternalLinterDestroyWorkspaceCb,
         ExternalLinterLintFileCb, ExternalLinterLoadPluginCb, ExternalLinterSetupRuleConfigsCb,
