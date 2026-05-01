@@ -600,13 +600,11 @@ impl Default for SortPackageJsonUserConfig {
 }
 
 impl SortPackageJsonUserConfig {
-    /// Convert to `sort_package_json::SortOptions`.
-    /// Returns `None` if sorting is disabled.
-    pub fn to_sort_options(&self) -> Option<sort_package_json::SortOptions> {
+    pub fn into_config(self) -> Option<SortPackageJsonConfig> {
         match self {
             Self::Bool(false) => None,
-            Self::Bool(true) => Some(SortPackageJsonConfig::default().to_sort_options()),
-            Self::Object(config) => Some(config.to_sort_options()),
+            Self::Bool(true) => Some(SortPackageJsonConfig::default()),
+            Self::Object(config) => Some(config),
         }
     }
 }
@@ -619,16 +617,6 @@ pub struct SortPackageJsonConfig {
     /// - Default: `false`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sort_scripts: Option<bool>,
-}
-
-impl SortPackageJsonConfig {
-    pub fn to_sort_options(&self) -> sort_package_json::SortOptions {
-        sort_package_json::SortOptions {
-            sort_scripts: self.sort_scripts.unwrap_or(false),
-            // Small optimization: Prettier will reformat anyway
-            pretty: false,
-        }
-    }
 }
 
 // ---
