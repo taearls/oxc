@@ -263,6 +263,13 @@ fn test() {
             ;(originObject as IAnyObject)[property] = assignObject[property] as unknown
         }
         ",
+        r#"
+        if (maybe) {
+            if (maybe2) { console.log("maybe and maybe2"); }
+        } else {
+            if (maybe2) { console.log("not maybe and maybe2"); }
+        }
+        "#,
     ];
 
     let fail = vec![
