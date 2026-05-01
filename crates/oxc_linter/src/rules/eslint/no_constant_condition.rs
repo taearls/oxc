@@ -1,9 +1,15 @@
-use oxc_ast::{AstKind, ast::Expression};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
+use oxc_ast::{
+    AstKind,
+    ast::{ArrowFunctionExpression, Expression, Function, YieldExpression},
+};
+use oxc_ast_visit::Visit;
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_macros::declare_oxc_lint;
 use oxc_span::{GetSpan, Span};
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use oxc_syntax::{node::NodeId, scope::ScopeFlags};
 
 use crate::{
     AstNode,
@@ -133,16 +139,35 @@ impl Rule for NoConstantCondition {
         match node.kind() {
             AstKind::IfStatement(if_stmt) => check(ctx, &if_stmt.test),
             AstKind::ConditionalExpression(condition_expr) => check(ctx, &condition_expr.test),
-            AstKind::WhileStatement(while_stmt) => self.check_loop(ctx, &while_stmt.test, true),
+            AstKind::WhileStatement(while_stmt) => {
+                self.check_loop(ctx, &while_stmt.test, true, || {
+                    has_yield_before_loop_exit_in_same_generator(ctx, node.id(), None, |finder| {
+                        finder.visit_while_statement(while_stmt);
+                    })
+                });
+            }
             AstKind::DoWhileStatement(do_while_stmt) => {
-                self.check_loop(ctx, &do_while_stmt.test, false);
+                self.check_loop(ctx, &do_while_stmt.test, false, || {
+                    has_yield_before_loop_exit_in_same_generator(ctx, node.id(), None, |finder| {
+                        finder.visit_do_while_statement(do_while_stmt);
+                    })
+                });
             }
             AstKind::ForStatement(for_stmt) => {
                 let Some(test) = &for_stmt.test else {
                     return;
                 };
 
-                self.check_loop(ctx, test, false);
+                self.check_loop(ctx, test, false, || {
+                    has_yield_before_loop_exit_in_same_generator(
+                        ctx,
+                        node.id(),
+                        Some(test.span()),
+                        |finder| {
+                            finder.visit_for_statement(for_stmt);
+                        },
+                    )
+                });
             }
             _ => {}
         }
@@ -150,7 +175,13 @@ impl Rule for NoConstantCondition {
 }
 
 impl NoConstantCondition {
-    fn check_loop<'a>(&self, ctx: &LintContext<'a>, test: &'a Expression<'_>, is_while: bool) {
+    fn check_loop<'a>(
+        &self,
+        ctx: &LintContext<'a>,
+        test: &'a Expression<'_>,
+        is_while: bool,
+        has_yield_before_loop_exit: impl FnOnce() -> bool,
+    ) {
         match self.check_loops {
             CheckLoops::None => return,
             CheckLoops::AllExceptWhileTrue if is_while => match test {
@@ -160,7 +191,15 @@ impl NoConstantCondition {
             _ => {}
         }
 
-        check(ctx, test);
+        if !test.is_constant(true, ctx) {
+            return;
+        }
+
+        if self.check_loops == CheckLoops::AllExceptWhileTrue && has_yield_before_loop_exit() {
+            return;
+        }
+
+        ctx.diagnostic(no_constant_condition_diagnostic(test.span()));
     }
 }
 
@@ -168,6 +207,46 @@ fn check<'a>(ctx: &LintContext<'a>, test: &'a Expression<'_>) {
     if test.is_constant(true, ctx) {
         ctx.diagnostic(no_constant_condition_diagnostic(test.span()));
     }
+}
+
+fn has_yield_before_loop_exit_in_same_generator(
+    ctx: &LintContext<'_>,
+    loop_node_id: NodeId,
+    after_span: Option<Span>,
+    visit_loop: impl FnOnce(&mut YieldBeforeLoopExitFinder),
+) -> bool {
+    if !ctx
+        .nodes()
+        .ancestors_enumerated(loop_node_id)
+        .find_map(|(_id, node)| match node.kind() {
+            AstKind::Function(function) => Some(function.generator),
+            _ => None,
+        })
+        .unwrap_or(false)
+    {
+        return false;
+    }
+
+    let mut finder = YieldBeforeLoopExitFinder { found: false, after_span };
+    visit_loop(&mut finder);
+    finder.found
+}
+
+struct YieldBeforeLoopExitFinder {
+    found: bool,
+    after_span: Option<Span>,
+}
+
+impl<'a> Visit<'a> for YieldBeforeLoopExitFinder {
+    fn visit_yield_expression(&mut self, expr: &YieldExpression<'a>) {
+        if self.after_span.is_none_or(|after_span| expr.span.start > after_span.start) {
+            self.found = true;
+        }
+    }
+
+    fn visit_function(&mut self, _function: &Function<'a>, _flags: ScopeFlags) {}
+
+    fn visit_arrow_function_expression(&mut self, _expr: &ArrowFunctionExpression<'a>) {}
 }
 
 #[test]
@@ -292,12 +371,9 @@ fn test() {
         ("if (Boolean(a)) {}", None),
         ("if (Boolean(...args)) {}", None),
         ("if (foo.Boolean(1)) {}", None),
-        // TODO
-        // ("const undefined = 'lol'; if (undefined) {}", None),
-        // ("function foo(Boolean) { if (Boolean(1)) {} }", None),
-        // ("const Boolean = () => {}; if (Boolean(1)) {}", None),
-        // ("if (Boolean()) {}", None),
-        // ("if (undefined) {}", None),
+        ("const undefined = 'lol'; if (undefined) {}", None),
+        ("function foo(Boolean) { if (Boolean(1)) {} }", None),
+        ("const Boolean = () => {}; if (Boolean(1)) {}", None),
         ("q > 0 ? 1 : 2;", None),
         ("`${a}` === a ? 1 : 2", None),
         ("`foo${a}` === a ? 1 : 2", None),
@@ -325,16 +401,16 @@ fn test() {
         ("while(a == b);", Some(json!([{ "checkLoops": "all" }]))),
         ("for (let x = 0; x <= 10; x++) {};", Some(json!([{ "checkLoops": "all" }]))),
         ("do{}while(true)", Some(json!([{ "checkLoops": false }]))),
-        // TODO
-        // ("function* foo(){while(true){yield 'foo';}}", None),
-        // ("function* foo(){for(;true;){yield 'foo';}}", None),
-        // ("function* foo(){do{yield 'foo';}while(true)}", None),
-        // ("function* foo(){while (true) { while(true) {yield;}}}", None),
-        // ("function* foo() {for (; yield; ) {}}", None),
-        // ("function* foo() {for (; ; yield) {}}", None),
-        // ("function* foo() {while (true) {function* foo() {yield;}yield;}}", None),
-        // ("function* foo() { for (let x = yield; x < 10; x++) {yield;}yield;}", None),
-        // ("function* foo() { for (let x = yield; ; x++) { yield; }}", None),
+        ("function* foo(){while(true){yield 'foo';}}", None),
+        ("function* foo(){for(;true;){yield 'foo';}}", None),
+        ("function* foo(){do{yield 'foo';}while(true)}", None),
+        ("function* foo(){while (true) { while(true) {yield;}}}", None),
+        ("function* foo() {for (; yield; ) {}}", None),
+        ("function* foo() {for (; ; yield) {}}", None),
+        ("function* foo() {for (; true; yield) {}}", None),
+        ("function* foo() {while (true) {function* foo() {yield;}yield;}}", None),
+        ("function* foo() { for (let x = yield; x < 10; x++) {yield;}yield;}", None),
+        ("function* foo() { for (let x = yield; ; x++) { yield; }}", None),
     ];
 
     let fail = vec![
@@ -479,23 +555,46 @@ fn test() {
         ("while(`${'foo' + 'bar'}`);", None),
         ("do{ }while(x = 1)", Some(json!([{ "checkLoops": "all" }]))),
         ("for (;true;) {};", Some(json!([{ "checkLoops": "all" }]))),
-        // TODO
-        // ("function* foo(){while(true){} yield 'foo';}", Some(json!([{ "checkLoops": "all" }]))),
-        // ("function* foo(){while(true){} yield 'foo';}", Some(json!([{ "checkLoops": true }]))),
-        // ("function* foo(){while(true){if (true) {yield 'foo';}}}",Some(json!([{ "checkLoops": "all" }])),),
-        // ("function* foo(){while(true){if (true) {yield 'foo';}}}",Some(json!([{ "checkLoops": true }])),),
-        // ("function* foo(){while(true){yield 'foo';} while(true) {}}", Some(json!([{ "checkLoops": "all" }])),),
-        // ("function* foo(){while(true){yield 'foo';} while(true) {}}",Some(json!([{ "checkLoops": true }])),),
-        // ("var a = function* foo(){while(true){} yield 'foo';}",Some(json!([{ "checkLoops": "all" }])),),
-        // ("var a = function* foo(){while(true){} yield 'foo';}",Some(json!([{ "checkLoops": true }])),),
-        // ("while (true) { function* foo() {yield;}}", Some(json!([{ "checkLoops": "all" }]))),
-        // ("while (true) { function* foo() {yield;}}", Some(json!([{ "checkLoops": true }]))),
-        // ("function* foo(){if (true) {yield 'foo';}}", None),
-        // ("function* foo() {for (let foo = yield; true;) {}}", None),
-        // ("function* foo() {for (foo = yield; true;) {}}", None),
-        // ("function foo() {while (true) {function* bar() {while (true) {yield;}}}}",Some(json!([{ "checkLoops": "all" }])),),
-        // ("function foo() {while (true) {const bar = function*() {while (true) {yield;}}}}",Some(json!([{ "checkLoops": "all" }])),),
-        // ("function* foo() { for (let foo = 1 + 2 + 3 + (yield); true; baz) {}}", None),
+        ("function* foo(){while(true){} yield 'foo';}", Some(json!([{ "checkLoops": "all" }]))),
+        ("function* foo(){while(true){} yield 'foo';}", Some(json!([{ "checkLoops": true }]))),
+        (
+            "function* foo(){while(true){if (true) {yield 'foo';}}}",
+            Some(json!([{ "checkLoops": "all" }])),
+        ),
+        (
+            "function* foo(){while(true){if (true) {yield 'foo';}}}",
+            Some(json!([{ "checkLoops": true }])),
+        ),
+        (
+            "function* foo(){while(true){yield 'foo';} while(true) {}}",
+            Some(json!([{ "checkLoops": "all" }])),
+        ),
+        (
+            "function* foo(){while(true){yield 'foo';} while(true) {}}",
+            Some(json!([{ "checkLoops": true }])),
+        ),
+        (
+            "var a = function* foo(){while(true){} yield 'foo';}",
+            Some(json!([{ "checkLoops": "all" }])),
+        ),
+        (
+            "var a = function* foo(){while(true){} yield 'foo';}",
+            Some(json!([{ "checkLoops": true }])),
+        ),
+        ("while (true) { function* foo() {yield;}}", Some(json!([{ "checkLoops": "all" }]))),
+        ("while (true) { function* foo() {yield;}}", Some(json!([{ "checkLoops": true }]))),
+        ("function* foo(){if (true) {yield 'foo';}}", None),
+        ("function* foo() {for (let foo = yield; true;) {}}", None),
+        ("function* foo() {for (foo = yield; true;) {}}", None),
+        (
+            "function foo() {while (true) {function* bar() {while (true) {yield;}}}}",
+            Some(json!([{ "checkLoops": "all" }])),
+        ),
+        (
+            "function foo() {while (true) {const bar = function*() {while (true) {yield;}}}}",
+            Some(json!([{ "checkLoops": "all" }])),
+        ),
+        ("function* foo() { for (let foo = 1 + 2 + 3 + (yield); true; baz) {}}", None),
     ];
 
     Tester::new(NoConstantCondition::NAME, NoConstantCondition::PLUGIN, pass, fail)
