@@ -14,7 +14,7 @@ use oxc_formatter::{
     TailwindCallback,
 };
 
-use crate::{core::oxfmtrc::inject_parser, prettier_compat::from_prettier_doc};
+use crate::{core::options::inject_parser, prettier_compat::from_prettier_doc};
 
 /// Type alias for the init external formatter callback function signature.
 /// Takes num_threads as argument and returns plugin languages.

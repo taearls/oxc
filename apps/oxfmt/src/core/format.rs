@@ -12,12 +12,13 @@ use oxc_span::SourceType;
 use oxc_toml::Options as TomlFormatterOptions;
 
 #[cfg(feature = "napi")]
-use super::oxfmtrc::{
-    SortPackageJsonConfig, SortPackageJsonUserConfig, inject_filepath, inject_oxfmt_plugin_payload,
-    inject_parser, inject_tailwind_plugin_payload, to_prettier_options,
+use super::options::{
+    inject_filepath, inject_oxfmt_plugin_payload, inject_parser, inject_tailwind_plugin_payload,
+    to_package_json, to_prettier,
 };
 use super::{
-    oxfmtrc::{FormatConfig, to_format_options, to_toml_options},
+    options::{to_oxc_formatter, to_toml_formatter},
+    oxfmtrc::FormatConfig,
     support::FileKind,
 };
 
@@ -84,7 +85,7 @@ impl FormatStrategy {
 
     /// Build a `FormatStrategy` from a typed [`FormatConfig`] and a [`FileKind`].
     ///
-    /// `to_format_options` / `to_toml_options` run eagerly: their validating
+    /// `to_oxc_formatter` / `to_toml_formatter` run eagerly: their validating
     /// typed conversion belongs at carving so the format step stays infallible.
     /// The Prettier `Value` for `ExternalFormatter*` is deferred:
     /// `FormatConfig` is the single SoT, no validation needed,
@@ -104,14 +105,14 @@ impl FormatStrategy {
             FileKind::OxcFormatter { path, source_type } => Self::OxcFormatter {
                 path,
                 source_type,
-                format_options: Box::new(to_format_options(&config)?),
+                format_options: Box::new(to_oxc_formatter(&config)?),
                 #[cfg(feature = "napi")]
                 config: Box::new(config),
                 insert_final_newline,
             },
             FileKind::OxfmtToml { path } => Self::OxfmtToml {
                 path,
-                toml_options: to_toml_options(&config)?,
+                toml_options: to_toml_formatter(&config)?,
                 insert_final_newline,
             },
             #[cfg(feature = "napi")]
@@ -130,15 +131,11 @@ impl FormatStrategy {
             },
             #[cfg(feature = "napi")]
             FileKind::ExternalFormatterPackageJson { path, parser_name } => {
-                let sort_package_json = config.sort_package_json.as_ref().map_or_else(
-                    || Some(SortPackageJsonConfig::default().to_sort_options()),
-                    SortPackageJsonUserConfig::to_sort_options,
-                );
                 Self::ExternalFormatterPackageJson {
                     path,
                     parser_name,
+                    sort_package_json: to_package_json(&config),
                     config: Box::new(config),
-                    sort_package_json,
                     insert_final_newline,
                 }
             }
@@ -341,7 +338,7 @@ impl SourceFormatter {
             .as_ref()
             .expect("`external_formatter` must exist when `napi` feature is enabled");
 
-        let mut external_options = to_prettier_options(config);
+        let mut external_options = to_prettier(config);
         inject_filepath(&mut external_options, path);
         inject_tailwind_plugin_payload(&mut external_options, config);
 
@@ -361,7 +358,7 @@ impl SourceFormatter {
         supports_tailwind: bool,
         supports_oxfmt: bool,
     ) -> Result<String, OxcDiagnostic> {
-        let mut external_options = to_prettier_options(config);
+        let mut external_options = to_prettier(config);
         inject_parser(&mut external_options, parser_name);
         inject_filepath(&mut external_options, path);
 
@@ -403,7 +400,7 @@ impl SourceFormatter {
             Cow::Borrowed(source_text)
         };
 
-        let mut external_options = to_prettier_options(config);
+        let mut external_options = to_prettier(config);
         inject_parser(&mut external_options, parser_name);
         inject_filepath(&mut external_options, path);
         self.invoke_external_formatter(external_options, &source_text, path)

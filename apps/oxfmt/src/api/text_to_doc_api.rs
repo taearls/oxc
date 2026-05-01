@@ -17,9 +17,8 @@ use crate::{
     core::{
         ExternalFormatter, JsFormatEmbeddedCb, JsFormatEmbeddedDocCb, JsFormatFileCb,
         JsInitExternalFormatterCb, JsSortTailwindClassesCb,
-        oxfmtrc::{
-            FormatConfig, inject_filepath, inject_tailwind_plugin_payload, to_prettier_options,
-        },
+        options::{inject_filepath, inject_tailwind_plugin_payload, to_prettier},
+        oxfmtrc::FormatConfig,
         resolve_for_embedded_js,
     },
     prettier_compat::to_prettier_doc,
@@ -146,7 +145,7 @@ fn run_full(
     // Prettier options for callbacks that `oxc_formatter` may dispatch (e.g., CSS-in-JS).
     // The embedded JS context is treated as always Tailwind-capable, so the inject is unconditional.
     // The helper no-ops when user config has Tailwind disabled.
-    let mut external_options = to_prettier_options(&resolved.config);
+    let mut external_options = to_prettier(&resolved.config);
     inject_filepath(&mut external_options, &resolved.parent_filepath);
     inject_tailwind_plugin_payload(&mut external_options, &resolved.config);
 

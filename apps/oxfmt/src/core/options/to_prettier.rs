@@ -6,7 +6,7 @@ use serde_json::Value;
 
 use oxc_formatter::FormatOptions;
 
-use super::format_config::{
+use super::super::oxfmtrc::{
     ArrowParensConfig, EmbeddedLanguageFormattingConfig, EndOfLineConfig, FormatConfig,
     HtmlWhitespaceSensitivityConfig, ObjectWrapConfig, ProseWrapConfig, QuotePropsConfig,
     SortTailwindcssUserConfig, TrailingCommaConfig,
@@ -22,7 +22,7 @@ use super::format_config::{
 ///   - To reduce confusion and JSON size
 ///
 /// `parser`, `filepath`, and plugin payloads are layered in via the dedicated `inject_*` helpers below.
-pub fn to_prettier_options(config: &FormatConfig) -> Value {
+pub fn to_prettier(config: &FormatConfig) -> Value {
     let mut obj = serde_json::Map::new();
 
     // `printWidth` is the one core option whose default genuinely differs
@@ -148,12 +148,12 @@ pub fn to_prettier_options(config: &FormatConfig) -> Value {
 
 // ---
 
-/// Unwrap a [`Value`] produced by [`to_prettier_options`] back to its underlying object map.
+/// Unwrap a [`Value`] produced by [`to_prettier`] back to its underlying object map.
 ///
 /// Used by every `inject_*` helper below
-/// so the invariant ("`to_prettier_options` returns [`Value::Object`]") lives in exactly one place.
+/// so the invariant ("`to_prettier` returns [`Value::Object`]") lives in exactly one place.
 fn as_object_mut(opts: &mut Value) -> &mut serde_json::Map<String, Value> {
-    opts.as_object_mut().expect("`to_prettier_options` returns `Value::Object`")
+    opts.as_object_mut().expect("`to_prettier` returns `Value::Object`")
 }
 
 /// Inject `parser` key.
@@ -275,7 +275,7 @@ mod tests_overrides_parsing {
 // ---
 
 #[cfg(test)]
-mod tests_to_prettier_options {
+mod tests_to_prettier {
     use super::*;
     use crate::core::oxfmtrc::FormatConfig;
 
@@ -286,7 +286,7 @@ mod tests_to_prettier_options {
     #[test]
     fn emits_only_print_width_for_empty_config() {
         let config = config_from("{}");
-        let value = to_prettier_options(&config);
+        let value = to_prettier(&config);
         let obj = value.as_object().unwrap();
 
         // `printWidth` is always emitted because oxfmt's default (100) differs
@@ -303,7 +303,7 @@ mod tests_to_prettier_options {
         let config = config_from(
             r#"{ "printWidth": 80, "useTabs": true, "tabWidth": 4, "endOfLine": "crlf" }"#,
         );
-        let value = to_prettier_options(&config);
+        let value = to_prettier(&config);
         let obj = value.as_object().unwrap();
 
         assert_eq!(obj.get("printWidth"), Some(&Value::from(80)));
@@ -315,7 +315,7 @@ mod tests_to_prettier_options {
     #[test]
     fn omits_unset_optional_prettier_options() {
         let config = config_from("{}");
-        let value = to_prettier_options(&config);
+        let value = to_prettier(&config);
         let obj = value.as_object().unwrap();
 
         // Optional Prettier options are omitted when not set
@@ -342,7 +342,7 @@ mod tests_to_prettier_options {
                 "vueIndentScriptAndStyle": true
             }"#,
         );
-        let value = to_prettier_options(&config);
+        let value = to_prettier(&config);
         let obj = value.as_object().unwrap();
 
         assert_eq!(obj.get("singleQuote"), Some(&Value::from(true)));
@@ -369,7 +369,7 @@ mod tests_to_prettier_options {
                 "jsdoc": true
             }"#,
         );
-        let value = to_prettier_options(&config);
+        let value = to_prettier(&config);
         let obj = value.as_object().unwrap();
 
         for key in [
@@ -391,10 +391,10 @@ mod tests_to_prettier_options {
     }
 
     #[test]
-    fn to_prettier_options_never_injects_tailwind_keys() {
+    fn to_prettier_never_injects_tailwind_keys() {
         // Tailwind keys are always opt-in via `inject_tailwind_plugin_payload`.
         let config = config_from(r#"{ "sortTailwindcss": true }"#);
-        let value = to_prettier_options(&config);
+        let value = to_prettier(&config);
         let obj = value.as_object().unwrap();
 
         assert!(!obj.contains_key("_useTailwindPlugin"));
@@ -403,9 +403,9 @@ mod tests_to_prettier_options {
 
     #[test]
     fn does_not_inject_filepath_or_plugin_options_json() {
-        // These belong to the format step, not to_prettier_options
+        // These belong to the format step, not to_prettier
         let config = config_from(r#"{ "printWidth": 80 }"#);
-        let value = to_prettier_options(&config);
+        let value = to_prettier(&config);
         let obj = value.as_object().unwrap();
 
         assert!(!obj.contains_key("filepath"));

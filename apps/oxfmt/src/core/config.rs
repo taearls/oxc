@@ -19,7 +19,8 @@ use oxc_formatter::FormatOptions;
 use super::js_config::JsConfigLoaderCb;
 use super::{
     FormatStrategy,
-    oxfmtrc::{EndOfLineConfig, FormatConfig, OxfmtOverrideConfig, Oxfmtrc, to_format_options},
+    options::to_oxc_formatter,
+    oxfmtrc::{EndOfLineConfig, FormatConfig, OxfmtOverrideConfig, Oxfmtrc},
     support::FileKind,
     utils,
 };
@@ -62,7 +63,7 @@ pub fn resolve_for_api(
     format_config.resolve_tailwind_paths(cwd);
     // Validate eagerly: `from_format_config` skips validation for `ExternalFormatter*` kinds,
     // so range-out values (e.g., `printWidth: 1000`) would otherwise silently reach Prettier.
-    let _ = to_format_options(&format_config)?;
+    let _ = to_oxc_formatter(&format_config)?;
     FormatStrategy::from_format_config(format_config, kind)
 }
 
@@ -93,7 +94,7 @@ pub fn resolve_for_embedded_js(
     config: FormatConfig,
     parent_filepath: PathBuf,
 ) -> Result<EmbeddedCallbackResolved, String> {
-    let format_options = Box::new(to_format_options(&config)?);
+    let format_options = Box::new(to_oxc_formatter(&config)?);
     Ok(EmbeddedCallbackResolved { format_options, config: Box::new(config), parent_filepath })
 }
 
@@ -345,7 +346,7 @@ impl ConfigResolver {
     /// - `self.oxfmtrc_overrides` is set if `overrides` exists
     /// - `self.ignore_glob` is built from `ignorePatterns`
     ///
-    /// Validation runs eagerly via `to_format_options(&base_config)` so invalid
+    /// Validation runs eagerly via `to_oxc_formatter(&base_config)` so invalid
     /// values (e.g., `printWidth: 99999`) are surfaced at config load time
     /// regardless of which file kind is later processed.
     ///
@@ -377,7 +378,7 @@ impl ConfigResolver {
         }
 
         // Eagerly validate; see method doc for the rationale.
-        let _ = to_format_options(&format_config)?;
+        let _ = to_oxc_formatter(&format_config)?;
 
         // Save cached snapshot for fast path: no per-file overrides
         self.base_config = Some(format_config);
@@ -454,7 +455,7 @@ impl ConfigResolver {
 
         // Validate the merged config; see method doc for what kinds of errors are caught
         // and why this is the only safety net for `ExternalFormatter*` kinds.
-        let _ = to_format_options(&format_config)?;
+        let _ = to_oxc_formatter(&format_config)?;
 
         Ok(format_config)
     }
@@ -771,7 +772,7 @@ mod tests_slow_path_validation {
     ///
     /// `resolve_options` itself skips re-validation on the fast path
     /// (just clones the pre-validated `base_config`), but
-    /// `FormatStrategy::from_format_config` still calls `to_format_options` for
+    /// `FormatStrategy::from_format_config` still calls `to_oxc_formatter` for
     /// `OxcFormatter`/`OxfmtToml`, so this test cannot directly assert "no re-validation"
     /// — only that the overall call succeeds.
     #[test]
@@ -783,7 +784,7 @@ mod tests_slow_path_validation {
     }
 
     /// `resolve_for_api` must validate even for `ExternalFormatter*` kinds.
-    /// Without the eager `to_format_options` call, `printWidth: 1000` would
+    /// Without the eager `to_oxc_formatter` call, `printWidth: 1000` would
     /// silently flow through to Prettier via the NAPI `format()` API.
     #[test]
     #[cfg(feature = "napi")]
