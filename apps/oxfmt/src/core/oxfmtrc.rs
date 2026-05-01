@@ -774,10 +774,14 @@ pub struct JsdocConfig {
 // ---
 
 /// Merge two JSON values recursively.
-/// - Overlay values overwrite base values
-/// - `null` values in overlay reset the field to default (via `Option<T>` → `None`)
+/// - Overlay values overwrite base values (any non-object overlay wins, including `null`)
 ///
 /// All Prettier options are flat, but some our options are nested.
+///
+/// NOTE: null-as-reset is helper-level only.
+/// [`FormatConfig::merge`] re-serializes typed `Option<T>` fields with `skip_serializing_if = "Option::is_none"`,
+/// so `None` is omitted (not emitted as `null`) and never reaches this function.
+/// User-facing override `null` therefore has no effect, explicit field omission has the same result.
 fn json_deep_merge(base: Value, overlay: Value) -> Value {
     match (base, overlay) {
         (Value::Object(mut base_map), Value::Object(overlay_map)) => {
@@ -819,12 +823,6 @@ mod tests_json_deep_merge {
             merged,
             json!({ "experimentalSortImports": { "order": "desc", "ignoreCase": true } })
         );
-
-        // Null overwrites value (but in practice, None is skipped during serialization)
-        let base = json!({ "semi": false, "tabWidth": 4 });
-        let overlay = json!({ "semi": null });
-        let merged = json_deep_merge(base, overlay);
-        assert_eq!(merged, json!({ "semi": null, "tabWidth": 4 }));
     }
 }
 
