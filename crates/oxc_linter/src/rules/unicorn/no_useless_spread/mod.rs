@@ -767,7 +767,6 @@ fn test() {
         (r"[...Array.from(iterable)]", r"Array.from(iterable)"),
         ("[...((0, []))]", "((0, []))"),
         ("[...arr.reduce((a, b) => a.push(b), [])]", "arr.reduce((a, b) => a.push(b), [])"),
-        ("[...arr.reduce((a, b) => a.push(b), [])]", "arr.reduce((a, b) => a.push(b), [])"),
         // Issue: <https://github.com/oxc-project/oxc/issues/8115>
         ("setupServer(...[...importHandlers])", "setupServer(...importHandlers)"),
         ("setupServer(...[1, 2, 3])", "setupServer(1, 2, 3)"),
