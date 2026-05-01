@@ -213,25 +213,38 @@ source: crates/oxc_linter/src/tester.rs
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useHookInsideLoop" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render.
    ╭─[rules_of_hooks.tsx:4:25]
+ 2 │                 function ComponentWithHookInsideLoop() {
  3 │                     while (cond) {
+   ·                     ──┬──
+   ·                       ╰── This loop may execute the Hook more than once.
  4 │                         useHookInsideLoop();
-   ·                         ───────────────────
+   ·                         ─────────┬─────────
+   ·                                  ╰── Hook is called here
  5 │                     }
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useHookInsideLoop" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render.
    ╭─[rules_of_hooks.tsx:4:17]
+ 2 │             function ComponentWithHookInsideLoop() {
  3 │               do {
+   ·               ─┬
+   ·                ╰── This loop may execute the Hook more than once.
  4 │                 useHookInsideLoop();
-   ·                 ───────────────────
+   ·                 ─────────┬─────────
+   ·                          ╰── Hook is called here
  5 │               } while (cond);
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useHookInsideLoop" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render.
    ╭─[rules_of_hooks.tsx:5:24]
+ 2 │             function ComponentWithHookInsideLoop() {
+ 3 │               do {
+   ·               ─┬
+   ·                ╰── This loop may execute the Hook more than once.
  4 │                 foo();
  5 │               } while (useHookInsideLoop());
-   ·                        ───────────────────
+   ·                        ─────────┬─────────
+   ·                                 ╰── Hook is called here
  6 │             }
    ╰────
 
@@ -298,97 +311,157 @@ source: crates/oxc_linter/src/tester.rs
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useHook1" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render.
    ╭─[rules_of_hooks.tsx:4:25]
+ 2 │                 function useHookInLoops() {
  3 │                     while (a) {
+   ·                     ──┬──
+   ·                       ╰── This loop may execute the Hook more than once.
  4 │                         useHook1();
-   ·                         ──────────
+   ·                         ─────┬────
+   ·                              ╰── Hook is called here
  5 │                         if (b) return;
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useHook2" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render.
    ╭─[rules_of_hooks.tsx:6:25]
+ 2 │                 function useHookInLoops() {
+ 3 │                     while (a) {
+   ·                     ──┬──
+   ·                       ╰── This loop may execute the Hook more than once.
+ 4 │                         useHook1();
  5 │                         if (b) return;
  6 │                         useHook2();
-   ·                         ──────────
+   ·                         ─────┬────
+   ·                              ╰── Hook is called here
  7 │                     }
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useHook3" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render.
     ╭─[rules_of_hooks.tsx:9:25]
+  7 │                     }
   8 │                     while (c) {
+    ·                     ──┬──
+    ·                       ╰── This loop may execute the Hook more than once.
   9 │                         useHook3();
-    ·                         ──────────
+    ·                         ─────┬────
+    ·                              ╰── Hook is called here
  10 │                         if (d) return;
     ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useHook4" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render.
     ╭─[rules_of_hooks.tsx:11:25]
+  7 │                     }
+  8 │                     while (c) {
+    ·                     ──┬──
+    ·                       ╰── This loop may execute the Hook more than once.
+  9 │                         useHook3();
  10 │                         if (d) return;
  11 │                         useHook4();
-    ·                         ──────────
+    ·                         ─────┬────
+    ·                              ╰── Hook is called here
  12 │                     }
     ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useHook1" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render.
    ╭─[rules_of_hooks.tsx:4:21]
+ 2 │             function useHookInLoops() {
  3 │                 while (a) {
+   ·                 ──┬──
+   ·                   ╰── This loop may execute the Hook more than once.
  4 │                     useHook1();
-   ·                     ──────────
+   ·                     ─────┬────
+   ·                          ╰── Hook is called here
  5 │                     if (b) continue;
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useHook2" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render.
    ╭─[rules_of_hooks.tsx:6:21]
+ 2 │             function useHookInLoops() {
+ 3 │                 while (a) {
+   ·                 ──┬──
+   ·                   ╰── This loop may execute the Hook more than once.
+ 4 │                     useHook1();
  5 │                     if (b) continue;
  6 │                     useHook2();
-   ·                     ──────────
+   ·                     ─────┬────
+   ·                          ╰── Hook is called here
  7 │                 }
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useHook1" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render.
    ╭─[rules_of_hooks.tsx:4:12]
+ 2 │        function useHookInLoops() {
  3 │          do {
+   ·          ─┬
+   ·           ╰── This loop may execute the Hook more than once.
  4 │            useHook1();
-   ·            ──────────
+   ·            ─────┬────
+   ·                 ╰── Hook is called here
  5 │            if (a) return;
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useHook2" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render.
    ╭─[rules_of_hooks.tsx:6:12]
+ 2 │        function useHookInLoops() {
+ 3 │          do {
+   ·          ─┬
+   ·           ╰── This loop may execute the Hook more than once.
+ 4 │            useHook1();
  5 │            if (a) return;
  6 │            useHook2();
-   ·            ──────────
+   ·            ─────┬────
+   ·                 ╰── Hook is called here
  7 │          } while (b);
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useHook3" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render.
     ╭─[rules_of_hooks.tsx:10:12]
+  8 │ 
   9 │          do {
+    ·          ─┬
+    ·           ╰── This loop may execute the Hook more than once.
  10 │            useHook3();
-    ·            ──────────
+    ·            ─────┬────
+    ·                 ╰── Hook is called here
  11 │            if (c) return;
     ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useHook4" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render.
     ╭─[rules_of_hooks.tsx:12:12]
+  8 │ 
+  9 │          do {
+    ·          ─┬
+    ·           ╰── This loop may execute the Hook more than once.
+ 10 │            useHook3();
  11 │            if (c) return;
  12 │            useHook4();
-    ·            ──────────
+    ·            ─────┬────
+    ·                 ╰── Hook is called here
  13 │          } while (d)
     ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useHook1" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render.
    ╭─[rules_of_hooks.tsx:4:13]
+ 2 │         function useHookInLoops() {
  3 │           do {
+   ·           ─┬
+   ·            ╰── This loop may execute the Hook more than once.
  4 │             useHook1();
-   ·             ──────────
+   ·             ─────┬────
+   ·                  ╰── Hook is called here
  5 │             if (a) continue;
    ╰────
 
   ⚠ react-hooks(rules-of-hooks): React Hook "useHook2" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render.
    ╭─[rules_of_hooks.tsx:6:13]
+ 2 │         function useHookInLoops() {
+ 3 │           do {
+   ·           ─┬
+   ·            ╰── This loop may execute the Hook more than once.
+ 4 │             useHook1();
  5 │             if (a) continue;
  6 │             useHook2();
-   ·             ──────────
+   ·             ─────┬────
+   ·                  ╰── Hook is called here
  7 │           } while (b);
    ╰────
 

@@ -53,13 +53,22 @@ mod diagnostics {
         .with_error_code_scope(SCOPE)
     }
 
-    pub(super) fn loop_hook(span: Span, hook_name: &str) -> OxcDiagnostic {
+    pub(super) fn loop_hook(
+        hook_span: Span,
+        loop_keyword_span: Option<Span>,
+        hook_name: &str,
+    ) -> OxcDiagnostic {
+        let mut labels = vec![hook_span.primary_label("Hook is called here")];
+        if let Some(loop_keyword_span) = loop_keyword_span {
+            labels.push(loop_keyword_span.label("This loop may execute the Hook more than once."));
+        }
+
         OxcDiagnostic::warn(format!(
             "React Hook {hook_name:?} may be executed more than once. Possibly \
             because it is called in a loop. React Hooks must be called in the \
             exact same order in every component render."
         ))
-        .with_label(span)
+        .with_labels(labels)
         .with_error_code_scope(SCOPE)
     }
 
@@ -336,7 +345,11 @@ impl Rule for RulesOfHooks {
 
         // Is this node cyclic?
         if cfg.is_cyclic(node_cfg_id) {
-            return ctx.diagnostic(diagnostics::loop_hook(span, hook_name));
+            return ctx.diagnostic(diagnostics::loop_hook(
+                span,
+                loop_keyword_span(ctx, ctx.nodes(), node.id(), parent_func.id()),
+                hook_name,
+            ));
         }
 
         if has_conditional_path_accept_throw(ctx.nodes(), cfg, parent_func, node) {
@@ -373,6 +386,34 @@ fn class_component_span(ctx: &LintContext<'_>, node_id: NodeId) -> Option<Span> 
 fn async_keyword_span(ctx: &LintContext<'_>, span: Span) -> Option<Span> {
     let start = span.start + ctx.find_next_token_within(span.start, span.end, "async")?;
     Some(Span::sized(start, "async".len() as u32))
+}
+
+#[expect(clippy::cast_possible_truncation)]
+fn loop_keyword_span(
+    ctx: &LintContext<'_>,
+    nodes: &AstNodes<'_>,
+    hook_node_id: NodeId,
+    function_node_id: NodeId,
+) -> Option<Span> {
+    for ancestor in nodes.ancestors(hook_node_id) {
+        if ancestor.id() == function_node_id {
+            break;
+        }
+
+        let (span, keyword) = match ancestor.kind() {
+            AstKind::DoWhileStatement(stmt) => (stmt.span, "do"),
+            AstKind::WhileStatement(stmt) => (stmt.span, "while"),
+            AstKind::ForStatement(stmt) => (stmt.span, "for"),
+            AstKind::ForInStatement(stmt) => (stmt.span, "for"),
+            AstKind::ForOfStatement(stmt) => (stmt.span, "for"),
+            _ => continue,
+        };
+
+        let start = span.start + ctx.find_next_token_within(span.start, span.end, keyword)?;
+        return Some(Span::sized(start, keyword.len() as u32));
+    }
+
+    None
 }
 
 fn has_conditional_path_accept_throw(
