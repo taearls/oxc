@@ -49,12 +49,14 @@ fn format_agent(diagnostic: &Error) -> String {
     };
     let rule = rule_id.map_or_else(String::new, |rule_id| format!(" {rule_id}"));
     let message = compact_message(&diagnostic.to_string());
+    let help = diagnostic
+        .help()
+        .map(|help| format!(" help: {}", compact_message(&help.to_string())))
+        .unwrap_or_default();
+    let location =
+        if start.line == 0 { String::new() } else { format!(":{}:{}", start.line, start.column) };
 
-    if start.line == 0 {
-        format!("{filename}: {severity}{rule}: {message}\n")
-    } else {
-        format!("{filename}:{}:{}: {severity}{rule}: {message}\n", start.line, start.column)
-    }
+    format!("{filename}{location}: {severity}{rule}: {message}{help}\n")
 }
 
 fn compact_message(message: &str) -> String {
@@ -80,6 +82,7 @@ mod test {
         let mut reporter = AgentReporter;
         let error = OxcDiagnostic::warn("error message")
             .with_error_code("eslint", "no-debugger")
+            .with_help("help message")
             .with_label(Span::new(0, 8))
             .with_source_code(NamedSource::new("file://test.ts", "debugger;"));
 
@@ -87,7 +90,7 @@ mod test {
 
         assert_eq!(
             result.unwrap(),
-            "file://test.ts:1:1: warning eslint(no-debugger): error message\n"
+            "file://test.ts:1:1: warning eslint(no-debugger): error message help: help message\n"
         );
     }
 
