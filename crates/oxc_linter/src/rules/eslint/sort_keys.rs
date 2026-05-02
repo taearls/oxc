@@ -1312,6 +1312,44 @@ fn test() {
     },
 };",
         ),
+        (
+            r#"const config = {
+    variants: {
+        variant: {
+            default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            outline:
+                "bg-background hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        },
+        size: {
+            default: "h-8 text-sm",
+            sm: "h-7 text-xs",
+            lg: "h-12 text-sm group-data-[collapsible=icon]:p-0!",
+        },
+    },
+    defaultVariants: {
+        variant: "default",
+        size: "default",
+    },
+};"#,
+            r#"const config = {
+    defaultVariants: {
+        size: "default",
+        variant: "default",
+    },
+    variants: {
+        size: {
+            default: "h-8 text-sm",
+            lg: "h-12 text-sm group-data-[collapsible=icon]:p-0!",
+            sm: "h-7 text-xs",
+        },
+        variant: {
+            default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            outline:
+                "bg-background hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        },
+    },
+};"#,
+        ),
         // spellchecker:on
         // No fix when there are comments on properties that could be moved (issue #20873)
         (
